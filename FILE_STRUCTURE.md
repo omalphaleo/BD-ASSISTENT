@@ -13,17 +13,22 @@ BD ASSISTANT/                  # project root
 ├── FILE_STRUCTURE.md          # exists: this file
 ├── ARCHITECTURE.md            # exists: how the system is built
 ├── Makefile                   # planned (M1): `make check` runs all lint, type and test steps
+├── docker-compose.yml         # exists: local dev (db pgvector/pg17, api, worker, optional frontend profile)
+├── .env.example               # exists: variables for compose (POSTGRES_*); real .env is git-ignored
+├── .gitignore                 # exists
 ├── docs/
 │   ├── plan.md                # exists: implementation plan (roadmap, rationale, open items)
 │   ├── requirements/
 │   │   ├── Q-A.md             # exists: requirements source of truth (D-001…D-113)
 │   │   └── BD-Ans-2026-10-23-R1.docx   # exists: original BD answers, superseded by Q-A.md
-│   └── decisions/             # planned: one short file per significant technical decision
-├── BD_BACKEND/                # exists, empty: FastAPI backend and worker (planned M1)
-└── BD_FRONTEND/               # exists, empty: Next.js frontend (planned M1)
+│   └── decisions/             # exists: one short file per significant technical decision (0001 = Docker for local dev)
+├── BD_BACKEND/                # exists: backend skeleton (see below)
+└── BD_FRONTEND/               # exists: only an untested Dockerfile and .dockerignore (Next.js planned M1)
 ```
 
-## BD_BACKEND (planned, M1)
+## BD_BACKEND (M1)
+
+Exists today: `pyproject.toml`, `.env.example`, `alembic.ini`, `Dockerfile`, `.dockerignore`, `migrations/` (env, template, `0001` enabling pgvector), `app/{main,config,db,worker}.py`, `app/core/api.py` (`/health` only), and `tests/` (`conftest.py`, health, config, migrations). Everything else in the tree below is planned.
 
 ```
 BD_BACKEND/

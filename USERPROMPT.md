@@ -68,3 +68,37 @@ Rules: add the entry before starting work with `Status: In progress`. When finis
 - Follow-up prompt (2026-11-12): approved, use your recommendations for all five (move docs under docs/, keep BD_BACKEND / BD_FRONTEND, rename CLAUDE.MD to CLAUDE.md, seed PROMPT.md with draft entries, backfill USERPROMPT.md).
 - Summary: Moved the plan, Q&A and docx under docs/ (plan paths and folder names updated to BD_BACKEND / BD_FRONTEND), renamed CLAUDE.MD to CLAUDE.md, and rewrote it with the mandatory workflow, doc-ownership table and coding standards. Created USERPROMPT.md (backfilled T-001 to T-005), PROMPT.md (three draft prompt entries), FILE_STRUCTURE.md, ARCHITECTURE.md and README.md. No application code touched.
 - Status update (2026-11-12): Completed
+
+## T-006: Backend initialization (FastAPI) plus Docker setup
+- Date: 2026-11-12
+- Status: In progress
+- Original prompt:
+  > Read docs/plan.md (v0.3) and CLAUDE.md.
+  > We are starting the Alphaleo BD project from scratch. There is no existing repository structure or backend implementation.
+  > Objective: Basic Backend Initialization plus Docker setup
+  > Set up the backend using FastAPI, following the technology stack, folder structure (section 5.4), and M1 backend setup requirements defined in docs/plan.md.
+  > Scope:
+  > 1. Initialize the FastAPI project.
+  > 2. Create the required backend folder structure.
+  > 3. Configure dependencies and environment variables.
+  > 4. Create the application entry point.
+  > 5. Add a basic /health endpoint.
+  > 6. Configure database connectivity and migration tooling.
+  > 7. Set up basic testing configuration.
+  > 8. Docker setup, separate for backend and frontend:
+  >    - backend/Dockerfile for the API and worker (same image, different start command), with a .dockerignore.
+  >    - frontend/Dockerfile with its own .dockerignore. The frontend does not exist yet, so create only the Dockerfile and mark it as untested until the Next.js skeleton is added later.
+  >    - A docker-compose.yml at the project root for local development with these services: PostgreSQL 17 with pgvector (use the pgvector/pgvector:pg17 image), api, worker, and frontend (the frontend service must be optional or commented out until the frontend exists).
+  >    - Environment variables come from .env files. Never put secrets in Dockerfiles or compose.
+  >    - The database must not be exposed beyond localhost.
+  > Restrictions:
+  > - No business logic or application feature implementation.
+  > - No frontend application code, only its Dockerfile.
+  > - Nothing from M2 or later.
+  > - Do not assume existing code or files beyond the provided documentation.
+  > - The plan and CLAUDE.md defer Docker to staging. I am overriding that now. Record this change as a dated entry in docs/decisions/ and add one line to CLAUDE.md saying Docker is now in scope for local development. Do not edit docs/plan.md.
+  > - Mac-native setup (Homebrew PostgreSQL, virtualenv) must still work as an alternative, and the README setup steps should cover both.
+  > Workflow: 1. Read and understand the documentation. 2. Show me a short implementation plan. 3. Wait for my approval before making changes. 4. After approval, initialize the backend and Docker files. 5. Verify application startup, /health, migrations, tests, and `docker compose up` for the database, api and worker. 6. Provide a concise summary of created files and verification results. Do not create or modify any files before my approval.
+- Follow-up prompt (2026-11-12): plan approved (keep BD_BACKEND / BD_FRONTEND, pydantic-settings accepted by approval).
+- Summary: Created the FastAPI backend skeleton in BD_BACKEND (config, DB, Alembic with a pgvector migration, /health, Procrastinate no-op worker, 5 tests), backend and frontend Dockerfiles, and a root docker-compose.yml (db pg17+pgvector bound to 127.0.0.1, api, worker, frontend behind a profile). Recorded the Docker override in docs/decisions/0001 and CLAUDE.md; updated README (Docker and Mac-native paths) and FILE_STRUCTURE.
+- Status update (2026-11-12): Completed. Verified in Docker: compose up (db, api, worker), /health 200 and 503, migrations, 5 tests, ruff. Not verified: frontend Dockerfile (no app yet) and the Mac-native path (host has no Python 3.12 or psql).

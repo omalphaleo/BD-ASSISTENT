@@ -1,0 +1,62 @@
+# Local development only. Values come from the root .env (copy .env.example); no secrets here.
+# Start:  docker compose up -d db api worker
+# Frontend is optional and off by default (no app yet): docker compose --profile frontend up
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    ports:
+      - "127.0.0.1:5432:5432" # localhost only, never exposed on other interfaces
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./BD_BACKEND
+      args:
+        INSTALL_DEV: "true"
+    image: alphaleo-bd-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      APP_ENV: development
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    image: alphaleo-bd-backend # same image as api, different command
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      APP_ENV: development
+    command: sh -c "procrastinate --app=app.worker.app schema --apply && procrastinate --app=app.worker.app worker"
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started # api builds the image and runs migrations first
+
+  frontend: # UNTESTED until the Next.js skeleton exists
+    profiles: ["frontend"]
+    build:
+      context: ./BD_FRONTEND
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

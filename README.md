@@ -4,7 +4,7 @@ Alphaleo BD is an internal, standalone web app that runs a company's outbound bu
 
 ## Status
 
-Planning. The plan and requirements are written; **no application code exists yet** and the setup and run steps below are the intended ones, to be verified and corrected when milestone M1 creates the tooling. Open items are tracked in [docs/plan.md](docs/plan.md) section 17.
+M1 started. The backend skeleton exists (FastAPI app with `/health`, settings, database connection, Alembic migrations with pgvector, Procrastinate no-op worker, tests) together with Docker files. No business features and no frontend yet; `BD_FRONTEND/` has only an **untested** Dockerfile. The Docker path below was verified; the Mac-native path is documented but not yet verified. Open items are tracked in [docs/plan.md](docs/plan.md) section 17.
 
 ## Technology stack
 
@@ -13,38 +13,50 @@ Python 3.12 · FastAPI · SQLAlchemy 2 + Alembic · PostgreSQL 17 with pgvector 
 ## Folder layout
 
 ```
-BD_BACKEND/    FastAPI API, worker and migrations (empty until M1)
-BD_FRONTEND/   Next.js frontend (empty until M1)
-docs/          plan.md and requirements/
+BD_BACKEND/         FastAPI API, worker, migrations, tests, Dockerfile
+BD_FRONTEND/        Next.js frontend (not built yet; untested Dockerfile only)
+docker-compose.yml  local dev: db (pgvector), api, worker, optional frontend
+docs/               plan.md, requirements/, decisions/
 ```
 
 Full structure and where new files go: [FILE_STRUCTURE.md](FILE_STRUCTURE.md).
 
-## Prerequisites (macOS)
+## Prerequisites
 
-Homebrew, PostgreSQL 17 with the pgvector extension, Python 3.12, and a current Node.js LTS. A Gemini API key (free tier for development on test data; paid before any real prospect data) and, from M7, a Microsoft 365 app registration. Secrets go in git-ignored `.env` files; each side gets a `.env.example`.
+Pick one path. Both use the same code and environment variables (see `docs/decisions/0001-2026-11-12-docker-in-scope-for-local-dev.md`).
 
-## Setup, clone to running app (planned, verify in M1)
+- **Docker path:** Docker with Compose v2. Nothing else is needed for the backend.
+- **Native path (Mac):** Homebrew, PostgreSQL 17 with the pgvector extension, Python 3.12, and a current Node.js LTS (Node only when the frontend exists).
+
+Later: a Gemini API key (free tier for development on test data; paid before any real prospect data) and, from M7, a Microsoft 365 app registration. Secrets go in git-ignored `.env` files; each side gets a `.env.example`.
+
+## Setup and running: Docker path (verified)
 
 1. Clone the repository.
-2. Create the database and enable pgvector; set `DATABASE_URL` in `BD_BACKEND/.env`.
-3. Create a Python 3.12 virtualenv and install the backend dependencies from `BD_BACKEND/pyproject.toml`.
-4. Apply migrations with Alembic.
-5. Install the frontend dependencies in `BD_FRONTEND/` and set the API base URL in `BD_FRONTEND/.env.local`.
+2. `cp .env.example .env` and fill in `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (compose refuses to start if any is empty).
+3. `docker compose up -d --build db api worker`. The API container applies Alembic migrations on start; the worker applies the Procrastinate schema and starts with no tasks.
+4. Check: `curl http://localhost:8000/health` returns `{"status":"ok","database":"ok"}` (503 if the database is down). API docs: `http://localhost:8000/docs`.
+5. PostgreSQL is published on `127.0.0.1:5432` only. Logs: `docker compose logs -f api worker`. Stop: `docker compose down` (add `-v` to delete the database volume).
+6. The `frontend` service is behind the `frontend` profile and its Dockerfile is **untested** until the Next.js skeleton exists.
 
-## Running (planned, verify in M1)
+## Setup and running: Mac-native path (documented, not yet verified)
 
-Three processes, each in its own terminal:
-
-- **API:** Uvicorn serving `app.main:app` from `BD_BACKEND/`.
-- **Worker:** the Procrastinate worker from `app.worker`.
-- **Frontend:** the Next.js dev server from `BD_FRONTEND/`.
-
-The exact commands will be recorded here when they exist.
+1. Install and start PostgreSQL 17 with pgvector (`brew install postgresql@17 pgvector`), then create a role and a database.
+2. `cd BD_BACKEND`, create a Python 3.12 virtualenv, `pip install -e ".[dev]"`.
+3. `cp .env.example .env` and set `DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/DBNAME`.
+4. `alembic upgrade head` (the migration runs `CREATE EXTENSION vector`, which needs a role allowed to create extensions).
+5. API: `uvicorn app.main:app --reload`. Worker (separate terminal): `procrastinate --app=app.worker.app schema --apply` once, then `procrastinate --app=app.worker.app worker`.
+6. Frontend: not built yet (M1 frontend task).
 
 ## Tests and checks
 
-From the repository root, `make check` (planned, M1) runs ruff, pytest against a real PostgreSQL with pgvector, tsc, ESLint and the frontend tests. How to run a single test will be recorded here once the tooling exists.
+Tests need a reachable PostgreSQL with pgvector; they create and use a throwaway database named `<DB>_test` on the same server, never the development database.
+
+- Docker: `docker compose exec api pytest` and `docker compose exec api ruff check .`
+- Native: from `BD_BACKEND/` with the virtualenv active and `DATABASE_URL` set, run `pytest` and `ruff check .`
+- Single test: `pytest tests/test_health.py::test_health_ok`
+
+The plan's root `make check` (ruff, pytest, tsc, ESLint, frontend tests) is still planned.
 
 ## Milestones
 

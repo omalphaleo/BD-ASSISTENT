@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Alphaleo BD is an internal, standalone web app that runs outbound business development: Apollo/Excel lead import, search, AI-drafted 3-step email sequences, human review, scheduled sending via Microsoft 365, and reply classification. Salesforce is only a filterable technology attribute, not an integration. What the project is and how to run it: `README.md`.
 
-Status: planning phase. **No application code exists yet** (`BD_BACKEND/` and `BD_FRONTEND/` are empty, no git repo, no tooling). Do not implement anything until the user approves the plan (gate G0, `docs/plan.md` section 21.5), and when asked to "propose first", wait for approval before writing.
+Status: M1 started. Only the backend skeleton exists (FastAPI app, `/health`, config, DB, Alembic, Procrastinate no-op worker, tests, Docker files); no business features and no frontend code yet (`BD_FRONTEND/` holds only an untested Dockerfile). Do not implement beyond what the user has approved, and when asked to "propose first", wait for approval before writing.
+
+Docker (Compose) is now in scope for local development, overriding the "Docker deferred" wording in the plan; see `docs/decisions/0001-2026-11-12-docker-in-scope-for-local-dev.md`. Mac-native setup stays supported.
 
 ## Mandatory workflow for every task
 
@@ -67,4 +69,4 @@ Plan labels: `[AGREED]`, `[ASSUMPTION]`, `[SUGGESTION]`, `[UNRESOLVED]`. Never i
 
 ## Commands
 
-None exist yet. The plan intends a root `Makefile` whose `make check` runs ruff, pytest, tsc, ESLint and the frontend tests. Treat that as planned. When M1 creates real tooling, record the real commands (including how to run a single test) in `README.md` and link to them here.
+Backend commands (Docker and native) are in `README.md`; single test: `pytest tests/test_health.py::test_health_ok`. The plan's root `Makefile` / `make check` (ruff, pytest, tsc, ESLint, frontend tests) is still planned.
