@@ -102,3 +102,75 @@ Rules: add the entry before starting work with `Status: In progress`. When finis
 - Follow-up prompt (2026-11-12): plan approved (keep BD_BACKEND / BD_FRONTEND, pydantic-settings accepted by approval).
 - Summary: Created the FastAPI backend skeleton in BD_BACKEND (config, DB, Alembic with a pgvector migration, /health, Procrastinate no-op worker, 5 tests), backend and frontend Dockerfiles, and a root docker-compose.yml (db pg17+pgvector bound to 127.0.0.1, api, worker, frontend behind a profile). Recorded the Docker override in docs/decisions/0001 and CLAUDE.md; updated README (Docker and Mac-native paths) and FILE_STRUCTURE.
 - Status update (2026-11-12): Completed. Verified in Docker: compose up (db, api, worker), /health 200 and 503, migrations, 5 tests, ruff. Not verified: frontend Dockerfile (no app yet) and the Mac-native path (host has no Python 3.12 or psql).
+
+## T-007: Clarify task vs USERPROMPT.md in CLAUDE.md workflow
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > (Follow-ups on the "Mandatory workflow for every task" section of CLAUDE.md.) like the 3 and 4th point is saying about the task not the userprompt.md that is confusing
+  > its confusing , to add between that , add that one clearly at the last point
+  > make claude.md edit like add that in thr last point of last and somwehat crtly write give this is wrt to userprompt.md wrt to task like that specify correctly everything which u write
+- Summary: Added point 8 at the end of the "Mandatory workflow" list in CLAUDE.md. It states which steps are about the task (3, 6, 7) and which are about the USERPROMPT.md log (1, 2, 4, 5), and that step 4 means finishing the work and then closing its log entry. Steps 1-7 are unchanged.
+- Status update (2026-11-13): Completed
+
+## T-008: Stop auto-reading USERPROMPT.md in CLAUDE.md workflow
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > Read USERPROMPT.md first (at least the last few entries) for context and the next task ID. this is in the claude.md if it read the entries everytime the context memory will get full, and have not specified the entries also, is this the crt way to write or any change needed?
+  > the read point which we gave in claude.md no need of that, dont want to read that for evry task, it is only for the userprompt.md, dont load that one in everytask and every convo
+  > The read point specified in CLAUDE.md is not required for every task or conversation. It should apply only to userprompt.md. Do not load or read userprompt.md automatically for every task or conversation
+- Summary: Replaced workflow step 1 in CLAUDE.md. USERPROMPT.md is no longer read for context or loaded at the start of a task or conversation. The only allowed lookup is a Grep of `^## T-` headings when appending a new entry, to get the next ID. Other steps and the step 8 references are unchanged.
+- Status update (2026-11-13): Completed
+
+## T-009: Split CLAUDE.md workflow into log rules vs task rules
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > 1. **USERPROMPT.md purpose:** This file is an internal, append-only log used to store the user's original prompts and task completion summaries. It is only for record-keeping, not task context.
+  > 2. **Log tasks:** Before starting any code or documentation task, append a new entry with the next ID, today's date, the user's original prompt verbatim (redact secrets as `[REDACTED]`), and `Status: In progress`. Skip logging for simple questions and explanations.
+  > 3. **Update task status:** After completing the work, append a brief 2–3 line summary and update the status to `Completed`, `Blocked`, or `Needs input`, with the date. Never edit existing entries.
+  > 4. **Perform tasks:** Understand the current request, inspect relevant project files, and make only the necessary changes.
+  > 5. **Keep documentation in sync:** Update relevant documentation whenever code changes affect it. Describe implemented functionality accurately and mark unfinished features as `Planned`.
+  > 6. **Follow the approved technology stack:** Do not introduce dependencies, tools, frameworks, or services outside the project plan without asking the user. Exact version pins remain open under `docs/plan.md` U1; propose versions rather than assuming them.
+  > 7. **Separate task execution and logging:** Use the current prompt and project files to guide implementation. `USERPROMPT.md` is only for recording prompts, summaries, and task statuses.
+  > c this it is crt only specify which file belong to what dont mix up the instructions specific whih=ch instruction for what and then there should not be any ambuiguity for this
+- Summary: Rewrote the "Mandatory workflow" section of CLAUDE.md into A (log rules, only for USERPROMPT.md), B (task rules, only for the work itself) and C (order: open log, do task, close log). The old mixed numbered list and step 8 are removed. No other CLAUDE.md section changed.
+- Status update (2026-11-13): Completed
+
+## T-010: Add general coding rules to CLAUDE.md coding standards
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > in the coding standards of claude.md like general stnadards general rules are not specified ## General Coding Standards (12 rules: Readable Code, Comments and Docstrings, Single Responsibility, Reusability, Type Safety, Error Handling, Consistency, Maintainability, No Dead Code, Minimal Changes, Code Review, No Assumptions) ... some of these are needed? to specify which are needed
+  > in the coding standards only specify general rules and add those
+- Summary: Added a "General rules (all code)" block (12 one-line rules) at the top of "Coding standards" in CLAUDE.md. Existing Layering, AI, Frontend, Data and Tests blocks are unchanged.
+- Status update (2026-11-13): Completed
+
+## T-011: Add general coding standards to CLAUDE.md (re-do of T-010; block not present in CLAUDE.md)
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > generaal rules are not specified in claude.md in coding standards ## General Coding Standards
+  > 1. **Readable Code:** Write clean, simple, and self-explanatory code. Use meaningful names for variables, functions, classes, and files.
+  > 2. **Comments and Docstrings:** Add comments wherever logic is complex, non-obvious, or involves important business decisions. Add docstrings to public functions, classes, and modules where they clarify purpose, parameters, return values, or behaviour. Do not comment every line or repeat what the code already explains.
+  > 3. **Single Responsibility:** Each function, class, and module should have one clear responsibility. Avoid unnecessarily large functions and classes.
+  > 4. **Reusability:** Avoid duplicate code. Extract common logic into reusable functions or modules instead of repeating implementations.
+  > 5. **Type Safety:** Avoid unnecessary `Any`, untyped functions, and implicit assumptions. Define clear input and return types.
+  > 6. **Error Handling:** Handle expected errors explicitly. Do not use broad exception handling unless necessary. Never silently suppress errors or expose internal stack traces to users.
+  > 7. **Consistency:** Follow existing project naming conventions, formatting, patterns, and API response structures. Do not introduce a new pattern when an established one already exists.
+  > 8. **Maintainability:** Avoid hardcoded values, magic numbers, deeply nested conditions, unnecessary abstractions, and overly complicated logic. Use named constants and configuration where appropriate.
+  > 9. **No Dead Code:** Remove unused imports, variables, functions, commented-out code, temporary debugging statements, and unnecessary dependencies.
+  > 10. **Minimal Changes:** Modify only what is required for the task. Avoid unrelated refactoring, duplicate implementations, or unnecessary file creation.
+  > 11. **Code Review:** Before completing a task, review the changes for correctness, readability, security, consistency, and unintended side effects.
+  > 12. **No Assumptions:** Do not invent functionality, business rules, API contracts, or database behaviour. Refer to the approved project plan and existing implementation. Ask for clarification when requirements are unclear.like these
+- Summary: Added a "General (all code)" block with the 12 supplied rules (verbatim) at the top of "Coding standards" in CLAUDE.md; project-specific blocks unchanged and win on conflict. T-010 had logged this as completed but the block was not in CLAUDE.md.
+- Status update (2026-11-13): Completed
+
+## T-012: Review general rules in CLAUDE.md and remove unnecessary ones
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > c all the general rules written crtly if u c this is unnesseray u can remove that general rule
+- Summary: Reviewed the 12 general rules against CLAUDE.md. Removed "Minimal Changes" (duplicate of B1) and "No Assumptions" (duplicate of the status paragraph and the [UNRESOLVED] rule); renumbered Code Review to 10. Ten general rules remain.
+- Status update (2026-11-13): Completed
