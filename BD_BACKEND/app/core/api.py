@@ -1,4 +1,8 @@
-"""Core routes. Thin handlers only."""
+"""Core routes (currently only /health). Thin handlers only.
+
+Needed so Docker, load balancers and operators can tell whether the API and its database
+are up; app.main mounts this router.
+"""
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -17,6 +21,8 @@ def health(session: Session = Depends(get_session)) -> JSONResponse:
     try:
         session.execute(text("SELECT 1"))
     except SQLAlchemyError:
+        # Report degraded status rather than a 500 so probes get a clear, stable body
+        # and no internal error text or stack trace reaches the caller.
         return JSONResponse(
             status_code=503, content={"status": "degraded", "database": "unavailable"}
         )

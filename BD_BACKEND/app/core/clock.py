@@ -1,7 +1,13 @@
-"""Single source of application time (UTC), with an optional offset for testing."""
+"""Single source of application time (UTC), with an optional offset for testing.
+
+Needed so all code reads time from one place and time-dependent rules (scheduling,
+timestamps) can be tested by shifting the clock; models.py uses now() for its
+created_at/updated_at defaults, and tests use set_offset()/reset_offset().
+"""
 
 from datetime import UTC, datetime, timedelta
 
+# Module-level state shared by the whole process; non-zero only in tests.
 _offset: timedelta = timedelta(0)
 
 

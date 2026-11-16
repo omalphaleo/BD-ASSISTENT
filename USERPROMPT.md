@@ -200,3 +200,923 @@ Rules: add the entry before starting work with `Status: In progress`. When finis
   > ok
 - Summary: Made the AI edges in the ARCHITECTURE.md §1 diagram two-way (service <-> AI adapter labelled "request / validated result", AI adapter <-> Gemini) so the generated draft visibly returns to the service layer, which then saves it to PostgreSQL. No other changes.
 - Status update (2026-11-13): Completed
+
+## T-016: Add core.clock.now() with test offset (Task 1, 5 steps)
+- Date: 2026-11-16
+- Status: In progress
+- Original prompt:
+  > # Task 1 (Step 1 of 5): Inspection & Pre-flight Check
+  >
+  > Read `CLAUDE.md` first and follow all project rules. We are implementing Task 1 (`core.clock.now()`) in 5 separate steps.
+  >
+  > **Do NOT create or modify any files in this step.**
+  >
+  > ## Your Tasks
+  > 1. Inspect `docker-compose.yml` and `BD_BACKEND/Dockerfile`:
+  >    - Check if `BD_BACKEND` is bind-mounted into the `api` container (or if a rebuild is needed for new files to appear).
+  >    - Check if `pytest` and `ruff` are installed in the `api` image (note: they may only be in the `dev` extras of `pyproject.toml`). If missing, propose a fix, but **do not** edit the Dockerfile.
+  > 2. Inspect existing files in `BD_BACKEND/app/core/` and `BD_BACKEND/tests/` to note docstrings, typing style, imports, and fixture conventions.
+  >
+  > ## Report Back With
+  > - Docker findings: bind-mount status and availability of `pytest`/`ruff` (plus proposed fix if missing).
+  > - Summary of coding conventions found in `app/core/` and `tests/` that we will match in the next steps.
+  >
+  > Step 1 accepted. Corrections before Step 2:
+  > - Do not monkeypatch the time source and do not add set_clock/freeze helpers.
+  >   clock.py has exactly three public functions: now(), set_offset(), reset_offset().
+  > - Tests use real UTC with a small tolerance, plus set_offset/reset_offset.
+  >   No database or conftest fixtures are needed.
+  > - Use `from datetime import UTC, datetime, timedelta`.
+  > - Run only `ruff check .` (no format check).
+  >
+  > # Task 1 (Step 2 of 5): Implement core.clock
+  >
+  > Create `BD_BACKEND/app/core/clock.py`, matching the conventions you found in Step 1.
+  >
+  > ## Scope and guardrails
+  > - In scope: only `BD_BACKEND/app/core/clock.py`.
+  > - Out of scope: `tests/test_clock.py` (next step), `config.py`, `main.py`, `db.py`,
+  >   the Dockerfile, USERPROMPT.md. Do not commit anything.
+  >
+  > ## Requirements
+  > - One-line module docstring in the project style.
+  > - Imports: `from datetime import UTC, datetime, timedelta`.
+  > - Private module-level variable `_offset: timedelta = timedelta(0)`.
+  > - Exactly three public functions, fully typed, and nothing else public
+  >   (no `set_clock`, `freeze` or other helpers; no monkeypatching hooks):
+  >   1. `now() -> datetime`: returns `datetime.now(UTC) + _offset`. Timezone-aware.
+  >      Add a short comment saying this is the only place in the codebase allowed
+  >      to read the system clock.
+  >   2. `set_offset(delta: timedelta) -> None`: sets `_offset` (use `global _offset`).
+  >   3. `reset_offset() -> None`: sets `_offset` back to `timedelta(0)`.
+  > - No persistence, database calls, settings imports, threading locks, classes
+  >   or new dependencies.
+  >
+  > ## Verify
+  > - `docker compose up -d --build api` (no bind mount, so a rebuild is needed)
+  > - `docker compose exec api ruff check .` must report no problems.
+  >
+  > ## Report back with
+  > - The exact final contents of `BD_BACKEND/app/core/clock.py`.
+  > - The ruff output.
+  >
+  > # Task 1 (Step 3 of 5): Unit tests for core.clock
+  >
+  > Create `BD_BACKEND/tests/test_clock.py`, matching the conventions you found in Step 1.
+  >
+  > ## Scope and guardrails
+  > - In scope: only `BD_BACKEND/tests/test_clock.py`.
+  > - Out of scope: do not modify `clock.py` (if you think it needs a change, stop and
+  >   tell me why), do not touch USERPROMPT.md, do not commit anything.
+  > - No monkeypatching and no fake time. Compare against real UTC with a tolerance.
+  >   Calling `datetime.now(UTC)` inside this test file for the comparison is fine.
+  >
+  > ## Style
+  > - Plain `def test_<sentence_style_name>() -> None:` functions. No classes,
+  >   no docstrings, no module docstring.
+  > - Imports: `from collections.abc import Iterator`, `from datetime import UTC, datetime,
+  >   timedelta`, `import pytest`, `from app.core.clock import now, reset_offset, set_offset`
+  >   (ruff-sorted).
+  >
+  > ## Fixture
+  > - `@pytest.fixture(autouse=True)` typed `-> Iterator[None]`: call `reset_offset()`,
+  >   `yield`, then call `reset_offset()` again.
+  >
+  > ## Tests (exactly 5)
+  > 1. `now()` is timezone-aware and `utcoffset() == timedelta(0)`.
+  > 2. With no offset, `abs(now() - datetime.now(UTC)) < timedelta(seconds=2)`.
+  > 3. After `set_offset(timedelta(hours=2))`, `now()` is about 2 hours ahead of real UTC
+  >    (tolerance 5 seconds).
+  > 4. After `set_offset(timedelta(hours=-3))`, `now()` is about 3 hours behind real UTC
+  >    (tolerance 5 seconds). Assert the direction, not just a difference.
+  > 5. After `set_offset(timedelta(hours=5))` then `reset_offset()`, `now()` is within
+  >    2 seconds of real UTC.
+  >
+  > ## Verify
+  > - `docker compose up -d --build api` (no bind mount, so a rebuild is needed)
+  > - `docker compose exec api pytest tests/test_clock.py -v`
+  > - `docker compose exec api ruff check .`
+  >
+  > ## Report back with
+  > - The exact final contents of `BD_BACKEND/tests/test_clock.py`.
+  > - The pytest output, confirming that exactly 5 tests passed.
+  > - The ruff output.
+  >
+  > # Task 1 (Step 4 of 5): Check and update documentation
+  >
+  > Inspect `FILE_STRUCTURE.md` and `ARCHITECTURE.md`.
+  >
+  > ## Rules
+  > - Edit a doc only if it lists individual files under `app/core/` (or `tests/`) and
+  >   `clock.py` / `test_clock.py` belong in that list. If neither doc lists files at that
+  >   level, make no changes.
+  > - Match the format of neighbouring entries exactly (tree characters, description
+  >   length, ordering). No new sections.
+  > - `clock.py` and `test_clock.py` are built, so do not mark them "planned". Anything
+  >   mentioned in the docs that is not built (for example the admin test clock, M5)
+  >   stays marked "planned".
+  > - If a statement in the docs is now stale (for example "no code exists yet"), do not
+  >   fix it. Report it to me instead.
+  > - Do not edit CLAUDE.md, plan.md or any code. Do not rewrite unrelated sections.
+  >   Do not touch USERPROMPT.md. Do not commit anything.
+  > - If you are unsure whether an edit is warranted, stop and ask.
+  >
+  > ## Report back with
+  > - Which docs you inspected, and whether you edited any.
+  > - A one-line summary per change, or confirmation that no changes were needed.
+  > - Any stale statements you noticed but left alone.
+  > - The output of `git diff -- FILE_STRUCTURE.md ARCHITECTURE.md` and `git status --short`.
+  >
+  > # Task 1 (Step 5 of 5): Verify in Docker and audit the codebase.
+  > If anything fails, stop and report the exact output. Do not edit clock.py, the tests,
+  > the Dockerfile or any other file to make it pass.
+  >
+  > ## Commands to run, in order
+  > A. Rebuild (there is no bind mount, so this is required):
+  >    `docker compose up -d --build db api`
+  > B. `docker compose exec api pytest tests/test_clock.py -v`
+  > C. `docker compose exec api pytest`
+  > D. `docker compose exec api ruff check .`
+  > E. Clock audit, from the repo root:
+  >    `grep -rn "datetime.now(" BD_BACKEND/app/`
+  >    `grep -rnE "datetime\.(now|utcnow|today)\(|time\.time\(" BD_BACKEND/app/`
+  > F. `git status --short`
+  >
+  > If pytest or ruff is missing in the container, report the exact error and remind me of
+  > the fix proposed in Step 1.
+  >
+  > ## Report back with
+  > 1. Full output of B, confirming exactly 5 tests passed.
+  > 2. Full output of C, including the total test count, and any skipped tests or
+  >    database connection errors.
+  > 3. Output of D.
+  > 4. Output of both greps in E. The only match allowed is in
+  >    `BD_BACKEND/app/core/clock.py`.
+  > 5. Output of F (expected: the same changes as in Step 4).
+- Summary: Added `BD_BACKEND/app/core/clock.py` (`now()`, `set_offset()`, `reset_offset()`) and `BD_BACKEND/tests/test_clock.py` (5 tests against real UTC with tolerance), and listed both in `FILE_STRUCTURE.md`. Verified in Docker: 10 tests passed, `ruff check .` clean, and the only system-clock read in `app/` is in `clock.py`.
+- Status update (2026-11-16): Completed
+
+## T-017: Add User model, users migration and tests (Task 2, 6 steps)
+- Date: 2026-11-16
+- Status: In progress
+- Original prompt:
+  > # Task 2 (Step 1 of 6): Inspect only
+  >
+  > Read CLAUDE.md first and follow it.
+  >
+  > Guardrails: do NOT create or modify any file in this step. Do not commit, do not log
+  > to USERPROMPT.md. If anything is unclear, stop and ask.
+  >
+  > Context: Task 2 will add a `users` table and a `user_role` PostgreSQL ENUM. Before any
+  > code is written, I need facts about the current setup.
+  >
+  > ## Inspect and report
+  > 1. `BD_BACKEND/app/db.py`: what is the `Base` class and how is it defined?
+  > 2. `BD_BACKEND/migrations/env.py`: how does it find `Base.metadata`, and how does it get
+  >    the database URL?
+  > 3. `BD_BACKEND/migrations/versions/0001_*.py`: the exact revision id, the file name, and
+  >    the style (header, imports, typing, docstring).
+  > 4. `BD_BACKEND/tests/conftest.py` and `tests/test_migrations.py`: how the test database is
+  >    created, how DATABASE_URL is passed to Alembic, and how cleanup works.
+  > 5. `docker-compose.yml`: the exact Postgres image tag. `gen_random_uuid()` is built in from
+  >    PostgreSQL 13. If the image is older, flag it.
+  > 6. Which command in the Dockerfile or compose file runs `alembic upgrade head` on start
+  >    (quote it, do not assume).
+  > 7. `git status --short`, so I know the starting state.
+  >
+  > ## Report back with
+  > - The answer to each of the 7 points above.
+  > - Anything that conflicts with a Task 2 assumption: a different Base location, a Postgres
+  >   version below 13, migrations that do not run on start, or anything else surprising.
+- Follow-up prompt (2026-11-16, Step 2 of 6):
+  > # Task 2 (Step 2 of 6): User model and env.py import
+  >
+  > ## Scope
+  > - Create `BD_BACKEND/app/core/models.py`.
+  > - Add one line to `BD_BACKEND/migrations/env.py`:
+  >   `import app.core.models  # noqa: F401`, next to the existing `from app.db import Base`
+  >   import, so `Base.metadata` knows the table. Change nothing else in that file.
+  > - Do NOT create the migration or the tests yet.
+  >
+  > ## Concepts
+  > - Time comes only from `core.clock.now()`. So `created_at` and `updated_at` use Python-side
+  >   `default=now` / `onupdate=now`, never `server_default=now()`.
+  > - `user_role` is a PostgreSQL ENUM. It must store `rep`, not `REP`.
+  > - "user" is a reserved word in PostgreSQL, so the table is named `users`.
+  >
+  > ## models.py
+  > - One-line module docstring in the project style. Imports: `enum`, `uuid`, `datetime`,
+  >   `from app.core.clock import now`, `from app.db import Base`, plus the SQLAlchemy names
+  >   you need. Ruff-sorted, line length 100, fully typed.
+  > - `class UserRole(str, enum.Enum)`: `REP = "rep"`, `MANAGER = "manager"`, `ADMIN = "admin"`.
+  > - `class User(Base)` with `__tablename__ = "users"` and a short docstring. SQLAlchemy 2
+  >   style (`Mapped[...]`, `mapped_column`):
+  >
+  > | Column | Type and rules |
+  > |---|---|
+  > | id | `uuid.UUID` primary key, `server_default=text("gen_random_uuid()")` |
+  > | email | `String(320)`, not null |
+  > | password_hash | `Text`, not null |
+  > | role | `Enum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e])`, not null |
+  > | is_active | `bool`, not null, `default=True` |
+  > | created_at | `DateTime(timezone=True)`, not null, `default=now` |
+  > | updated_at | `DateTime(timezone=True)`, not null, `default=now`, `onupdate=now` |
+  >
+  > - `__table_args__`:
+  >   - `CheckConstraint("email = lower(email)", name="ck_users_email_lowercase")`
+  >   - `Index("uq_users_email_lower", text("lower(email)"), unique=True)`
+  >
+  > ## Verify
+  > 1. `docker compose build api` (no bind mount, so a rebuild is required)
+  > 2. `docker compose run --rm api python -c "from app.core.models import User; print(User.__table__.c.keys()); print(sorted(c.name for c in User.__table__.constraints if c.name)); print(User.__table__.indexes)"`
+  > 3. `docker compose run --rm api sh -c "pytest -q && ruff check ."`
+  >    The 10 existing tests must still pass. There is no `users` table yet, so the model
+  >    is only imported, never queried.
+  > 4. `git status --short`
+  >
+  > If anything fails, stop and report the exact output. Do not edit other files to make it pass.
+  >
+  > ## Report back with
+  > - The final contents of `models.py`.
+  > - The `git diff` of `migrations/env.py` (it must be exactly one added line).
+  > - The output of verify steps 2 and 3, with the test count.
+  > - The output of `git status --short`.
+- Follow-up prompt (2026-11-16, Step 2 of 6, follow-up):
+  > # Task 2 (Step 2 of 6, follow-up): apply the ruff fixes
+  >
+  > Decision: follow ruff. Do not add ignores and do not touch pyproject.toml.
+  > My spec was wrong on both points. Apply exactly these two changes:
+  >
+  > 1. BD_BACKEND/app/core/models.py: change `class UserRole(str, enum.Enum):` to
+  >    `class UserRole(enum.StrEnum):`. Change nothing else in the file.
+  > 2. BD_BACKEND/migrations/env.py: move the added `import app.core.models  # noqa: F401`
+  >    to the position ruff's isort wants (before `from app.config import get_settings`).
+  >    Keep the `# noqa: F401`. It must remain exactly one added line versus the original.
+  >
+  > Edit by hand. Do not run `ruff --fix`, `ruff format` or any git command that changes state.
+  > Guardrails are unchanged: only these two files may change, do not touch USERPROMPT.md,
+  > do not commit.
+  >
+  > ## Verify
+  > 1. `docker compose build api`
+  > 2. `docker compose run --rm api python -c "from app.core.models import User, UserRole; print([r.value for r in UserRole]); print(User.__table__.c.role.type.enums)"`
+  >    Expected: `['rep', 'manager', 'admin']` twice.
+  > 3. `docker compose run --rm api sh -c "pytest -q && ruff check ."`
+  >    Expected: 10 passed, ruff clean.
+  > 4. `git diff -- BD_BACKEND/migrations/env.py` and `git status --short`
+  >
+  > If anything fails, stop and report the exact output.
+  >
+  > ## Report back with
+  > - The changed line in models.py and the git diff of env.py.
+  > - Output of verify steps 2, 3 and 4.
+- Follow-up prompt (2026-11-16, Step 3 of 6):
+  > # Task 2 (Step 3 of 6): Migration 0002_create_users
+  >
+  > ## Requirements
+  > - Match the style of 0001_enable_pgvector.py: docstring header (title, Revision ID: 0002,
+  >   Revises: 0001, Create Date: today's date), `from collections.abc import Sequence`,
+  >   typed module variables, `revision: str = "0002"`, `down_revision: str | None = "0001"`,
+  >   `upgrade()` and `downgrade()` typed `-> None`, no function docstrings.
+  > - Write it by hand. You may run autogenerate into a temporary location to compare, but do
+  >   not copy its output blindly, and do not leave the temporary file in the repo.
+  > - Define the enum once at module level:
+  >   `user_role = postgresql.ENUM("rep", "manager", "admin", name="user_role", create_type=False)`
+  >   and use it as the type of the `role` column. Without `create_type=False`, `create_table`
+  >   tries to create the type a second time and fails.
+  > - `upgrade()`, in this order:
+  >   1. Create the type explicitly: `user_role.create(op.get_bind(), checkfirst=False)`.
+  >   2. `op.create_table("users", ...)` with the same columns, types and nullability as the
+  >      model: id (UUID, primary key, `server_default=sa.text("gen_random_uuid()")`), email
+  >      (String(320)), password_hash (Text), role (user_role), is_active (Boolean),
+  >      created_at and updated_at (DateTime(timezone=True)). All not null.
+  >      No server defaults on is_active or on the timestamps: those are Python-side, to match
+  >      the model and the rule that time comes only from core.clock.now().
+  >      Include `sa.PrimaryKeyConstraint("id")` and
+  >      `sa.CheckConstraint("email = lower(email)", name="ck_users_email_lowercase")`.
+  >   3. `op.create_index("uq_users_email_lower", "users", [sa.text("lower(email)")], unique=True)`.
+  > - `downgrade()`, in this order: drop the index, drop the table, then
+  >   `user_role.drop(op.get_bind(), checkfirst=False)`.
+  > - Names must be exactly `ck_users_email_lowercase` and `uq_users_email_lower`.
+  >
+  > ## Verify (run from the repo root; the source is not bind-mounted, so rebuild first)
+  > 1. `docker compose build api`
+  > 2. `docker compose run --rm api sh -c "pytest -q && ruff check ."`
+  >    Expected: 10 passed, ruff clean.
+  > 3. Manual round trip against the running database:
+  >    `docker compose up -d db`
+  >    `docker compose run --rm api alembic upgrade head`
+  >    `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\d users" -c "\dT+ user_role"'`
+  >    `docker compose run --rm api alembic downgrade 0001`
+  >    `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\dt" -c "\dT"'`
+  >    `docker compose run --rm api alembic upgrade head`
+  >    Expected: after the first upgrade, `users` exists with the CHECK constraint and a unique
+  >    index on lower(email), and `user_role` lists rep, manager, admin. After the downgrade,
+  >    no `users` table and no `user_role` type. The final upgrade succeeds again.
+  > 4. Drift check, read-only:
+  >    `docker compose run --rm api alembic check`
+  >    Expected: "No new upgrade operations detected." If it reports differences, show them and
+  >    do not fix anything.
+  > 5. `git status --short`
+  >
+  > If anything fails, stop and report the exact output. Do not edit other files to make it pass.
+  >
+  > ## Report back with
+  > - The final contents of 0002_create_users.py.
+  > - The output of verify steps 2, 3, 4 and 5, in full.
+  > - Any deviation from this brief.
+- Follow-up prompt (2026-11-17, Step 4 of 6):
+  > # Task 2 (Step 4 of 6): Model tests
+  > ## Conventions
+  > Plain `def test_<sentence_style>() -> None` functions, no classes, no docstrings, typed
+  > fixtures, ruff-sorted imports, line length 100. Synthetic data only: alice@example.com and
+  > "not-a-real-hash" for password_hash.
+  >
+  > ## Fixtures (all local to this file)
+  > 1. A module-scoped `engine` fixture: uses `test_database_url` from conftest, builds an
+  >    Alembic Config as test_migrations.py does (alembic.ini, script_location "migrations",
+  >    `cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))`), runs
+  >    `command.upgrade(cfg, "head")`, yields `create_engine(test_database_url)`, then disposes
+  >    it. Write your own copy of the config helper. Do not import the private one.
+  >    Do not downgrade at the end.
+  > 2. A function-scoped `session` fixture: opens a connection from `engine`, begins an outer
+  >    transaction, binds a `Session` with `join_transaction_mode="create_savepoint"`, yields
+  >    it, then closes the session and rolls back the outer transaction. No test data may
+  >    survive a test.
+  > 3. An autouse fixture that calls `reset_offset()` before and after each test.
+  >
+  > ## Tests
+  > 1. A valid ORM user (role `UserRole.REP`) flushes. `id`, `created_at` and `updated_at` are
+  >    populated, `created_at` is timezone-aware. Do not assert the two timestamps are equal.
+  > 2. Two users with the exact same email `alice@example.com` raise `IntegrityError` on flush,
+  >    and `"uq_users_email_lower"` is in `str(exc.value)`.
+  > 3. Email `Alice@example.com` raises `IntegrityError` on flush, and
+  >    `"ck_users_email_lowercase"` is in `str(exc.value)`.
+  > 4. A raw SQL insert via `session.execute(text(...))` with role `'owner'`, supplying every
+  >    NOT NULL column (id, email, password_hash, role, is_active, created_at, updated_at)
+  >    so the role is the only problem. Expect `sqlalchemy.exc.DataError`. If the driver raises
+  >    a different SQLAlchemy exception class, report it instead of changing the expectation.
+  > 5. A user created without setting `is_active` has `is_active is True` after flush.
+  > 6. After `set_offset(timedelta(days=1))`, a new user's `created_at` is within 5 seconds of
+  >    `datetime.now(UTC) + timedelta(days=1)`.
+  > 7. Optional (call it test 8 in your report): `alembic.migration.MigrationContext` with
+  >    `compare_type=True` plus `alembic.autogenerate.compare_metadata(context, Base.metadata)`
+  >    on a connection to the test database returns an empty list. If the functional index
+  >    gives false positives, do NOT keep this test. Report the diff output instead.
+  >
+  > ## Verify (run from the repo root; the source is not bind-mounted, so rebuild first)
+  > 1. `docker compose build api`
+  > 2. `docker compose up -d db`
+  > 3. `docker compose run --rm api pytest tests/test_user_model.py -v`
+  > 4. `docker compose run --rm api sh -c "pytest -q && ruff check ."`
+  >    Expected: 10 old tests plus the new ones pass (6, or 7 with the optional test), no
+  >    skips, ruff clean.
+  > 5. `git status --short`
+  >
+  > ## Report back with
+  > - The final contents of test_user_model.py.
+  > - The full output of verify steps 3, 4 and 5.
+  > - Whether the optional drift test was kept, and if not, the diff it produced.
+  > - Any deviation from this brief.
+- Follow-up prompt (2026-11-17, Step 4 follow-up):
+  > # Task 2 (Step 4 follow-up): Show the test file and the verbose run
+  >
+  > ## Run and report
+  > 1. Print the complete, final contents of BD_BACKEND/tests/test_user_model.py exactly as
+  >    it is on disk (do not summarize or trim it).
+  > 2. Run from the repo root:
+  >    `docker compose run --rm api pytest tests/test_user_model.py -v`
+  >    Include the full output (test names and PASSED lines). You may omit only the platform,
+  >    rootdir and plugins header lines.
+  > 3. Answer these four questions from the file, quoting the relevant lines:
+  >    a. Session fixture: does it open a connection, begin an outer transaction, bind the
+  >       Session with `join_transaction_mode="create_savepoint"`, and roll the outer
+  >       transaction back at the end?
+  >    b. Tests 2 and 3: do they assert that `"uq_users_email_lower"` and
+  >       `"ck_users_email_lowercase"` appear in the exception text?
+  >    c. Test 4: which columns does the raw INSERT supply, and does it use role 'owner'?
+  >    d. Engine fixture: does it build its own Alembic config, run upgrade to head, and
+  >       avoid any downgrade at the end?
+  > 4. Confirm that no file was changed: output `git status --short`.
+  >
+  > ## Report back with
+  > - The full file contents.
+  > - The full -v output.
+  > - The four answers, with quoted lines.
+  > - The git status output.
+- Follow-up prompt (2026-11-17, Step 5 of 6):
+  > # Task 2 (Step 5 of 6): Migration round-trip test
+  >
+  > ## Why a separate database
+  > The shared `_test` database is used by other tests. A downgrade there would break them.
+  > This test must use its own throwaway database and must never touch the shared one.
+  >
+  > ## Conventions
+  > Plain `def test_<sentence_style>() -> None`, no classes, no docstrings, typed fixtures,
+  > ruff-sorted imports, line length 100. Write your own Alembic config helper (same approach
+  > as test_migrations.py: alembic.ini, script_location "migrations",
+  > `cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))`). Do not import private
+  > helpers from other test files.
+  >
+  > ## Fixture
+  > A function-scoped `roundtrip_url` fixture, typed `-> Iterator[str]`:
+  > 1. Take `test_database_url` from conftest. Use `sqlalchemy.engine.make_url` to build a
+  >    second URL whose database name is the original name plus `_roundtrip`.
+  > 2. Using an AUTOCOMMIT engine connected to the shared `_test` database (a different
+  >    database from the one being created or dropped), run
+  >    `DROP DATABASE IF EXISTS "<name>" WITH (FORCE)` then `CREATE DATABASE "<name>"`.
+  > 3. Yield the new URL as a string with the password visible
+  >    (`render_as_string(hide_password=False)`).
+  > 4. In a `finally`, dispose any engines you opened, then run
+  >    `DROP DATABASE IF EXISTS "<name>" WITH (FORCE)` again. The throwaway database must not
+  >    survive the test, even if it fails.
+  >
+  > ## Test (exactly one)
+  > `test_users_migration_upgrades_downgrades_and_upgrades_again`:
+  > 1. `command.upgrade(cfg, "head")`. Assert that `users` exists
+  >    (`SELECT to_regclass('public.users') IS NOT NULL`) and that `user_role` exists
+  >    (`SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role')`).
+  > 2. `command.downgrade(cfg, "0001")`. Assert that `users` is gone and `user_role` is gone.
+  > 3. `command.upgrade(cfg, "head")` again. Assert that both exist again.
+  > Use a short-lived engine for the assertions and dispose it before moving on.
+  >
+  > ## Verify (run from the repo root; the source is not bind-mounted, so rebuild first)
+  > 1. `docker compose build api`
+  > 2. `docker compose up -d db`
+  > 3. `docker compose run --rm api pytest tests/test_user_migration.py -v`
+  > 4. `docker compose run --rm api sh -c "pytest -q && ruff check ."`
+  >    Expected: 18 passed (10 old + 7 + 1 new), no skips, ruff clean.
+  > 5. Confirm the throwaway database is gone:
+  >    `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\l"'`
+  >    No database name ending in `_roundtrip` may be listed.
+  > 6. `git status --short`
+  >
+  > ## Report back with
+  > - The final contents of test_user_migration.py, in full.
+  > - The full output of verify steps 3, 4, 5 and 6.
+  > - Any deviation from this brief.
+- Follow-up prompt (2026-11-17, Step 6 of 6):
+  > # Task 2 (Step 6 of 6): Docs and final verification
+  >
+  > ## Docs
+  > 1. FILE_STRUCTURE.md, the "Exists today" paragraph under BD_BACKEND: add
+  >    `app/core/models.py` (`User`, `UserRole`), migration `0002` (users table and
+  >    `user_role` enum), and the new tests (user model, user migration). Match the format of
+  >    the neighbouring entries. Mark them as existing, not "planned".
+  > 2. ARCHITECTURE.md: add only a short note that core now has the User model and its
+  >    migration. Everything else stays marked planned. Do not fix the stale
+  >    "Status: planned design, no code exists yet" line. Report it instead.
+  > 3. If a doc already lists these items, do not duplicate them.
+  >
+  > ## Verify (run from the repo root; the source is not bind-mounted, so rebuild first)
+  > 1. `docker compose build api`
+  > 2. `docker compose up -d db`
+  > 3. `docker compose run --rm api sh -c "pytest -q && ruff check ."`
+  >    Expected: 18 passed, no skips, ruff clean.
+  > 4. `docker compose up -d api worker`, then
+  >    `docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\d users" -c "\dT+ user_role"'`
+  >    Expected: all columns not null, `gen_random_uuid()` default on id, the CHECK constraint
+  >    `ck_users_email_lowercase`, the unique index `uq_users_email_lower` on `lower(email)`,
+  >    and `user_role` listing rep, manager, admin.
+  > 5. `git diff -- FILE_STRUCTURE.md ARCHITECTURE.md` and `git status --short`
+  > 6. Read-only: print the complete contents of tests/test_user_migration.py and
+  >    tests/test_user_model.py exactly as on disk.
+  >
+  > If anything fails, stop and report the exact output.
+  >
+  > ## Report back with
+  > - Which docs you changed, with a one-line summary per change.
+  > - Full output of verify steps 3, 4 and 5.
+  > - The full contents of both test files.
+  > - Stale statements you noticed but left alone.
+  > - Any deviation from this brief.
+- Summary: Added `app/core/models.py` (`User`, `UserRole` StrEnum), migration `0002_create_users` (users table, `user_role` enum, lowercase-email check, unique `lower(email)` index) and the `import app.core.models` line in `migrations/env.py`. Added `tests/test_user_model.py` (7 tests, incl. a model-vs-migration drift check) and `tests/test_user_migration.py` (upgrade/downgrade/upgrade on a throwaway database). Updated FILE_STRUCTURE.md and ARCHITECTURE.md. 18 tests pass, ruff clean.
+- Status update (2026-11-17): Completed. Open items noticed: `alembic check` on the dev database reports the Procrastinate tables as drift; ARCHITECTURE.md still says "no code exists yet".
+
+## T-018: Add Documentation standards section to CLAUDE.md (2026-11-17)
+
+Prompt:
+> Read the existing `CLAUDE.md` file at the root of this repository (if none exists, inspect the repo structure and create one).
+>
+> Update `CLAUDE.md` by adding a new **Documentation Standards** section that seamlessly matches the existing file's formatting, heading hierarchy, tone, and conventions. Do NOT modify any source, test, or migration files—only edit `CLAUDE.md`.
+>
+> Requirements to incorporate: (1) mandatory 2–3 line file header (what/why/how) for every file incl. source, tests, migrations, with a brief idiomatic example; (2) backend functions/methods/classes need docstrings (purpose, params, returns, raises) in the codebase's existing convention, plus inline "why" comments for non-obvious logic, no redundant comments; (3) tests: header, per-test docstring/comment with scenario and expected outcome, comments on non-trivial mocks/fixtures/setup; (4) migrations: header summarizing schema/data change and why, comments on significant steps and notes on reversibility/locking/data-loss risks; (5) maintenance rule: update headers and docstrings whenever behaviour changes.
+>
+> Execution: inspect CLAUDE.md and scan repo for stack and docstring style; insert the section in the most logical place without removing existing instructions; show a summary of placement and the exact diff added.
+
+Status: In progress
+
+Summary: Added a "Documentation standards" section to CLAUDE.md (between Coding standards and Commands) covering file headers, backend docstrings and why-comments, test and migration documentation, and a keep-in-sync rule. Only CLAUDE.md and this log were edited; no source, test or migration files changed.
+- Status update (2026-11-17): Completed.
+
+## T-019: Argon2id password hashing (Task 3a, implementation only) (2026-11-17)
+
+> Task 3a: Argon2id password hashing (implementation only)
+>
+> Read CLAUDE.md first and follow it. Tasks 1 and 2 are done (core.clock, User model and migration). This task adds only password hashing and verification: no routes, no sessions, no changes to the users table. Verification is a separate task (3b), so do not run the full verification here.
+>
+> APPROVAL
+> I approve exactly one new dependency: argon2-cffi. Nothing else.
+>
+> GUARDRAILS
+> - Do not commit. Do not run git checkout/stash/reset/add.
+> - No dependency other than argon2-cffi. If anything else seems needed, stop and ask.
+> - Never weaken a test to make it pass.
+> - Never log or print passwords or hashes.
+> - If anything is unclear, stop and ask.
+>
+> ALLOW-LIST (touch only these)
+> - BD_BACKEND/pyproject.toml (add argon2-cffi only) and the lock file, if the project has one
+> - BD_BACKEND/app/core/passwords.py (new)
+> - BD_BACKEND/tests/test_passwords.py (new)
+> - FILE_STRUCTURE.md ("Exists today")
+> - ARCHITECTURE.md (one line)
+> - README.md (only if its stack line lists libraries)
+> Do not touch plan.md.
+>
+> INSPECT FIRST
+> pyproject.toml (pin style), app/core/ and tests/ (existing style), the Dockerfile.
+>
+> STEP 1: dependency
+> Check the latest stable argon2-cffi release, report the version, and add it to dependencies in the same ~= style as the others.
+>
+> STEP 2: app/core/passwords.py
+> Module docstring, full type hints, docstrings on public functions. Three public functions:
+> - hash_password(plain_password: str) -> str
+>   Returns the Argon2id hash string. Raises ValueError for an empty password.
+> - verify_password(password_hash: str, plain_password: str) -> bool
+>   True on match. False on a wrong password and on a malformed or unrecognised hash (including an empty hash string). Catch only VerifyMismatchError, InvalidHashError and VerificationError, never a bare except Exception.
+> - password_needs_rehash(password_hash: str) -> bool
+>   Wraps PasswordHasher.check_needs_rehash. Do not catch exceptions here; say in the docstring that a malformed hash raises InvalidHashError and callers should only use it after a successful verify.
+> Details:
+> - One module-level argon2.PasswordHasher() using the library defaults (Argon2id, RFC 9106 low-memory profile). Do not invent cost numbers. Add a short comment saying we rely on the defaults and may raise them later.
+> - No password-strength rules here.
+> - No use of time or datetime. No global state besides the hasher.
+>
+> STEP 3: tests/test_passwords.py (no database; synthetic passwords such as "correct-horse-battery")
+> 1. The hash starts with "$argon2id$".
+> 2. The hash does not contain the plaintext.
+> 3. Hashing the same password twice gives different hashes, and both verify.
+> 4. The correct password verifies; a wrong password returns False.
+> 5. A Unicode password ("pässwörd-密码") round-trips.
+> 6. A malformed hash ("not-a-hash") and an empty hash ("") both return False and do not raise.
+> 7. hash_password("") raises ValueError.
+> 8. password_needs_rehash is False for a fresh hash.
+> 9. password_needs_rehash is True for a hash made inside the test with argon2.PasswordHasher(time_cost=1, memory_cost=8, parallelism=1).
+>
+> STEP 4: docs
+> - FILE_STRUCTURE.md "Exists today": add app/core/passwords.py and tests/test_passwords.py.
+> - ARCHITECTURE.md: one line saying core now has password hashing. Keep sessions and permissions marked planned.
+> - README.md: add argon2-cffi to the stack line only if that line lists libraries.
+>
+> DO NOT in this task
+> Do not run the test suite, ruff, docker build or any timing. Do not "fix" anything outside the allow-list. A single quick import check is fine only if you need it to confirm the dependency resolves; say so if you did it.
+>
+> REPORT BACK WITH (paste in the report itself; do not say "printed above")
+> - Final contents of app/core/passwords.py and tests/test_passwords.py
+> - The exact pyproject.toml diff and the pinned version
+> - The exact lines added to FILE_STRUCTURE.md, ARCHITECTURE.md and README.md (or "README not changed" and why)
+> - Any deviations from this brief
+
+Status: In progress
+
+Summary: Added `app/core/passwords.py` (Argon2id `hash_password`, `verify_password`, `password_needs_rehash` on a single library-default `PasswordHasher`) with 9 tests (10 cases) in `tests/test_passwords.py`, and pinned `argon2-cffi~=25.1` (25.1.0, uploaded 2025-06-03). FILE_STRUCTURE.md and ARCHITECTURE.md updated; README unchanged. Verified in Docker (Task 3b): 28 tests passed, ruff clean.
+- Status update (2026-11-17): Completed.
+
+## T-020: Documentation-standards audit of existing files (2026-11-17)
+
+Prompt:
+> Read the Documentation Standards section in `CLAUDE.md` and treat it as the strict specification for this task.
+>
+> Audit and update all existing files in this repository so they comply with those documentation rules. This is a **documentation-only** task—do NOT alter any runtime logic, variable names, imports, or behavior.
+>
+> ### Scope
+> - **Include:** All existing source files, test files, and database migration files.
+> - **Exclude:** `node_modules/`, `venv/`, `.venv/`, `.git/`, `dist/`, `build/`, lockfiles, generated files, and binary assets.
+>
+> ### Execution Workflow
+> 1. **Inventory First:** Scan the repository, group all in-scope files into `Source`, `Tests`, and `Migrations`, and show me the file count per group before making edits.
+> 2. **Process in Batches:** Work through the files in batches of 10–15 files at a time. For each file:
+>    - Read the actual implementation and its callers/usages before writing anything (never write generic filler descriptions).
+>    - Add or fix the **2–3 line file header** (What, Why, How) at the very top of the file (below any shebang, encoding declaration, or license header).
+>    - Add missing **docstrings** to backend functions, methods, and classes following the repo's convention.
+>    - Add concise **inline comments** explaining *why* non-obvious backend logic exists (business rules, auth/login checks, edge cases, workarounds). Do not comment obvious lines.
+>    - For **tests**, ensure the file header exists, each test has a scenario/expected-outcome docstring or comment, and non-trivial fixtures/mocks are explained.
+>    - For **migrations**, ensure the file header exists, significant schema/data operations have comments, and reversibility/locking risks are noted.
+>    - Preserve existing accurate docstrings/comments; only add or improve what is missing or outdated.
+> 3. **Verify Every Batch:**
+>    - Run the project's linter/formatter and test suite after each batch to verify nothing broke.
+>    - Check `git diff` to confirm zero executable lines were modified.
+>    - Give me a brief progress summary after each batch before moving to the next.
+>
+> ### Guardrails
+> - Never rename, reorder, or refactor code.
+> - Never alter migration filenames or SQL/schema operations—only add comments/docstrings.
+> - If a file's purpose or dependency is ambiguous, write your best supported summary and mark it with `TODO(docs): verify`.
+> - If you spot a bug in the existing code, leave it untouched and list it in your final summary.
+
+Status: In progress
+
+Summary: Audited the 23 in-scope files (13 source, 8 tests, 2 migrations) in two batches. Added or rewrote file headers, docstrings, why-comments, test scenario docstrings and migration risk notes; no executable code changed (AST comparison, docstrings ignored, identical to pre-edit versions). `ruff check` clean and 44 tests passed against PostgreSQL.
+- Status update (2026-11-17): Completed.
+
+## T-021: Session and cookie settings in config.py (Task 4a, with follow-ups and 4b verification) (2026-11-17)
+
+> Task 4a: auth settings in config.py (implementation only)
+>
+> Read CLAUDE.md first and follow it. Tasks 1 to 3 are done (clock, User model, Argon2id hashing). This task adds only the configuration that the session and cookie work will read. No tables, no routes, no dependencies. Verification is a separate task (4b), so do not run the verification here.
+>
+> GUARDRAILS
+> - Do not commit. Do not run git checkout/stash/reset/add.
+> - Never weaken a test to make it pass. Do not edit existing tests unless they break, and report it if so.
+> - Do not create models, migrations or routes. Do not touch the worker service in docker-compose.yml.
+> - Do not open, read or print any real .env file (only .env.example files).
+> - If anything is unclear, or app_env or the env-var naming differs from what this brief assumes, stop and ask.
+>
+> ALLOW-LIST (touch only these)
+> - BD_BACKEND/app/config.py
+> - BD_BACKEND/tests/test_config.py
+> - BD_BACKEND/.env.example and the root .env.example (whichever exist)
+> - docker-compose.yml (api service environment only)
+> - README.md (only if it already lists environment variables)
+> - ARCHITECTURE.md (only if it already describes configuration)
+> FILE_STRUCTURE.md needs no change. Do not touch plan.md.
+>
+> INSPECT FIRST
+> config.py (Settings class, how app_env is defined and which values it takes, env_prefix, validators, style), tests/test_config.py (style, helpers, which settings are required), both .env.example files, docker-compose.yml, and whether README.md documents environment variables.
+>
+> STEP 1: config.py
+> Add these fields to Settings, with comments or docstrings in the existing style:
+> - session_lifetime_hours: int = 12, Field(gt=0). Used for session expiry in Task 6.
+> - session_cookie_name: str = "bd_session", Field(min_length=1)
+> - session_cookie_secure: bool = True (env SESSION_COOKIE_SECURE). Defaults on.
+> - frontend_origin: str = "http://localhost:3000". Exact origin: scheme and host (and optional port), no trailing slash, no path.
+>
+> Add one @model_validator(mode="after") with these rules:
+> - frontend_origin is parsed with urllib.parse.urlsplit. Reject with a clear message unless the scheme is http or https, the host is present, and the path, query and fragment are all empty. A trailing slash counts as a path.
+> - When app_env == "production": session_cookie_secure must be True and frontend_origin must use https. Otherwise raise ValueError with a clear message.
+>
+> Use named module constants for magic values: the "production" string, the default cookie name, the default lifetime and the default origin. If app_env already has a constant or enum for "production", reuse it. Do NOT add login-throttle settings or admin-seed variables (Tasks 10 and 15). Do NOT add SameSite as a setting; it is fixed to Lax and will be a constant in the cookie code later.
+>
+> STEP 2: example env files and compose
+> - BD_BACKEND/.env.example and root .env.example: document SESSION_COOKIE_SECURE, SESSION_LIFETIME_HOURS, SESSION_COOKIE_NAME and FRONTEND_ORIGIN with comments, commented out or blank with the default noted, matching each file's existing style.
+> - docker-compose.yml: in the api service environment only, add SESSION_COOKIE_SECURE: "false" with a comment that local compose runs over plain HTTP. Confirm the compose app_env is not "production"; if it is, stop and ask.
+>
+> STEP 3: tests/test_config.py
+> Follow the existing style (monkeypatch.setenv, Settings(_env_file=None)). For production tests, reuse whatever helper or setenv pattern provides the other required settings. Add:
+> 1. Defaults: 12, "bd_session", secure True, "http://localhost:3000".
+> 2. Each setting can be overridden from the environment, including SESSION_COOKIE_SECURE=false.
+> 3. session_lifetime_hours of 0 and of -1 are rejected (parametrized).
+> 4. An empty SESSION_COOKIE_NAME is rejected.
+> 5. frontend_origin is rejected for a trailing slash, a path, a query, and a missing scheme (parametrized). A valid origin with a port is accepted.
+> 6. In production, SESSION_COOKIE_SECURE=false is rejected.
+> 7. In production, an http:// origin is rejected.
+> 8. In production with secure cookies and an https:// origin, settings load.
+> 9. In development, SESSION_COOKIE_SECURE=false with the http origin is accepted.
+>
+> STEP 4: docs
+> README.md: document the new variables only if it already lists environment variables. ARCHITECTURE.md: update only if it describes configuration. Otherwise leave both unchanged and say so.
+>
+> DO NOT in this task
+> Do not run docker build, pytest, ruff, compose commands or curl. Do not fix anything outside the allow-list.
+>
+> REPORT BACK WITH (paste in the report itself; do not say "printed above")
+> - The final git diff of app/config.py
+> - The full contents of the new and changed tests in tests/test_config.py
+> - The exact diffs of both .env.example files and docker-compose.yml
+> - What you did with README.md and ARCHITECTURE.md (exact lines added, or "unchanged" and why)
+> - How app_env and the env-var naming work in config.py (one or two lines)
+> - Any existing test you changed, and why
+> - Any deviations from this brief
+
+Follow-up prompt 1 (small fixes before verification):
+
+> Small fixes before verification. Read CLAUDE.md first. No commits, no git add/checkout/stash/reset, no USERPROMPT.md, no new dependencies, and never open a real .env file.
+>
+> 1. .claude/settings.json: the deny rules "Read(./.env.*)" and "Read(./**/.env.*)" also block .env.example. Replace them with rules for the real env files by name (.env.local, .env.production, .env.development, .env.staging, .env.test, at root and under **/). Keep "Read(./.env)" and "Read(./**/.env)" and every other rule. Also add deny rules for git commit, checkout, stash, reset and add. Keep the file valid JSON.
+>
+> 2. Append the session settings block to both .env.example files (commented out, defaults shown, comments on their own lines): SESSION_LIFETIME_HOURS=12, SESSION_COOKIE_NAME=bd_session, SESSION_COOKIE_SECURE=true (false only for local HTTP, must be true in production), FRONTEND_ORIGIN=http://localhost:3000. If the read is still blocked, stop and tell me; don't work around it.
+>
+> 3. tests/test_config.py: the base_env fixture docstring is over 100 characters. Shorten it to one line. Fix any other line over 100 characters in config.py or test_config.py (formatting only).
+>
+> 4. config.py: also reject a frontend_origin that contains credentials (user@host), with a test.
+>
+> Then run: docker compose build api, ruff check ., and pytest tests/test_config.py. Report the final settings.json, the lines added to each .env.example, the config.py diff, and the test results. Touch nothing else.
+
+Follow-up prompt 2 (env example block):
+
+> Append this block to the end of both BD_BACKEND/.env.example and the root .env.example, matching each file's style. Skip a file if it already contains SESSION_LIFETIME_HOURS. If a read is still blocked, stop and tell me; don't work around it. Touch nothing else, no git commands.
+>
+> # Session cookie settings (defaults shown; uncomment to override)
+> # Session lifetime in hours.
+> # SESSION_LIFETIME_HOURS=12
+> # Name of the session cookie.
+> # SESSION_COOKIE_NAME=bd_session
+> # Secure cookie flag. Use false only for local plain-HTTP; must be true in production.
+> # SESSION_COOKIE_SECURE=true
+> # Exact frontend origin: scheme and host, optional port, no trailing slash or path.
+> # FRONTEND_ORIGIN=http://localhost:3000
+>
+> Then report the lines appended to each file.
+
+Follow-up prompt 3 (Task 4b, verify only):
+
+> Task 4b: verify only, change nothing. Read CLAUDE.md first. No commits or git add/checkout/stash/reset, no USERPROMPT.md, no new dependencies, never open a real .env file. If something fails, report the exact failure and do not fix it. If a command is blocked, say "blocked" and continue.
+>
+> Run in order:
+> 0. docker compose ps (note what is running now)
+> 1. docker compose build api
+> 2. docker compose run --rm api sh -c "pytest -q && ruff check ."
+> 3. docker compose run --rm api sh -c "ruff check . --select E501"
+> 4. docker compose config --quiet && echo "compose file valid"
+> 5. docker compose up -d api, then retry up to 10 times, 2 seconds apart: curl -s http://localhost:8000/health
+> 6. docker compose exec api printenv SESSION_COOKIE_SECURE
+> 7. grep -n "production" BD_BACKEND/app/config.py
+> 8. git status
+> 9. Restore the service state from step 0.
+>
+> Expected: 44 passed, no skips; ruff clean; no E501; "compose file valid"; health returns {"status":"ok","database":"ok"}; step 6 prints false; "production" appears once as a named constant; git status shows only expected files (including .claude/settings.json and both .env.example files).
+>
+> Report the output of each step and a PASS/FAIL/BLOCKED line per expectation.
+
+Status: In progress
+
+Summary: Added session_lifetime_hours, session_cookie_name, session_cookie_secure and frontend_origin to Settings, with one model validator (origin shape, no credentials, production requires secure cookies and an https origin). Added the matching tests, the commented example-env block in both .env.example files, SESSION_COOKIE_SECURE=false in the compose api service, and narrowed the .claude/settings.json env deny rules. Verification: 44 tests passed, ruff and E501 clean, compose valid, /health ok.
+- Status update (2026-11-17): Completed.
+
+
+## T-022: Sessions table and model (Task 5, implementation only) (2026-11-17)
+
+> Task 5: sessions table and model (implementation only, do not run anything)
+>
+> Read CLAUDE.md first, Tasks 1-4 are done. This task adds only the sessions table and its SQLAlchemy model: no service logic, no token generation or hashing helpers, no routes, no dependencies. N
+>
+> Touch only: app/core/models.py, migrations/versions/0003_create_sessions.py (new), tests/test_session_model.py (new), tests/test_user_migration.py (one added test), FILE_STRUCTURE.md, ARCHITECTURE.md. Never edit 0001 or 0002, config.py or plan.md.
+>
+> Inspect first: models.py (User, header, naming convention if any), 0002 migration (style, revision ids, how constraints are named), test_user_model.py (fixtures, rolled-back transaction pattern, drift test), test_user_migration.py.
+>
+> 1. models.py: update the header (now covers sessions). Add UserSession(Base), __tablename__ = "sessions" (named UserSession to avoid clashing with SQLAlchemy's Session). Columns:
+> - id: UUID PK, server_default=text("gen_random_uuid()")
+> - user_id: UUID, not null, ForeignKey("users.id", ondelete="CASCADE"). Give the FK an explicit name, "fk_sessions_user_id_users", in model and migration, unless the project's naming convention already produces a stable name.
+> - token_hash: String(64), not null (SHA-256 hex digest; Task 6 generates it)
+> - created_at: DateTime(timezone=True), not null, default=now from app.core.clock
+> - expires_at: DateTime(timezone=True), not null, no default (the service sets it)
+> - revoked_at: DateTime(timezone=True), nullable (NULL = active)
+> __table_args__:
+> - Index("uq_sessions_token_hash", "token_hash", unique=True)
+> - Index("ix_sessions_user_id", "user_id")
+> - Index("ix_sessions_expires_at", "expires_at")
+> - CheckConstraint("expires_at > created_at", name="ck_sessions_expires_after_created")
+> - CheckConstraint("char_length(token_hash) = 64", name="ck_sessions_token_hash_length")
+> No relationship().
+>
+> 2. Migration 0003_create_sessions.py: hand-written, down_revision = "0002", same style as 0002. upgrade(): create table (with FK), unique index, the two plain indexes, the two check constraints. Names must match the model exactly, or the drift test fails. downgrade(): drop indexes, then the table. Comment each step. Header notes that downgrade deletes all sessions (logs everyone out) and nothing else is lost.
+>
+> 3. tests/test_session_model.py (real PostgreSQL; same pattern as test_user_model.py: module engine upgraded to head, function session in a rolled-back transaction; reuse helpers if easy to import, otherwise a small local helper creating a synthetic user like alice@example.com; don't refactor existing tests; fake hashes like "a" * 64; reset the clock offset in an autouse fixture):
+> 1. Valid session inserts: id populated, created_at timezone-aware, revoked_at is None.
+> 2. Duplicate token_hash raises IntegrityError naming uq_sessions_token_hash.
+> 3. Non-existent user_id is rejected by the foreign key.
+> 4. Deleting the user cascades: use a Core delete on users, flush, verify with a Core count of the user's sessions (not the ORM identity map).
+> 5. expires_at <= created_at raises IntegrityError naming ck_sessions_expires_after_created (cover equal and earlier).
+> 6. token_hash not 64 characters raises IntegrityError naming ck_sessions_token_hash_length.
+> 7. created_at follows set_offset(timedelta(days=1)), tolerance 5 seconds.
+> 8. One user can have several sessions.
+> The existing drift test must pass unchanged.
+>
+> 4. tests/test_user_migration.py: do not change existing tests. Add one test: after downgrading to 0002 on the throwaway database, the sessions table is gone and users remains. Same cleanup in finally.
+>
+> 5. Docs: FILE_STRUCTURE.md "Exists today" (UserSession, migration 0003, new test file). ARCHITECTURE.md: one line that core now has the sessions table; session logic stays marked planned.
+>
+> REPORT BACK (paste in the report itself, never "printed above"; say plainly what you did not run)
+> - Full contents of the new migration and new test file, and the git diff of models.py
+> - The added test in test_user_migration.py
+> - The exact lines added to both docs
+> - How you named the FK and why
+> - Deviations from this brief
+
+Status: In progress
+
+Summary: Added the UserSession model, migration 0003 (sessions table with FK, 3 indexes, 2 CHECKs), tests/test_session_model.py (10 cases), one downgrade test in test_user_migration.py, and one-line doc updates. FK named fk_sessions_user_id_users explicitly because the project has no naming convention; the 65-character hash case was dropped because String(64) raises DataError, not IntegrityError.
+- Status update (2026-11-17): Completed (verified in T-023).
+
+## T-023: Verify Task 5 (Task 5b, verification only) (2026-11-17)
+
+> Task 5b: verify Task 5 only, change nothing. Read CLAUDE.md first. No commits or git add/checkout/stash/reset, no USERPROMPT.md, no new dependencies, never open a real .env file. If something fails, report the exact failure and do not fix it. If a command is blocked, say "blocked" and continue.
+>
+> Run in order:
+> 0. docker compose ps (note what is running now)
+> 1. docker compose build api
+> 2. grep -n "^from\|^import" BD_BACKEND/tests/test_user_migration.py
+>    (confirm create_engine and text are imported, since the new test uses them)
+> 3. docker compose run --rm api sh -c "ruff check . && ruff check . --select E501"
+> 4. docker compose run --rm api sh -c "pytest tests/test_session_model.py tests/test_user_migration.py tests/test_user_model.py -v"
+> 5. docker compose run --rm api sh -c "pytest -q"
+> 6. docker compose up -d api, then curl -s --retry 10 --retry-delay 2 --retry-connrefused http://localhost:8000/health
+>    (the api applies alembic upgrade head to the dev database on start)
+> 7. docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\d sessions"'
+> 8. docker compose run --rm api alembic downgrade -1
+> 9. docker compose run --rm api alembic upgrade head
+> 10. Repeat step 7 and compare with the first output.
+> 11. git status
+> 12. Restore the service state from step 0.
+>
+> Expected:
+> - ruff clean, no E501, create_engine and text imported
+> - all tests in step 4 pass, including test_models_match_the_migrated_schema unchanged
+> - step 5: 56 passed, no skips (44 old + 11 new session cases + 1 migration test)
+> - step 7 and 10: 6 columns, FK fk_sessions_user_id_users to users ON DELETE CASCADE, primary key plus 3 indexes (uq_sessions_token_hash unique, ix_sessions_user_id, ix_sessions_expires_at), 2 CHECK constraints (ck_sessions_expires_after_created, ck_sessions_token_hash_length)
+> - steps 8 and 9 succeed on the dev database, and step 10 matches step 7
+> - git status: only expected files (models.py, 0003 migration, the two test files, FILE_STRUCTURE.md, ARCHITECTURE.md) plus earlier uncommitted work and USERPROMPT.md
+>
+> Report the output of each step and a PASS/FAIL/BLOCKED line per expectation. For step 4, show the full pytest output.
+
+Status: In progress
+
+Summary: Ran all steps in Docker. Ruff and E501 clean, 19/19 targeted tests pass (drift test unchanged), full suite 55 passed with no skips (brief expected 56; the session file has 10 cases, not 11). The sessions table matches the spec, and the downgrade/upgrade round trip on the dev database gave an identical schema; services restored to stopped.
+- Status update (2026-11-17): Completed. Note: untracked BD_BACKEND/migrations/migrations.md was not created by this task.
+
+## T-024: Session service: create, look up, revoke (Task 6a, implementation only) (2026-11-17)
+
+> Task 6a: session service (implementation only, do not run anything)
+>
+> Read CLAUDE.md first, Tasks 1-5 are done and verified. This task adds only session business logic: create, look up, revoke. Do not run docker, pytest, ruff or anything else; verification is Task 6b. If anything is unclear, stop and ask.
+>
+> Touch only: app/core/services.py (new; use another name only if FILE_STRUCTURE.md plans one), tests/test_session_service.py (new), FILE_STRUCTURE.md, ARCHITECTURE.md. Never change models, migrations, config.py or plan.md.
+>
+> Inspect first: FILE_STRUCTURE.md, models.py, clock.py, config.py, tests/test_session_model.py (fixtures: module engine at head, rolled-back session with join_transaction_mode="create_savepoint", user fixture, autouse clock reset).
+>
+> CONCEPTS
+> - Token: secrets.token_urlsafe(32), 43 URL-safe chars. Never use random.
+> - Only SHA-256 hex (64 chars) of the token is stored. Lookup is by hash through the unique index, so no constant-time compare is needed.
+> - Active session: hash matches, revoked_at IS NULL, expires_at > clock.now(), user.is_active is true. Disabling a user kills their sessions immediately.
+> - Time comes from core.clock.now() passed as a SQL parameter, never SQL now(), so the test clock offset affects expiry.
+> - Absolute expiry only: lifetime is session_lifetime_hours from login, no sliding renewal (say so in a comment).
+> - Revoke is idempotent: one UPDATE ... WHERE revoked_at IS NULL, row count says whether anything changed.
+>
+> 1. app/core/services.py: header, type hints, Google-style docstrings.
+> - Named constants: token byte length 32, expected token string length 43.
+> - class InactiveUserError(Exception)
+> - @dataclass(frozen=True) AuthenticatedSession(user: User, session: UserSession)
+> - generate_session_token() -> str
+> - hash_session_token(token: str) -> str (SHA-256 hex, 64 chars)
+> - create_session(db, user, *, lifetime: timedelta | None = None) -> tuple[str, UserSession]
+>   Raises InactiveUserError if user.is_active is false (defence in depth). lifetime defaults to timedelta(hours=get_settings().session_lifetime_hours). created_at = clock.now(), expires_at = created_at + lifetime. Store only the hash, commit, return (raw_token, row). The raw token is returned once and never stored or logged.
+> - get_active_session(db, token) -> AuthenticatedSession | None
+>   Return None with no SQL if len(token) != expected length. Otherwise ONE statement: select(UserSession, User).join(User, User.id == UserSession.user_id) with the four conditions above (use User.is_active.is_(True) and UserSession.revoked_at.is_(None)) and .execution_options(populate_existing=True). Read-only, no commit.
+> - revoke_session(db, token) -> bool
+>   Wrong-length token returns False without touching the database. Otherwise one atomic UPDATE setting revoked_at = clock.now() where hash matches and revoked_at IS NULL, with synchronize_session=False. Commit. True only if rowcount > 0.
+> - revoke_all_user_sessions(db, user_id) -> int
+>   UPDATE all unrevoked sessions of that user (synchronize_session=False), return rowcount, commit. Never re-stamps already revoked rows. Task 14 will call it.
+> Module header must state: create/revoke functions commit themselves and lookups do not; absolute expiry, no sliding renewal. Never log or print tokens or hashes.
+>
+> 2. tests/test_session_service.py (real PostgreSQL; same fixture pattern as test_session_model.py, copy small helpers locally rather than importing; synthetic users alice@example.com and bob@example.com; autouse clock reset). commit() inside a test only releases the savepoint, so the outer rollback still cleans up. Because bulk UPDATEs do not refresh objects already loaded, use db.refresh(...) or a fresh Core select before asserting revoked_at.
+> 1. Tokens are 43 chars, URL-safe, and two calls differ.
+> 2. hash_session_token is 64 hex chars, deterministic, not equal to the token.
+> 3. create_session: hash of the returned token equals stored token_hash; the raw token appears in no column of the row; expires_at is about 12h after created_at (tolerance 5 s); created_at follows set_offset.
+> 4. Custom lifetime is used.
+> 5. Inactive user raises InactiveUserError and creates no row (Core count).
+> 6. Valid token returns the matching user and session.
+> 7. Unknown token, "", a too-short string and a 10,000-char string return None. For the length-rejected ones, assert zero SQL statements.
+> 8. Expiry: clock +11h valid, +13h None (create at offset 0, then set_offset).
+> 9. Revoked session returns None.
+> 10. After the user is set inactive, lookup returns None.
+> 11. Lookup issues exactly one SQL statement: attach a before_cursor_execute listener on the connection, count only statements whose text starts with SELECT (ignore SAVEPOINT/RELEASE from the fixture), remove the listener in a finally, and assert the single SELECT contains a JOIN.
+> 12. Role change is visible on the next lookup in the same Session: first look the session up, then change the role with a Core UPDATE on the users table (not by setting the ORM attribute), look up again, and assert the returned user has the new role.
+> 13. revoke_session: True then False; revoked_at keeps its first value; unknown token and wrong-length token return False.
+> 14. revoke_all_user_sessions: revokes only that user's active sessions, returns the right count, leaves bob's untouched, does not re-stamp already revoked ones.
+>
+> 3. Docs: FILE_STRUCTURE.md "Exists today" (services.py, new test file). ARCHITECTURE.md core line: session create, lookup and revoke now exist; cookies, current_user and routes still planned. Record the design choices in the module header only.
+>
+> REPORT BACK (paste in the report itself, never "printed above"; say plainly what you did not run)
+> - Full contents of services.py and test_session_service.py
+> - The exact lines added to both docs
+> - Deviations from this brief
+
+Follow-up: "Your Task 6a report was cut off in the middle of test_wrong_length_token_returns_none_without_sql. Change nothing, run nothing. Paste the full current contents of BD_BACKEND/tests/test_session_service.py from that test to the end of the file, in the reply itself."
+
+Status: In progress
+
+Summary: Added app/core/services.py (token generation and SHA-256 hashing, create_session, get_active_session as one joined SELECT, idempotent revoke_session and revoke_all_user_sessions, absolute expiry) and 20 test cases in tests/test_session_service.py; updated FILE_STRUCTURE.md and ARCHITECTURE.md. Nothing was run, per the brief. Deviation: the lifetime test compares against the configured session_lifetime_hours instead of a hard-coded 12 h.
+- Status update (2026-11-17): Completed. Follow-up re-pasted the end of the test file; no changes.
+
+## T-025: Verify Task 6a (Task 6b, verification only) (2026-11-17)
+
+> Task 6b: verify Task 6a only, change nothing. Read CLAUDE.md first. No commits or git add/checkout/stash/reset, no USERPROMPT.md, no new dependencies. If something fails, report the exact failure and do not fix it. If a command is blocked, say "blocked" and continue.
+>
+> 1. docker compose build api
+> 2. docker compose run --rm api sh -c "ruff check . && ruff check . --select E501"
+> 3. docker compose run --rm api sh -c "pytest tests/test_session_service.py -v"
+> 4. docker compose run --rm api sh -c "pytest -q"
+> 5. Print the SQL of the lookup once, read-only, with a throwaway command: compile select(UserSession, User).join(...) as in get_active_session against the PostgreSQL dialect and show it (no database access, no file saved).
+> 6. grep -n "import random\|from random\|print(\|logging\|logger" BD_BACKEND/app/core/services.py
+>    (must show nothing; the word "random" in a docstring is fine)
+> 7. grep -rn "datetime.now(" BD_BACKEND/app  (only clock.py)
+> 8. git status
+>
+> Expected: ruff clean, no E501; 20 new test cases pass; full suite 75 passed, no skips; one SELECT with a JOIN; no random import, print or logging; git status shows only services.py, test_session_service.py, FILE_STRUCTURE.md and ARCHITECTURE.md as new changes, plus earlier uncommitted work.
+> Report each step's output and a PASS/FAIL/BLOCKED line per expectation.
+
+Status: In progress
+
+Summary: Ran all steps in Docker. Ruff and E501 clean, 20/20 session service tests pass, full suite 75 passed with no skips, lookup compiles to a single SELECT with a JOIN and a bound expiry parameter. No random import, print or logging in services.py; datetime.now( appears only in clock.py; git status as expected.
+- Status update (2026-11-17): Completed. All expectations PASS; nothing blocked.

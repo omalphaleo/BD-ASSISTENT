@@ -29,6 +29,8 @@ flowchart TB
 
 ## 2. Modules and responsibilities
 
+Built so far in `core`: the `User` model (`app/core/models.py`) and its migration `0002` (`users` table, `user_role` enum). `core` also has Argon2id password hashing and verification (`app/core/passwords.py`). `core` now also has the `sessions` table (`UserSession` model, migration `0003`); session create, lookup and revoke now exist in `app/core/services.py`; cookies, `current_user`, routes and permissions are still planned.
+
 Dependency direction (no upward imports): `core` ← `leads` / `content` ← `compliance` ← `ai` ← `campaigns` ← `outreach` ← `mail` ← `notifications`. `audit` is a leaf that anything may call.
 
 | Module | Owns | Must not |

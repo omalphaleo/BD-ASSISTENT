@@ -28,6 +28,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       APP_ENV: development
+      SESSION_COOKIE_SECURE: "false" # local compose runs over plain HTTP, so Secure cookies would never be sent
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000" # start the API server
     ports:
       - "127.0.0.1:8000:8000"

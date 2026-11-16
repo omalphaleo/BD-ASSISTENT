@@ -1,4 +1,8 @@
-"""FastAPI application entry point."""
+"""FastAPI application entry point: creates the app and mounts the routers.
+
+Needed as the single object uvicorn serves (app.main:app); each module's router is
+included here, so this file only wires routes and holds no business logic.
+"""
 
 from fastapi import FastAPI
 
