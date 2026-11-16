@@ -28,7 +28,7 @@ BD ASSISTANT/                  # project root
 
 ## BD_BACKEND (M1)
 
-Exists today: `pyproject.toml`, `.env.example`, `alembic.ini`, `Dockerfile`, `.dockerignore`, `migrations/` (env, template, `0001` enabling pgvector), `app/{main,config,db,worker}.py`, `app/core/api.py` (`/health` only), and `tests/` (`conftest.py`, health, config, migrations). Everything else in the tree below is planned.
+Exists today: `pyproject.toml`, `.env.example`, `alembic.ini`, `Dockerfile`, `.dockerignore`, `migrations/` (env, template, `0001` enabling pgvector), `app/{main,config,db,worker}.py`, `app/core/api.py` (`/health` only), `app/core/clock.py` (`now()` with test offset), and `tests/` (`conftest.py`, health, config, migrations, clock). Everything else in the tree below is planned.
 
 ```
 BD_BACKEND/
