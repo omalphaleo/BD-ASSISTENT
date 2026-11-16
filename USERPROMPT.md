@@ -174,3 +174,29 @@ Rules: add the entry before starting work with `Status: In progress`. When finis
   > c all the general rules written crtly if u c this is unnesseray u can remove that general rule
 - Summary: Reviewed the 12 general rules against CLAUDE.md. Removed "Minimal Changes" (duplicate of B1) and "No Assumptions" (duplicate of the status paragraph and the [UNRESOLVED] rule); renumbered Code Review to 10. Ten general rules remain.
 - Status update (2026-11-13): Completed
+
+## T-013: Clarify queue flow (no service-to-worker arrow) in ARCHITECTURE.md
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > FastAPI → Service layer: Starts an operation. Service layer → Procrastinate: Queues a background job. Worker → Service layer: Executes the actual background operation. Service layer → Database: Reads and saves information.
+  > is this the floe to srchitecture.md shape pf the system but here there is no arroe from service to worker process?
+- Summary: Confirmed the §1 diagram is correct (PostgreSQL is the queue, so no service-to-worker arrow). Added a one-line "Queue" bullet under the diagram in ARCHITECTURE.md explaining enqueue-as-DB-write and worker polling. Diagram unchanged.
+- Status update (2026-11-13): Completed
+
+## T-014: Show enqueue -> worker -> service loop in ARCHITECTURE.md diagram
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > here c here in the shape of the syatem from service layer the data shoulf go to procastinate worker process then come back to service layer the process is Browser – Next.js frontend. You select John and click Compose Email. [10-step compose-email walkthrough: Next.js -> FastAPI -> Campaign Service enqueues job via Procrastinate -> FastAPI returns "queued" -> worker claims job -> service gathers lead info -> AI module -> validators -> PostgreSQL saves draft -> browser displays draft]
+- Summary: Replaced the single `W --> SVC` edge in the ARCHITECTURE.md §1 diagram with three labelled edges (1. enqueue job to the DB queue, 2. worker claims job, 3. worker calls service) so the service -> worker -> service loop is visible. The 10-step walkthrough was not added to the docs (some details are unconfirmed decisions).
+- Status update (2026-11-13): Completed
+
+## T-015: Show AI result returning to the service layer in ARCHITECTURE.md diagram
+- Date: 2026-11-13
+- Status: In progress
+- Original prompt:
+  > like the composed mail from gemini api is never sending back to service layer or postgress database y?
+  > ok
+- Summary: Made the AI edges in the ARCHITECTURE.md §1 diagram two-way (service <-> AI adapter labelled "request / validated result", AI adapter <-> Gemini) so the generated draft visibly returns to the service layer, which then saves it to PostgreSQL. No other changes.
+- Status update (2026-11-13): Completed

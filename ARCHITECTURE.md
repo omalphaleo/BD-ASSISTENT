@@ -11,9 +11,12 @@ flowchart TB
   BR[Browser] --> FE[Next.js frontend]
   FE -->|REST / JSON, session cookie| API[FastAPI API process]
   API --> SVC[Service layer]
-  W[Procrastinate worker process] --> SVC
   SVC --> DB[(PostgreSQL 17 + pgvector + job queue)]
-  SVC --> AI[AI adapter] --> GEM[(Gemini API)]
+  SVC -.->|1. enqueue job| DB
+  DB -.->|2. worker claims job| W[Procrastinate worker process]
+  W -->|3. calls service| SVC
+  SVC <-->|request / validated result| AI[AI adapter]
+  AI <--> GEM[(Gemini API)]
   SVC --> SND[Sender interface]
   SND --> MOCK[MockSender -> Outbox]
   SND --> GRAPH[GraphSender -> Microsoft 365]
@@ -21,6 +24,7 @@ flowchart TB
 
 - **API process:** short requests only. Route handlers validate input (Pydantic v2), check permissions and call services.
 - **Worker process:** imports, drafting, scheduler tick (about every minute), mailbox polling (every 3 min, one lock per mailbox), SLA reminders (hourly), embeddings, stuck-message recovery. Tasks are thin wrappers over services.
+- **Queue:** there is no direct service-to-worker call. Enqueueing is a database write (service to the PostgreSQL job table); the worker polls the same database and then calls services.
 - **Frontend:** screens and forms only; no business rules and no access decisions.
 
 ## 2. Modules and responsibilities
