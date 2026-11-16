@@ -12,28 +12,28 @@ services:
     ports:
       - "127.0.0.1:5432:5432" # localhost only, never exposed on other interfaces
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data # Persist database data across container restarts
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      interval: 5s    #Runs the health check every 5 seconds.
+      timeout: 3s     # If the health check doesn't respond within 3 seconds, it is considered failed.
+      retries: 10     # After 10 consecutive failures, Docker marks the container as unhealthy.
 
   api:
     build:
       context: ./BD_BACKEND
       args:
-        INSTALL_DEV: "true"
+        INSTALL_DEV: "true" # Install dev dependencies for local development (e.g. alembic, procrastinate)
     image: alphaleo-bd-backend
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       APP_ENV: development
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000" # start the API server
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy # Wait for the database to be healthy before starting the API
 
   worker:
     image: alphaleo-bd-backend # same image as api, different command
