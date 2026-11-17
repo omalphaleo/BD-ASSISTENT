@@ -10,8 +10,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 
-# Imported only for its side effect: registering the models on Base.metadata.
-import app.core.models  # noqa: F401
+# Imported only for its side effect: registering every model on Base.metadata.
+import app.models  # noqa: F401
 from app.config import get_settings
 from app.db import Base
 

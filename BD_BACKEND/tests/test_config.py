@@ -24,7 +24,7 @@ def test_psycopg_conninfo_strips_driver_suffix(monkeypatch: pytest.MonkeyPatch) 
     assert Settings(_env_file=None).psycopg_conninfo == "postgresql://u:p@h:5432/d"
 
 
-# --- Session / cookie / frontend-origin settings (Task 4a) ---
+# --- Session / cookie / frontend-origin settings ---
 
 # Every environment variable the session tests set; base_env clears them so a value exported
 # in the developer's shell cannot change the expected defaults.

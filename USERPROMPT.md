@@ -1120,3 +1120,302 @@ Status: In progress
 
 Summary: Ran all steps in Docker. Ruff and E501 clean, 20/20 session service tests pass, full suite 75 passed with no skips, lookup compiles to a single SELECT with a JOIN and a bound expiry parameter. No random import, print or logging in services.py; datetime.now( appears only in clock.py; git status as expected.
 - Status update (2026-11-17): Completed. All expectations PASS; nothing blocked.
+
+## T-026: Audit log table and record() service (Task 7a, implementation only) (2026-11-17)
+
+> Task 7a: audit log table and record() service (implementation only)
+>
+> Read CLAUDE.md first, Tasks 1-6 are done. This task adds the append-only audit log. It adds no routes, no calls from existing code and no dependencies. Verification is a separate prompt (7b), so do not do the full verification here.
+>
+> Why. CLAUDE.md says sensitive actions write an audit event. plan.md §14.S lists role changes and login failures as audited; §6.2 defines AuditLog as actor, action, object, before/after summary, ip, timestamp, append-only. Login (Task 9) and user management (Task 14) will call this later.
+>
+> Concepts
+> - Append-only: enforced in PostgreSQL by a trigger function that raises an error on UPDATE, DELETE and TRUNCATE, so even a bug or manual SQL can't alter history.
+> - Leaf module: audit lives in app/audit/ and must not import app.core.models, app.core.services or app.core.passwords. It may import only app.db and app.core.clock. So actor_user_id is a plain UUID with no foreign key to users (a FK would couple the leaf to core and break append-only if a user were deleted). It is nullable because a failed login for an unknown email has no user.
+> - Action is text, not a DB enum: every milestone adds actions, and a PG enum needs a migration for each. The allowed values are a Python StrEnum checked in code.
+> - Caller commits: unlike the session service, record() only adds and flushes. The audit row and the action it describes then succeed or fail together.
+> Inspect first: FILE_STRUCTURE.md (planned audit/ layout), app/core/models.py, migrations/versions/0003_create_sessions.py (style), migrations/env.py, tests/test_session_model.py and tests/test_user_model.py (fixtures, and the compare_metadata drift test).
+>
+> Pitfall: the drift test compares the database with Base.metadata. If the audit model isn't imported when it runs, the new table shows as "extra" and the test fails. Fix it properly: create BD_BACKEND/app/models.py as a registry that imports every model module (app.core.models and app.audit.models), with a header explaining that it exists so Alembic and tests see the whole schema. Make migrations/env.py import app.models in place of app.core.models, and make the drift test import it too. Keep these edits minimal.
+>
+> 1. app/audit/__init__.py (header only) and app/audit/models.py with AuditLog(Base), __tablename__ = "audit_log":
+> - id: UUID primary key, server_default=text("gen_random_uuid()")
+> - occurred_at: DateTime(timezone=True), not null, default=now from app.core.clock
+> - actor_user_id: UUID, nullable, no foreign key
+> - action: String(64), not null
+> - object_type: String(64), nullable
+> - object_id: String(64), nullable (text so any object kind fits)
+> - summary: JSONB, nullable
+> - ip_address: String(45), nullable (fits IPv6)
+> Indexes: ix_audit_log_occurred_at, ix_audit_log_actor_user_id, ix_audit_log_action. The class docstring says the table is append-only, enforced by triggers.
+>
+> 2. app/audit/services.py:
+> - class AuditAction(StrEnum): LOGIN_FAILED = "auth.login_failed", LOGIN_THROTTLED = "auth.login_throttled", USER_CREATED = "user.created", USER_ROLE_CHANGED = "user.role_changed", USER_DISABLED = "user.disabled", USER_ENABLED = "user.enabled", ADMIN_SEEDED = "user.admin_seeded"
+> - record(db: Session, *, action: AuditAction, actor_user_id: UUID | None = None, object_type: str | None = None, object_id: str | None = None, summary: Mapping[str, object] | None = None, ip_address: str | None = None) -> AuditLog
+>   - Adds the row and flushes, never commits. Say so in the header and docstring.
+>   - Raises ValueError if any key in summary, at any nesting level, is one of password, password_hash, token, token_hash or session_token (compare lower-case). Keep the names in a named constant. Never log the raw email-and-password pair.
+>   - Never logs anything itself.
+>
+> 3. migrations/versions/0004_create_audit_log.py (down_revision = "0003"):
+> - upgrade(): create the table and the three indexes; create a PL/pgSQL function audit_log_forbid_change() that raises an exception with a clear message; attach it as a row-level BEFORE UPDATE OR DELETE trigger and a statement-level BEFORE TRUNCATE trigger.
+> - downgrade(): drop the triggers, then the function, then the indexes and the table.
+> - Comment each step. The header must state two risks: (a) the triggers also block deleting audit rows in tests and during erase-person (D-099), so a future erasure task needs a deliberate, audited approach; (b) downgrade() destroys the entire audit history.
+>
+> 4. tests/test_audit_log.py (real PostgreSQL, same fixture pattern, rolled-back transactions):
+> 1. record stores all fields; occurred_at is tz-aware; summary round-trips as JSON; the row is visible after flush.
+> 2. occurred_at follows the clock offset (set_offset, reset in a fixture).
+> 3. A row with no actor and no object is allowed.
+> 4. record does not commit: after session.rollback() with no commit in between, the row is gone. Structure this carefully with the savepoint fixture; if awkward, assert instead that record never calls commit (mock db.commit).
+> 5. UPDATE audit_log raises; use raw SQL and assert the trigger message.
+> 6. DELETE FROM audit_log raises.
+> 7. TRUNCATE audit_log raises.
+> 8. A forbidden key (password_hash) at top level raises ValueError, and so does one nested in another dict, and one with different casing (Token). Nothing is inserted.
+> 9. AuditAction values are unique and use the area.event dotted form.
+> 10. Leaf rule: parse every .py file under app/audit/ with ast and assert none imports app.core.models, app.core.services or app.core.passwords.
+> Test data is synthetic (alice@example.com only if needed, never secret-looking).
+>
+> 5. Docs: update FILE_STRUCTURE.md ("Exists today": app/audit/{__init__,models,services}.py, app/models.py, migration 0004, the test) and ARCHITECTURE.md (the audit row, and the "built so far" line: the table and record() exist; no call sites yet). Don't touch plan.md.
+>
+> 6. Existing tests: if one needs a change (e.g. the drift test import), make the smallest edit and report it.
+>
+> Do not: add dependencies, add routes, call record() from existing code, edit applied migrations, add a foreign key to users. Never weaken a test. If anything is unclear, stop and ask.
+>
+> Run only this, so you can fix your own mistakes (rebuild first; the source is not mounted):
+> docker compose build api
+> docker compose run --rm api sh -c "pytest tests/test_audit_log.py -v"
+> Do NOT run the full suite, ruff, the \d check or the downgrade/upgrade round trip. Step 7b does those.
+>
+> Report back with:
+> - How you handled the metadata-registry pitfall.
+> - Any existing test you changed, and why.
+> - Any deviations from the brief.
+> - What you did not run.
+
+Status: In progress
+
+Summary: Added the append-only audit_log table (migration 0004 with PostgreSQL triggers rejecting UPDATE, DELETE and TRUNCATE), the AuditLog model, AuditAction and record() (add and flush, never commit, rejects secret-looking summary keys), the app/models.py registry (imported by migrations/env.py and the drift test), and 13 tests; updated FILE_STRUCTURE.md and ARCHITECTURE.md.
+- Status update (2026-11-17): Completed. 13/13 new tests passed. Only tests/test_audit_log.py was run. Deviation: also filled the empty third cell of the audit row in ARCHITECTURE.md.
+
+## T-027: Verify the audit log (Task 7b, verification only) (2026-11-17)
+
+> Task 7b: verify the audit log (report, don't fix)
+>
+> Task 7a added the audit log. Verify it. Report, don't fix: if something fails or looks wrong, describe it and stop. Do not edit any file, including tests and docs. Do not log to USERPROMPT.md or touch its existing uncommitted change. No new dependencies. If anything is unclear, stop and ask. Say plainly what you did not run.
+>
+>
+> Run, in order (rebuild first; the source is not mounted):
+> docker compose build api
+> docker compose run --rm api sh -c "pytest -q && ruff check ."
+> docker compose up -d api
+> docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\d audit_log"'
+> docker compose run --rm api alembic downgrade -1
+> docker compose run --rm api alembic upgrade head
+> docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\d audit_log"'
+> docker compose down
+>
+> Then check by reading the code, and report yes/no with evidence (file and line) for each:
+> 1. The full pytest and ruff output are clean. Give the real test count; do not predict it.
+> 2. \d audit_log, both before and after the round trip, shows the eight columns, the primary key plus the three indexes, and three triggers (row-level BEFORE UPDATE OR DELETE, statement-level BEFORE TRUNCATE).
+> 3. No foreign key on audit_log.
+> 4. Leaf rule: nothing under app/audit/ imports app.core.models, app.core.services or app.core.passwords (grep, and confirm the ast test really covers every file).
+> 5. record() never commits, never logs or prints, and has no datetime.now( (project rule: only app/core/clock.py).
+> 6. The forbidden-key check is case-insensitive, recursive, and uses a named constant.
+> 7. No call to record() exists outside app/audit/ and tests.
+> 8. app/models.py exists with a header; migrations/env.py and the drift test import it.
+> 9. Migration 0004 has step comments, a header stating both risks, and a downgrade that drops triggers, function, indexes, then table, in that order.
+> 10. pyproject.toml has no new dependency; migrations 0002 and 0003 are not modified.
+> 11. Every new file has a header, every function a docstring with Raises: where relevant, every test a one-line docstring.
+> 12. FILE_STRUCTURE.md and ARCHITECTURE.md were updated as asked; plan.md was not touched.
+> 13. List the files in git status and flag anything outside the expected set (including BD_BACKEND/migrations/migrations.md, which is not ours).
+>
+> Report back with the full pytest and ruff output, both \d audit_log outputs, the answer to each check above, and anything not run.
+
+Status: In progress
+
+Summary: Ran the full suite and ruff in Docker (96 passed, ruff clean), checked \d audit_log before and after a downgrade/upgrade round trip (identical), and answered all 13 checks by reading the code. Flag: the migration creates two trigger objects (one row-level for UPDATE/DELETE, one statement-level for TRUNCATE) rather than three; no files were edited.
+- Status update (2026-11-17): Completed. All checks passed; nothing blocked.
+
+## T-028: current_user FastAPI dependency (Task 8a, implementation) (2026-11-17)
+
+> Brief for the agent: Task 8a, current_user FastAPI dependency (implementation)
+>
+> Context. Alphaleo BD backend. Read CLAUDE.md first, including "Documentation standards": 2-3 line header on every new file, docstrings on every function with Raises:, a one-line docstring on every test, comments on non-obvious logic. Tasks 1-7 are done. This task adds only the FastAPI dependency that turns the session cookie into the signed-in user. No login or logout routes, no /auth/me, no cookie-setting code, no permission checks, no audit calls, no new dependencies, no changes to config.py, models or migrations. Do not log to USERPROMPT.md. Never weaken a test. If anything is unclear, stop and ask. Say plainly what was not run.
+>
+> Why. Every protected route will declare a current-user dependency. One dependency keeps routes thin (CLAUDE.md: layering) and gives Tasks 9 and 12 one thing to build on. Authentication (who are you?) is this task. Authorization (may you do this?) is Task 12.
+>
+> Concepts
+> - 401 means "we don't know who you are" (missing, empty, unknown, expired, revoked or disabled). 403 is Task 12. This task only raises 401.
+> - Same body for every failure. Different messages would tell an attacker which tokens were once valid.
+> - Per-request caching: FastAPI calls a dependency once per request and reuses the result, but only for the same function object. Always depend on get_current_session and get_current_user directly, never on copies or lambdas. The same applies to get_session: all dependencies in a request share one database session.
+>
+> Inspect first: FILE_STRUCTURE.md and docs/plan.md section 5.4 (planned name for core dependencies; use app/core/dependencies.py unless they say otherwise), app/core/services.py (get_active_session, AuthenticatedSession), app/db.py (get_session), app/config.py (Settings, get_settings, session_cookie_name, which fields are required), app/core/api.py (existing router and Depends style), tests/test_session_service.py (fixtures).
+>
+> 1. Create app/core/dependencies.py (BD_BACKEND/app/core/dependencies.py). Use the Annotated style for every Depends (no "= Depends(...)" defaults; ruff rule B008 is on). Contents:
+> - NOT_AUTHENTICATED_DETAIL = "Not authenticated" as a named constant.
+> - get_current_session(request, db, settings) -> AuthenticatedSession, where db is Annotated[Session, Depends(get_session)] and settings is Annotated[Settings, Depends(get_settings)]:
+>   - token = request.cookies.get(settings.session_cookie_name). The cookie name comes from settings, never a hardcoded string.
+>   - If the token is missing or empty, raise HTTPException 401 with the constant detail.
+>   - Call services.get_active_session(db, token). If it returns None, raise 401 with the same detail.
+>   - Return the AuthenticatedSession.
+>   - Read-only: no commit, no cookie set/refresh/delete, no session extension, no writes.
+> - get_current_user(auth: Annotated[AuthenticatedSession, Depends(get_current_session)]) -> User: returns auth.user.
+> - CurrentUser = Annotated[User, Depends(get_current_user)] for routes to use.
+> Never log or print the token. Keep this a thin wrapper: session rules live in services.py. Do not add a WWW-Authenticate header.
+>
+> 2. Create tests/test_current_user.py. Real PostgreSQL, same fixture pattern as the service tests: module-scoped engine migrated to head, per-test rolled-back session with join_transaction_mode="create_savepoint", a synthetic user, an autouse clock reset. Time: use core.clock only (set_offset/reset_offset, now()). Never write datetime.now( anywhere.
+>
+> Because no auth routes exist yet, build a tiny FastAPI app inside the test file, not under app/. Two routes:
+> - One uses CurrentUser and returns an explicit dict {"id": str(...), "email": ..., "role": the enum's string value}. Never return the whole User (it holds password_hash).
+> - One depends on get_current_user twice plus get_current_session (for the caching test) and returns a small dict.
+> Override get_session so the app uses the test's session. Use TestClient. Set the cookie with client.cookies.set(...), not per request. Create tokens with services.create_session. Use synthetic data (alice@example.com).
+>
+> Tests:
+> 1. No cookie: 401 with exactly {"detail": "Not authenticated"}.
+> 2. Valid cookie: 200 with the right id, email and role.
+> 3. Unknown token, wrong-length token, empty cookie, 10,000-character cookie: 401 each, never 500.
+> 4. Expired session (clock offset of session_lifetime_hours + 1 hours, applied after creating the session): 401.
+> 5. Revoked session (services.revoke_session): 401.
+> 6. Disabled user (is_active = False): 401.
+> 7. Cases 1, 3, 4, 5 and 6 all return identical response bodies. Parametrize and compare against one expected body.
+> 8. Role change visible on the very next request. Change the role with a Core UPDATE statement (not by setting the attribute on the ORM object), so the session's identity map holds a stale object. The next request must show the new role. This proves populate_existing works end to end.
+> 9. Caching: the route that uses get_current_user twice plus get_current_session executes exactly one statement selecting from sessions per request. Count with a SQLAlchemy before_cursor_execute listener on the test engine, counting statements that select from the sessions table (ignore SAVEPOINT and other statements). Remove the listener in a finally block or fixture teardown. Also make a second request and assert the total is 2, which shows the counter really counts. Keep the captured statement text so you can report it.
+> 10. Cookie name comes from settings. Override get_settings to return a Settings built from valid synthetic values with env files disabled (check how Settings is constructed and which fields are required; do not read any real .env) with session_cookie_name="custom_sid". The custom cookie works. With only the default bd_session cookie set, the request is 401.
+> 11. No side effects: the response has no Set-Cookie header, and the session row's expires_at and revoked_at are unchanged after the request (refresh the row and compare with values captured before).
+>
+> 3. Docs. Update FILE_STRUCTURE.md ("Exists today": the new module and test file) and ARCHITECTURE.md (the "built so far in core" line: the current_user dependency exists; login routes, permissions and CSRF are still planned). Do not touch plan.md. Do not fix other stale lines in those files.
+>
+> Verify (Docker; rebuild first because the source is not mounted):
+> docker compose build api
+> docker compose run --rm api sh -c "pytest tests/test_current_user.py -v"
+>
+> Do NOT run the full suite, ruff or the round trip. That is Task 8b. If your own test file fails, fix your own code or test (never weaken a test) and rerun only that file.
+>
+> Report back with:
+> - The final app/core/dependencies.py, printed in full.
+> - The pytest output for tests/test_current_user.py, in full.
+> - Proof for test 9: the captured statement text and the counts per request.
+> - Any deviation from this brief, and what was not run.
+
+Status: In progress
+
+Summary: Added `app/core/dependencies.py` (`get_current_session`, `get_current_user`, `CurrentUser`, `NOT_AUTHENTICATED_DETAIL`; read-only, 401 with one shared body for every failure) and `tests/test_current_user.py` (18 tests covering the 11 cases). Updated `FILE_STRUCTURE.md` and `ARCHITECTURE.md`.
+- Status update (2026-11-17): Completed. The new test file passed; the full suite and ruff were left to Task 8b.
+
+## T-029: Verify the current_user dependency (Task 8b, verification only) (2026-11-17)
+
+> Brief for the agent: Task 8b, verify the current_user dependency (report, don't fix)
+>
+> Context. Alphaleo BD backend. Task 8a added app/core/dependencies.py (get_current_session, get_current_user, CurrentUser, NOT_AUTHENTICATED_DETAIL) and tests/test_current_user.py. This prompt only verifies. Report, don't fix: do not change any file, including tests and docs, even for a trivial problem. If something fails or looks wrong, report it and stop. Do not log to USERPROMPT.md. Say plainly what was not run. Avoid heredocs, inline Python and "=====" separator lines (they have broken the shell before).
+>
+> Paths below are relative to the repo root.
+>
+> 1. Rebuild and run everything:
+> docker compose build api
+> docker compose run --rm api sh -c "pytest -q"
+> docker compose run --rm api sh -c "ruff check ."
+> Report the real pass/fail counts and the full ruff output. The 96 earlier tests should still pass. Do not guess the new test count; report what pytest prints, and any warnings (the known StarletteDeprecationWarning about httpx is expected).
+>
+> 2. Scope check:
+> git status --short
+> git diff --stat
+> Expected changes only: BD_BACKEND/app/core/dependencies.py (new), BD_BACKEND/tests/test_current_user.py (new), FILE_STRUCTURE.md, ARCHITECTURE.md. Also confirm these are untouched: BD_BACKEND/app/config.py, BD_BACKEND/app/models.py, BD_BACKEND/app/core/models.py, BD_BACKEND/migrations, plan.md, USERPROMPT.md, and that no dependency file changed.
+>
+> 3. Static checks on the new module (grep and report each result, even when empty):
+> - grep -n "print(\|logging\|logger\|commit\|flush\|set_cookie\|delete_cookie\|bd_session\|datetime" BD_BACKEND/app/core/dependencies.py (expected: no matches)
+> - grep -rn "bd_session" BD_BACKEND/app (expected: only the default in config.py)
+> - grep -rn "datetime.now(" BD_BACKEND/app (expected: only app/core/clock.py)
+> - grep -n "Depends(" BD_BACKEND/app/core/dependencies.py (expected: all inside Annotated, none as default values)
+> - Confirm no route or router was added under BD_BACKEND/app by this task (the test app must live in the test file).
+>
+> 4. Print in full (do not say "printed above"):
+> - BD_BACKEND/app/core/dependencies.py
+> - BD_BACKEND/tests/test_current_user.py
+>
+> 5. Coverage check, read only. Run: docker compose run --rm api sh -c "pytest tests/test_current_user.py --collect-only -q"
+> Then map each of the 11 cases to its test name(s) and say which, if any, is missing or weaker than specified:
+> 1 no cookie; 2 valid cookie; 3 unknown / wrong-length / empty / 10,000-character cookie; 4 expired; 5 revoked; 6 disabled user; 7 identical bodies across 1, 3, 4, 5, 6; 8 role change via Core UPDATE visible next request; 9 caching (one sessions SELECT per request, listener removed afterwards, second request gives total 2); 10 custom cookie name via overridden settings, default cookie ignored; 11 no Set-Cookie header and expires_at/revoked_at unchanged.
+> For test 9, print the counter code and the statement text it captured.
+>
+> 6. Docs: print git diff for FILE_STRUCTURE.md and ARCHITECTURE.md in full, and say whether the new lines match what the code actually does.
+>
+> Report back with: the results of steps 1 to 6 in order, a short list of anything that deviates from the brief or looks risky, and what was not run.
+
+Status: In progress
+
+Summary: Verified Task 8a without changing files: full suite 114 passed (1 expected httpx warning), ruff clean, static checks and scope as expected, all 11 cases mapped to tests (case 7 uses one "unknown" representative for case 3). Follow-up notes were then applied: removed a trailing space in `services.py` and two `print` lines in test 9; suite and ruff stayed green.
+- Status update (2026-11-17): Completed.
+
+## T-030: Login, logout and /auth/me (Task 9a, implementation) (2026-11-17)
+
+> Task 9a, login, logout and /auth/me (implementation)
+>
+> Read CLAUDE.md first, Tasks 1-8 are done (clock, User, Argon2id hashing, auth settings, sessions, session service, audit log, current_user dependency). This task adds the first auth routes. Never weaken a test. If anything is unclear, stop and ask. Say plainly what was not run. Heredocs and "=====" lines have broken the shell before; use the Write tool.
+>
+> Inspect first: FILE_STRUCTURE.md, app/core/api.py and app/main.py (router style and how routers are mounted), app/core/services.py, app/core/passwords.py, app/core/dependencies.py, app/core/models.py (is email guaranteed lower-case by a constraint or index?), app/audit/services.py (exact AuditAction member name for "auth.login_failed"; record() never commits), app/config.py, tests/test_current_user.py (fixtures, how Settings is built, how get_session is overridden).
+>
+> Rules that drive the design
+> - Routes are thin: parse input, call a service, shape the response.
+> - Wrong password, unknown email and disabled user must give the identical 401 (status, body, headers) and take similar time. For an unknown email, still run one verify_password against a cached dummy hash. Check is_active AFTER the verify.
+> - verify_password takes the HASH FIRST: verify_password(password_hash, plain_password). Swapped arguments fail silently as "wrong password".
+> - Never serialize the User object. Never log or store passwords, tokens or hashes.
+>
+> 1. app/core/schemas.py (Pydantic v2, both models extra="forbid"): LoginRequest (email: strip whitespace, 1-320 chars, must contain "@"; password: 1-1024 chars, NOT stripped or altered). UserResponse (id UUID, email str, role UserRole, from_attributes=True).
+>
+> 2. app/core/services.py (add): normalize_email(email); InvalidCredentialsError; cached dummy hash (functools.cache, hash_password("not-a-real-password")); login(db, email, password, *, ip_address, lifetime=None) -> tuple[str, User] with exactly one verify_password, success only if user exists, password matched and is_active; on failure audit.record(LOGIN_FAILED, actor_user_id, object_type="user", object_id, summary reason unknown_user / bad_password / inactive_user plus email_attempted only if it contains "@" and is <= 320 chars, ip_address), db.commit(), THEN raise InvalidCredentialsError; on success rehash if password_needs_rehash (only after successful verify), then create_session (commits) and return (token, user). logout(db, token | None): revoke_session if token given; idempotent, never raises.
+>
+> 3. app/core/cookies.py: SESSION_COOKIE_SAMESITE = "lax"; set_session_cookie(response, token, settings), clear_session_cookie(response, settings). HttpOnly, Secure = settings.session_cookie_secure, SameSite lax, Path="/", max_age = session_lifetime_hours * 3600, no Domain. Clear helper uses same name, path, secure, httponly, samesite.
+>
+> 4. Routes in app/core/api.py: router prefix="/auth", tags=["auth"], mounted in app.main (minimal change). POST /auth/login -> 200 UserResponse + cookie (lifetime computed in the route; ip from request.client with comment on trusted proxies deferred; 401 {"detail": "Invalid email or password"} named constant, no cookie). POST /auth/logout -> 204, no auth required, ALWAYS clear cookie, Set-Cookie on the 204. GET /auth/me -> UserResponse via CurrentUser.
+>
+> 5. tests/test_auth_routes.py: real PostgreSQL, real app.main.app, fixtures like test_current_user.py, hash_password("correct-horse-battery"), clear dependency_overrides, override get_settings in EVERY test with Settings(_env_file=None, ...), TestClient(app, base_url="https://testserver") for secure=True. 15 tests: (1) login 200 body exactly id/email/role, no "password_hash" in text; (2) cookie flags both secure settings; (3) cookie is raw token, sessions table holds only SHA-256; (4) /auth/me after login, 401 without; (5) email case/whitespace-insensitive; (6) wrong password / unknown / disabled identical status, body, headers, no Set-Cookie; (7) one auth.login_failed row each with right reason/actor/object_type/IP, commit proven via session.rollback(); (8) services.login directly: email without "@" gives no email_attempted, no audit summary contains password or hash; (9) unknown-email path runs exactly one verify_password (monkeypatch app.core.services.verify_password); (10) rehash from weak params; (11) 422 for missing fields, empty password, >1024 chars, extra field, and password not echoed in 422 body (report only, no global handler); (12) logout revokes, cookie removed, 204; (13) logout idempotent for no cookie, garbage cookie, revoked session; (14) two logins two sessions, logout one leaves other; (15) failed login creates no sessions row.
+>
+> 6. Docs: update FILE_STRUCTURE.md and ARCHITECTURE.md (login, logout, /auth/me exist; CSRF, throttling, permissions, user management still planned). README only if it lists API routes. Do not touch plan.md or fix other stale lines.
+>
+> Run (rebuild first; the source is not mounted): docker compose build api; docker compose run --rm api sh -c "pytest tests/test_auth_routes.py -v". Do NOT run the full suite, ruff, curl checks or the round trip (Task 9b). If own test file fails, fix own code or test and rerun only that file.
+>
+> Report back with: final diff of services.py, plus schemas.py, cookies.py and route code in full; full pytest output for the new file; one example Set-Cookie header from a test; any deviations and what was not run.
+
+Status: In progress
+
+Summary: Added POST /auth/login, POST /auth/logout and GET /auth/me with schemas, cookie helpers and login/logout services (one verify_password on every path, durable audit of failures, rehash on login). New tests/test_auth_routes.py: 34 passed, 1 xfailed (FastAPI's 422 body echoes an over-long password; no global handler added, per brief).
+- Status update (2026-11-17): Completed. Needs input: decide how to handle the 422 password echo. Not run: full suite, ruff, curl checks, round trip (Task 9b).
+
+## T-031: Stop 422 responses from echoing submitted values (Task 9b) (2026-11-17)
+
+> Task 9b, stop 422 responses from echoing submitted values
+>
+> Context. Alphaleo BD backend. Read CLAUDE.md first (Documentation standards apply). Task 9a added /auth/login, and FastAPI's default 422 body echoes the submitted value in each error's "input" field, so a password over 1024 characters comes back in the response. Fix this with one handler. No new dependencies. Never weaken a test. If anything is unclear, stop and ask.
+>
+> Inspect first: app/main.py, app/core/api.py, tests/test_auth_routes.py (the xfail test and the other 422 tests), FILE_STRUCTURE.md.
+>
+> 1. Create app/core/errors.py (2-3 line header, docstrings with Raises:) with an async handler for fastapi.exceptions.RequestValidationError that returns JSONResponse status 422 and body {"detail": [ ... ]}. Each item keeps only "type", "loc" and "msg" from the original error. Drop "input", "ctx" and "url". Add a register function (or similar) and call it in app/main.py with a minimal change. Add a comment saying why: error bodies must never echo submitted values such as passwords.
+>
+> 2. Tests in tests/test_auth_routes.py: remove the xfail marker from the password-over-1024 test (must pass unchanged); a 422 from an extra field does not contain the extra field's value anywhere in the response text; body shape is {"detail": [{"type", "loc", "msg"}, ...]} with no "input", "ctx" or "url" key at any depth; missing-fields and empty-password 422s still return 422 with the same shape.
+>
+> 3. Docs: add errors.py to FILE_STRUCTURE.md ("Exists today") and one short mention in ARCHITECTURE.md. Do not touch plan.md or fix other stale lines.
+>
+> Run (rebuild first): docker compose build api; docker compose run --rm api sh -c "pytest tests/test_auth_routes.py -v". Do NOT run the full suite or ruff.
+>
+> Report back with: app/core/errors.py and the main.py change in full, the full pytest output, any deviation, and what was not run.
+
+Status: In progress
+
+Summary: Added app/core/errors.py with one RequestValidationError handler (422 bodies keep only type, loc, msg) registered in app.main. Removed the xfail from the over-long-password test and added tests for extra-field value and body shape. tests/test_auth_routes.py all passing.
+- Status update (2026-11-17): Completed. Not run: full suite, ruff.
+
+## T-032: Verify login, logout and /auth/me (Task 9c, verification only) (2026-11-17)
+
+> Task 9c, verify login, logout and /auth/me (report, don't fix). 
+> Steps:
+> (1) docker compose build api; run pytest -q and ruff check . in the api container and report real counts (no xfail should remain) and full ruff output.
+> (2) Scope: git status --short, git diff --stat, check only the expected files changed (app/core/{schemas,cookies,errors}.py new, services.py, api.py, main.py, tests/test_auth_routes.py new, FILE_STRUCTURE.md, ARCHITECTURE.md); git diff USERPROMPT.md and report. 
+>(3) Static greps: datetime.now(, print/logging/logger/x-forwarded, verify_password( calls hash-first, commit in services.py and api.py by function. 
+>(4) Print services.py and api.py in full. >
+>(5) pytest --collect-only names; print tests 3, 7, 9, 10 and answer yes/no on four specific properties. 
+>(6) Live check: docker compose up -d api, curl login (401, no Set-Cookie), /auth/me (401), logout (204 clearing bd_session), login with missing password (422, no "input"); query dev DB for the audit row of the first login; docker compose down. 
+>(7) Print git diff for FILE_STRUCTURE.md and ARCHITECTURE.md and say whether they match the code. Report steps 1-7 in order, deviations or risks, and what was not run.
+
+Status: In progress
+
+Summary: Verified Tasks 9a/9b without changing code: pytest 155 passed (no xfail), ruff reports one E501 in tests/test_auth_routes.py:206 (not fixed, per brief). Static checks, scope, live curl checks and the dev-DB audit row all matched expectations.
+- Status update (2026-11-17): Completed. Needs input: ruff E501 fix.

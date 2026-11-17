@@ -15,12 +15,17 @@ Design choices:
   its user is active, so disabling a user ends their sessions immediately.
 - Every time comparison uses core.clock.now() passed as a parameter (never SQL now()), so
   the test clock offset affects expiry.
+
+Login and logout also live here. login() gives the same InvalidCredentialsError and
+similar timing for an unknown email, a wrong password and a disabled user, and records each
+failure in the audit log before raising.
 """
 
 import hashlib
 import secrets
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import cache
 from typing import cast
 from uuid import UUID
 
@@ -28,17 +33,33 @@ from sqlalchemy import select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
+from app.audit import services as audit
+from app.audit.services import AuditAction
 from app.config import get_settings
 from app.core.clock import now
 from app.core.models import User, UserSession
+from app.core.passwords import hash_password, password_needs_rehash, verify_password
 
 TOKEN_BYTES = 32
 # token_urlsafe(32) encodes 32 bytes as 43 URL-safe base64 characters (no padding).
 TOKEN_LENGTH = 43
+# Longest valid email address; mirrors users.email String(320). core.schemas reuses this value.
+EMAIL_MAX_LENGTH = 320
+# Throwaway password for the dummy hash; it only has to cost the same to verify as a real one.
+DUMMY_PASSWORD = "not-a-real-password"
+
+# Reasons stored in the audit summary of a failed login (never shown to the client).
+REASON_UNKNOWN_USER = "unknown_user"
+REASON_BAD_PASSWORD = "bad_password"
+REASON_INACTIVE_USER = "inactive_user"
 
 
 class InactiveUserError(Exception):
     """Raised when a session is requested for a user who is not active."""
+
+
+class InvalidCredentialsError(Exception):
+    """Raised when login fails for any reason (unknown email, wrong password, disabled user)."""
 
 
 @dataclass(frozen=True)
@@ -181,3 +202,115 @@ def revoke_all_user_sessions(db: Session, user_id: UUID) -> int:
     result = cast(CursorResult, db.execute(statement))
     db.commit()
     return result.rowcount
+
+
+def normalize_email(email: str) -> str:
+    """Return the email stripped of surrounding whitespace and lower-cased.
+
+    Users are stored lower-case (CHECK ck_users_email_lowercase), so every lookup must
+    normalize first; use this function everywhere an email is compared or stored.
+    """
+    return email.strip().lower()
+
+
+@cache
+def _dummy_password_hash() -> str:
+    """Return a hash of a throwaway password, built once per process.
+
+    Verified against when the email is unknown, so that path costs the same Argon2 work as
+    a real user's and response time does not reveal which emails exist.
+    """
+    return hash_password(DUMMY_PASSWORD)
+
+
+def _record_login_failure(
+    db: Session, *, user: User | None, reason: str, normalized_email: str, ip_address: str | None
+) -> None:
+    """Write one auth.login_failed audit row and commit it.
+
+    The commit happens here (before the caller raises) because the request ends in an
+    error response and nothing else would commit; without it the audit row would be lost.
+    """
+    summary: dict[str, object] = {"reason": reason}
+    # People sometimes paste their password into the email field, so a value that does not
+    # look like an email (no "@", or too long to be one) is never written to the audit log.
+    if "@" in normalized_email and len(normalized_email) <= EMAIL_MAX_LENGTH:
+        summary["email_attempted"] = normalized_email
+    audit.record(
+        db,
+        action=AuditAction.LOGIN_FAILED,
+        actor_user_id=user.id if user is not None else None,
+        object_type="user",
+        object_id=str(user.id) if user is not None else None,
+        summary=summary,
+        ip_address=ip_address,
+    )
+    db.commit()
+
+
+def login(
+    db: Session,
+    email: str,
+    password: str,
+    *,
+    ip_address: str | None,
+    lifetime: timedelta | None = None,
+) -> tuple[str, User]:
+    """Check credentials and start a session.
+
+    Exactly one password verification runs on every path (against the dummy hash when the
+    email is unknown), and is_active is checked only after it, so an unknown email, a wrong
+    password and a disabled user are indistinguishable by response or timing.
+
+    Args:
+        db: Database session; committed by this function on success and on failure.
+        email: The submitted email; normalized here.
+        password: The submitted password, used as given.
+        ip_address: Client IP for the audit log, or None if unknown.
+        lifetime: Session lifetime; defaults to the configured session_lifetime_hours.
+
+    Returns:
+        The raw session token (returned only here) and the signed-in user.
+
+    Raises:
+        InvalidCredentialsError: For any failure, after the failure was audited and committed.
+    """
+    normalized = normalize_email(email)
+    # Plain equality is safe: the schema guarantees lower-case storage (CHECK constraint).
+    user = db.execute(select(User).where(User.email == normalized)).scalar_one_or_none()
+
+    # verify_password takes the hash first, then the plain password.
+    password_hash = user.password_hash if user is not None else _dummy_password_hash()
+    password_matches = verify_password(password_hash, password)
+
+    if user is None:
+        reason = REASON_UNKNOWN_USER
+    elif not password_matches:
+        reason = REASON_BAD_PASSWORD
+    elif not user.is_active:
+        reason = REASON_INACTIVE_USER
+    else:
+        reason = None
+
+    if reason is not None:
+        _record_login_failure(
+            db, user=user, reason=reason, normalized_email=normalized, ip_address=ip_address
+        )
+        raise InvalidCredentialsError("login failed")
+
+    # Only reached with a verified password and an active user. Called after a successful
+    # verify because password_needs_rehash() raises on a malformed hash.
+    if password_needs_rehash(user.password_hash):
+        # Upgrade old hashes silently; create_session commits this change with the session.
+        user.password_hash = hash_password(password)
+    token, _ = create_session(db, user, lifetime=lifetime)
+    return token, user
+
+
+def logout(db: Session, token: str | None) -> None:
+    """End the session for a token; safe to call with no, junk or already-revoked tokens.
+
+    Idempotent and never raises for a bad token, so an expired session can still sign out.
+    """
+    if token:
+        revoke_session(db, token)

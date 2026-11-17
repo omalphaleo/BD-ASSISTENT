@@ -29,7 +29,7 @@ flowchart TB
 
 ## 2. Modules and responsibilities
 
-Built so far in `core`: the `User` model (`app/core/models.py`) and its migration `0002` (`users` table, `user_role` enum). `core` also has Argon2id password hashing and verification (`app/core/passwords.py`). `core` now also has the `sessions` table (`UserSession` model, migration `0003`); session create, lookup and revoke now exist in `app/core/services.py`; cookies, `current_user`, routes and permissions are still planned.
+Built so far in `core`: the `User` model (`app/core/models.py`) and its migration `0002` (`users` table, `user_role` enum). `core` also has Argon2id password hashing and verification (`app/core/passwords.py`). `core` now also has the `sessions` table (`UserSession` model, migration `0003`); session create, lookup and revoke now exist in `app/core/services.py`; the `current_user` dependency (`app/core/dependencies.py`: cookie to signed-in user, 401 on any failure) exists. Login, logout and `/auth/me` now exist (`POST /auth/login`, `POST /auth/logout`, `GET /auth/me` in `app/core/api.py`; `login()`/`logout()` in `app/core/services.py`; cookie flags in `app/core/cookies.py`): a failed login gives one identical 401 for an unknown email, wrong password or disabled user, and is audited. Validation errors (422) go through one handler (`app/core/errors.py`) that returns only `type`, `loc` and `msg`, so a submitted password is never echoed. CSRF protection, login throttling, permissions and user management are still planned. The `audit_log` table (`AuditLog` model, migration `0004`, with PostgreSQL triggers rejecting UPDATE, DELETE and TRUNCATE) and `audit.services.record()` exist; `login()` calls `record()` for every failed login (`auth.login_failed`).
 
 Dependency direction (no upward imports): `core` ← `leads` / `content` ← `compliance` ← `ai` ← `campaigns` ← `outreach` ← `mail` ← `notifications`. `audit` is a leaf that anything may call.
 
@@ -45,7 +45,7 @@ Dependency direction (no upward imports): `core` ← `leads` / `content` ← `co
 | `outreach` | The `outreach_messages` queue, scheduler, limits, retries | build email text |
 | `mail` | `Sender` implementations, inbound mail, threading, bounce and unsubscribe detection | contain business policy |
 | `notifications` | In-app and email alerts, SLA, dashboard queries | |
-| `audit` | Append-only event log | |
+| `audit` | Append-only event log | import `core` models, services or passwords |
 
 `imports` writes raw rows, then calls `leads` services to create or merge people and companies. `compliance.check_eligibility()` is the only eligibility logic and is used by `leads` (search), `campaigns` (creation), `ai` and `campaigns` (drafting) and `outreach` (sending).
 

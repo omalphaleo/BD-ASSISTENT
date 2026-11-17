@@ -19,6 +19,7 @@ from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.orm import Session
 
+import app.models  # noqa: F401  # registers every model so the drift test sees all tables
 from app.core.clock import reset_offset, set_offset
 from app.core.models import User, UserRole
 from app.db import Base
