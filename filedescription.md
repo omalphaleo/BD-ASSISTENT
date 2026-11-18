@@ -23,7 +23,7 @@ How to read: each file has a short **Purpose** (what it does and why it exists),
 | `USERPROMPT.md` | Append-only log of development prompts and task summaries; not used by the app. |
 | `docker-compose.yml` | Local-dev stack: `db` (PostgreSQL 17 + pgvector), `api` (runs `alembic upgrade head`, then uvicorn), `worker` (Procrastinate), optional untested `frontend` profile. Credentials come from `.env`. |
 | `.env.example` | Template for the root `.env` read by compose (`POSTGRES_*`, optional session settings). |
-| `.gitignore` | Keeps secrets (`.env`), Python caches and local artefacts out of git. |
+| `.gitignore` | Keeps secrets (`.env`), the per-developer `.claude/settings.local.json`, Python caches and local artefacts out of git. |
 
 ## 2. `.claude/`, `docs/`, `milestone/`
 
@@ -54,6 +54,9 @@ How to read: each file has a short **Purpose** (what it does and why it exists),
 ### `app/__init__.py`, `app/core/__init__.py`, `app/audit/__init__.py`
 Package markers so `app.*` imports resolve; they contain only docstrings. No functions.
 
+### Stub packages: `app/{imports,leads,compliance,content,campaigns,outreach,mail,notifications}/{__init__,models}.py`
+**Purpose:** added in M1 task A0 so every module has a fixed place before its real code exists. `__init__.py` is a docstring-only package marker; `models.py` is a header-only file with no models yet. Each `models.py` is already imported by `app/models.py`, so the owning task adds its tables there without editing the registry. No functions.
+
 ### `app/main.py`
 **Purpose:** the FastAPI entry point served by uvicorn (`app.main:app`). Creates the app, installs the error handler and mounts the routes. Holds no business logic. Imported by `tests/test_auth_routes.py` and `tests/test_health.py`. No functions; module-level `app` is the object.
 
@@ -78,7 +81,7 @@ Package markers so `app.*` imports resolve; they contain only docstrings. No fun
 | `get_session()` | FastAPI dependency: yields one session per request and closes it; never commits. | Services decide when to commit. Used by `core/api.py` and `core/dependencies.py`; tests override it. |
 
 ### `app/models.py`
-**Purpose:** model registry. Imports `app.audit.models` and `app.core.models` only so their tables register on `Base.metadata`. Needed because Alembic (`migrations/env.py`) and the schema-drift test only see imported models; every new model module must be added here. No functions.
+**Purpose:** model registry. Imports the `models` module of all ten modules (`audit`, `campaigns`, `compliance`, `content`, `core`, `imports`, `leads`, `mail`, `notifications`, `outreach`) so their tables register on `Base.metadata`. Needed because Alembic (`migrations/env.py`) and the schema-drift test only see imported models. Frozen after M1 task A0: new models go in each module's own `models.py`, not here. No functions.
 
 ### `app/worker.py`
 **Purpose:** the Procrastinate app (PostgreSQL-backed background job runner) started by the `worker` compose service. No tasks are registered yet (M1 no-op). Builds `app` at import time from `get_settings().psycopg_conninfo`, so it also fails fast without `DATABASE_URL`. No functions.
@@ -222,6 +225,8 @@ Common helpers repeated in several files: `_alembic_config(url)` (Alembic config
 | `test_config.py` | Missing `DATABASE_URL` fails; `psycopg_conninfo`; defaults and env overrides; bad lifetime, cookie name or origin rejected; production rules. Fixture: `base_env`. |
 | `test_current_user.py` | A tiny app with protected routes: no, bad, expired, revoked or disabled session all give the same 401; role change visible next request; dependencies cached per request; cookie name from settings; no side effects. Helpers `_sign_in`, `_expire_by_clock`, `_disable`, `_arrange_*`. |
 | `test_health.py` | `/health` returns 200 normally and 503 when the database session fails (via dependency override). Fixture: `client`. |
+| `factories/__init__.py` | Header-only stub package (M1 task A0); per-module factory files (`core.py`, `leads.py`, ...) are added later. No functions. |
+| `test_migration_heads.py` | `test_alembic_has_single_head`: the Alembic history has exactly one head, so parallel migrations that fork the chain fail the build. No database needed. |
 | `test_migrations.py` | All migrations apply to an empty database and pgvector is installed. |
 | `test_passwords.py` | Argon2id format, no plaintext in hash, salting, unicode, malformed hash returns False, empty password rejected, rehash detection. No database. |
 | `test_session_model.py` | `sessions` constraints: unique token hash, foreign key, cascade delete, expiry check, hash length, clock use. Helpers `_new_session`, `_count_sessions`. |

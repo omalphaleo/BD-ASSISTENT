@@ -1,6 +1,7 @@
 # secrets and local config
 .env
 .env.local
+.claude/settings.local.json
 !.env.example
 !.env.local.example
 

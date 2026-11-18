@@ -1465,3 +1465,9 @@ Summary: Appended sections 11-19 to `milestone/m1.md`: current status, A/B split
 - Status: In progress
 - Summary: Added Task step 2a to `CLAUDE.md` requiring `filedescription.md` to be updated whenever files are created, modified, renamed or deleted (purpose and functions kept accurate), and added `filedescription.md` to the documentation ownership table.
 - Status update (2026-11-18): Completed.
+
+## T-039: Implement A0 scaffolding (2026-11-18)
+- Prompt: "proceed" (approving the A0 plan: stub packages, frozen app/models.py, single-Alembic-head test, empty tests/factories/ package, gitignore settings.local.json).
+- Status: In progress
+- Summary: Added 8 stub module packages (`__init__.py` + header-only `models.py`), rewrote `app/models.py` to import all ten model modules, added `tests/factories/__init__.py` and `tests/test_migration_heads.py`, and ignored `.claude/settings.local.json`. Updated `filedescription.md` and `FILE_STRUCTURE.md`. `ruff check` is clean; pytest could not be run (not installed in this shell).
+- Status update (2026-11-18): Needs input: run `pytest` locally to confirm green before the PR.
