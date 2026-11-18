@@ -70,5 +70,34 @@ Plan labels: `[AGREED]`, `[ASSUMPTION]`, `[SUGGESTION]`, `[UNRESOLVED]`. Never i
 - Every business rule has an automated test. DB tests run against real PostgreSQL with pgvector, not SQLite. Tests never call Gemini or Microsoft (use fakes or recorded responses). Test data is synthetic.
 - Done means: changes reviewed for correctness, security and side effects; `ruff` and `pytest` green (and `make check` once it exists); tests for each rule touched; permission checks present and tested; audit events added; no secrets or personal data in code, logs or fixtures; migrations apply on an empty DB; owning docs updated.
 
+## Documentation standards
+
+Applies to every file you create or change. Where it is stricter than the general comment and docstring rules under Coding standards, this section wins. Use the codebase's existing conventions: Python 3.12, Google-style docstrings (`Raises:` sections), Alembic migrations, pytest.
+
+**File header (mandatory, all files: source, tests, migrations).** Start every file with a 2–3 line header (module docstring in Python, comment in other languages) that says **what** the file does, **why** the system needs it, and **how** it helps (what depends on it or what workflow it enables). Keep it short; do not restate the code.
+
+```python
+"""Argon2id password hashing and verification.
+
+Needed so no plaintext password is ever stored; the login flow and user creation
+call hash_password()/verify_password() and never touch the hashing library directly.
+"""
+```
+
+**Backend functions and logic**
+- Every backend function, method and class has a docstring covering purpose, parameters (when not obvious from names and types), return value, and `Raises:` for each exception it raises on purpose.
+- Add inline comments that explain **why** non-obvious logic exists: business rules (cite decision numbers, e.g. D-066), edge cases, authentication and login flows, and workarounds. Do not comment self-explanatory lines.
+
+**Tests**
+- Every test file has the file header above.
+- Every test function has a one-line docstring or comment stating the scenario and the expected outcome (for example `"""Wrong password: verify_password returns False and does not raise."""`).
+- Comment non-trivial fakes, mocks, fixtures and setup, saying what they stand in for and why.
+
+**Migrations**
+- Every migration starts with a header summarizing the schema or data change and why it is needed (the existing revision docstring is the place for it).
+- Comment each significant step (new table, column, index, enum, constraint, data backfill) with its purpose, and note reversibility, locking and data-loss risks, including what `downgrade()` cannot restore. An applied migration is never edited (see Layering), so write these notes when the migration is first created.
+
+**Keep it in sync.** When you change a file's behaviour, update its header and the docstrings and comments of every function you touched in the same task. Documentation that no longer matches the code counts as a defect during the code review in General rule 9.
+
 ## Commands
 Backend commands (Docker and native) are in `README.md`. Single test: `pytest tests/test_health.py::test_health_ok`. The root `Makefile` / `make check` (ruff, pytest, tsc, ESLint, frontend tests) is planned, not built.
