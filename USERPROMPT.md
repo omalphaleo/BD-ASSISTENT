@@ -115,7 +115,6 @@ Rules: add the entry before starting work with `Status: In progress`. When finis
 
 ## T-008: Stop auto-reading USERPROMPT.md in CLAUDE.md workflow
 - Date: 2026-11-13
-- Status: In progress
 - Original prompt:
   > Read USERPROMPT.md first (at least the last few entries) for context and the next task ID. this is in the claude.md if it read the entries everytime the context memory will get full, and have not specified the entries also, is this the crt way to write or any change needed?
   > the read point which we gave in claude.md no need of that, dont want to read that for evry task, it is only for the userprompt.md, dont load that one in everytask and every convo
