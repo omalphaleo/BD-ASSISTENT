@@ -1447,3 +1447,21 @@ Status: In progress
 
 Summary: Appended sections 11-19 to `milestone/m1.md`: current status, A/B split, ownership map, 4-5 line descriptions for A0-A11 and B1-B12, conflict-avoidance rules, contracts, Git workflow, and suggested Claude Code settings (shared, per-developer, user level) marked as suggestions. No code or settings files changed.
 - Status update (2026-11-18): Completed. Needs input: open decisions in section 19.
+
+## T-036: Create filedescription.md listing all project files (2026-11-18)
+- Prompt: "Create a `filedescription.md` file that lists all project files along with a brief, clear description of each file's purpose and functionality."
+- Status: In progress
+- Summary: Created root `filedescription.md` with a purpose table for every tracked file, grouped by area (root, .claude, docs, backend app/migrations/tests, frontend); descriptions come from existing file headers. Added one line to `FILE_STRUCTURE.md`. Verified every `git ls-files` path appears.
+- Status update (2026-11-18): Completed.
+
+## T-037: Add functions and clearer file purposes to filedescription.md (2026-11-18)
+- Prompt: "Update `filedescription.md` to include the functions present in each file, a brief explanation of what each function does, and why it is used in the project. Clearly document each file's purpose and functionality."
+- Status: In progress
+- Summary: Rewrote `filedescription.md`: every file now has a purpose paragraph, and every Python file lists its functions, classes and constants with what each does and why it is used (tests only / not yet used marked). Checked with an AST scan that all app and migration functions and classes appear.
+- Status update (2026-11-18): Completed.
+
+## T-038: Require filedescription.md updates in CLAUDE.md (2026-11-18)
+- Prompt: "Add an instruction in `CLAUDE.md` stating that whenever files are created, modified, renamed, or deleted, the `filedescription.md` must be updated accordingly to reflect the latest project structure, including each file's purpose and functions."
+- Status: In progress
+- Summary: Added Task step 2a to `CLAUDE.md` requiring `filedescription.md` to be updated whenever files are created, modified, renamed or deleted (purpose and functions kept accurate), and added `filedescription.md` to the documentation ownership table.
+- Status update (2026-11-18): Completed.

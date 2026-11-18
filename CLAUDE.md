@@ -19,6 +19,7 @@ Do not implement beyond what the user has approved. When asked to "propose first
 ### Task (code and docs)
 1. Inspect the relevant project files first, and change only what the task needs. Use the current prompt and project files as guidance.
 2. Update the owning docs (table below) in the same task. Docs describe what exists; mark anything unbuilt as "planned".
+2a. Whenever a file is created, modified, renamed or deleted, update `filedescription.md` in the same task so it matches the current project structure: add, rename or remove the file's entry, and keep its purpose and its function/class list (what each does and why it is used) accurate. Documentation that no longer matches the code counts as a defect during code review.
 3. Use only the approved stack. Ask before adding a dependency, tool, framework or service the plan does not list. Version pins are still open (`docs/plan.md` U1): propose, don't guess.
 
 ## Documentation ownership (one home per topic; link, don't copy)
@@ -29,6 +30,7 @@ Do not implement beyond what the user has approved. When asked to "propose first
 | Roadmap, rationale, open items, risks, test and deploy plans | `docs/plan.md` |
 | How the system is built (modules, data flow, API, DB, AI) | `ARCHITECTURE.md` |
 | Where files live and where new ones go | `FILE_STRUCTURE.md` |
+| Per-file purpose and per-function descriptions (kept current on every file change, see Task step 2a) | `filedescription.md` |
 | Prompts sent to AI SDK/API calls, with versions | `PROMPT.md` |
 | Development task history | `USERPROMPT.md` |
 | Human entry point and setup | `README.md` |
@@ -53,12 +55,6 @@ Plan labels: `[AGREED]`, `[ASSUMPTION]`, `[SUGGESTION]`, `[UNRESOLVED]`. Never i
 8. **Maintainability:** Avoid hardcoded values, magic numbers, deeply nested conditions, unnecessary abstractions, and overly complicated logic. Use named constants and configuration where appropriate.
 9. **Code Review:** Before completing a task, review the changes for correctness, readability, security, consistency, and unintended side effects.
 
-**All code**
-- Clear names, type hints on public functions, no unnecessary `Any`. Follow existing patterns; don't introduce a new one when one exists.
-- Docstrings and comments only where they explain non-obvious logic or business decisions.
-- One responsibility per function and module; extract shared logic instead of duplicating it.
-- Handle expected errors explicitly. No broad `except`, no silent suppression, no stack traces shown to users.
-- Named constants and config instead of magic numbers.
 
 **Backend (Python 3.12, FastAPI)**
 - Business logic lives in `services.py`. Route handlers (`api.py`) and Procrastinate tasks are thin wrappers.

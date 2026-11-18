@@ -11,6 +11,7 @@ BD ASSISTANT/                  # project root
 ├── USERPROMPT.md              # exists: append-only development task history
 ├── PROMPT.md                  # exists: versioned AI SDK prompt registry
 ├── FILE_STRUCTURE.md          # exists: this file
+├── filedescription.md         # exists: per-file purpose list (snapshot of tracked files)
 ├── ARCHITECTURE.md            # exists: how the system is built
 ├── Makefile                   # planned (M1): `make check` runs all lint, type and test steps
 ├── docker-compose.yml         # exists: local dev (db pgvector/pg17, api, worker, optional frontend profile)
