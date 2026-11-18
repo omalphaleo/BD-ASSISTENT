@@ -1418,3 +1418,32 @@ Status: In progress
 
 Summary: Verified Tasks 9a/9b without changing code: pytest 155 passed (no xfail), ruff reports one E501 in tests/test_auth_routes.py:206 (not fixed, per brief). Static checks, scope, live curl checks and the dev-DB audit row all matched expectations.
 - Status update (2026-11-17): Completed. Needs input: ruff E501 fix.
+
+## T-033: Restore general coding rules in CLAUDE.md (2026-11-18)
+
+Prompt: "my general rules which were there in claude.md are no longer after i made changes , After the last commit they dissapeared" / "resolve the conflict ,for claude.md give priority to my file then other developer and dont overwrite userprompt.md append it and let me know which approach do u follow"
+
+Status: In progress
+
+Summary: Re-added the numbered General rules 1-9 (from 33229a6) to CLAUDE.md Coding standards, keeping the existing file as the base; USERPROMPT.md only appended.
+- Status update (2026-11-18): Completed.
+
+## T-034: Create milestone/ folder with m1.md (2026-11-18)
+
+Prompt: "in plan.md we have 8 milestones , so create a folder named milestone and for now read full m1 milestone and create m1.md file which should give the detail description of what it has"
+
+Status: In progress
+
+Summary: Created `milestone/m1.md` describing M1 (tasks, data model scope, modules, files, acceptance, tests, demo, open items) from plan.md only; listed `milestone/` in FILE_STRUCTURE.md. No code changed.
+- Status update (2026-11-18): Completed.
+
+## T-035: Two-developer split, Git workflow and Claude Code settings for M1 (2026-11-18)
+
+Prompt: "First, review the entire codebase and `M1.md` to understand the current implementation and pending tasks. Then decompose the complete remaining M1 workload between two developers and document the entire task breakdown directly in `M1.md`. Clearly specify each developer's responsibilities, assigned files/modules, task dependencies, and Git workflow, including exactly when to create branches, commit, push, and merge. Avoid overlapping file modifications and ensure both developers can work independently without Git conflicts, merge conflicts, or overwriting each other's changes."
+
+Follow-up prompt: "Add description of 4-5 lines for all A0–A11 and B1–B12, explaining their purpose, functionality, and use cases. Also document the required Claude Code configurations for our suggestions mark as suggestions only for our internal purpose at both user level and project level, including permissions and approval settings.Ensure Claude Code does not create, modify, or delete files without explicit approval. Include appropriate settings to prevent unintended changes, overlapping file modifications, and conflicts between the two developers working on the project."
+
+Status: In progress
+
+Summary: Appended sections 11-19 to `milestone/m1.md`: current status, A/B split, ownership map, 4-5 line descriptions for A0-A11 and B1-B12, conflict-avoidance rules, contracts, Git workflow, and suggested Claude Code settings (shared, per-developer, user level) marked as suggestions. No code or settings files changed.
+- Status update (2026-11-18): Completed. Needs input: open decisions in section 19.

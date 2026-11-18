@@ -22,6 +22,7 @@ BD ASSISTANT/                  # project root
 │   │   ├── Q-A.md             # exists: requirements source of truth (D-001…D-113)
 │   │   └── BD-Ans-2026-10-23-R1.docx   # exists: original BD answers, superseded by Q-A.md
 │   └── decisions/             # exists: one short file per significant technical decision (0001 = Docker for local dev)
+├── milestone/                 # exists: one detailed description per milestone (m1.md; M2–M8 planned)
 ├── BD_BACKEND/                # exists: backend skeleton (see below)
 └── BD_FRONTEND/               # exists: only an untested Dockerfile and .dockerignore (Next.js planned M1)
 ```

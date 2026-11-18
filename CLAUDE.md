@@ -42,6 +42,17 @@ Plan labels: `[AGREED]`, `[ASSUMPTION]`, `[SUGGESTION]`, `[UNRESOLVED]`. Never i
 
 ## Coding standards
 
+**General (all code).** These apply to every file; the blocks below add project-specific rules, which win on conflict.
+1. **Readable Code:** Write clean, simple, and self-explanatory code. Use meaningful names for variables, functions, classes, and files.
+2. **Comments and Docstrings:** Add comments wherever logic is complex, non-obvious, or involves important business decisions. Add docstrings to public functions, classes, and modules where they clarify purpose, parameters, return values, or behaviour. Do not comment every line or repeat what the code already explains.
+3. **Single Responsibility:** Each function, class, and module should have one clear responsibility. Avoid unnecessarily large functions and classes.
+4. **Reusability:** Avoid duplicate code. Extract common logic into reusable functions or modules instead of repeating implementations.
+5. **Type Safety:** Avoid unnecessary `Any`, untyped functions, and implicit assumptions. Define clear input and return types.
+6. **Error Handling:** Handle expected errors explicitly. Do not use broad exception handling unless necessary. Never silently suppress errors or expose internal stack traces to users.
+7. **Consistency:** Follow existing project naming conventions, formatting, patterns, and API response structures. Do not introduce a new pattern when an established one already exists.
+8. **Maintainability:** Avoid hardcoded values, magic numbers, deeply nested conditions, unnecessary abstractions, and overly complicated logic. Use named constants and configuration where appropriate.
+9. **Code Review:** Before completing a task, review the changes for correctness, readability, security, consistency, and unintended side effects.
+
 **All code**
 - Clear names, type hints on public functions, no unnecessary `Any`. Follow existing patterns; don't introduce a new one when one exists.
 - Docstrings and comments only where they explain non-obvious logic or business decisions.
