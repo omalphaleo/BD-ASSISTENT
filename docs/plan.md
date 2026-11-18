@@ -83,7 +83,7 @@ flowchart LR
 - `mail` also supplies inbound messages to the reply pipeline, which calls `ai` for classification and `notifications` for alerts.
 - `audit` receives events from everywhere. `core` holds shared utilities (clock, permissions, settings).
 
----
+---------
 
 ## 3. Scope
 
