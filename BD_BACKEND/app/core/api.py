@@ -66,7 +66,7 @@ def login(
     except services.InvalidCredentialsError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, INVALID_CREDENTIALS_DETAIL) from None
     set_session_cookie(response, token, settings)
-    return UserResponse.model_validate(user)
+    return UserResponse.model_validate(user)     
 
 
 @auth_router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
