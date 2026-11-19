@@ -1,0 +1,145 @@
+/*
+ * Global styles for the Alphaleo BD frontend (task B3).
+ * One plain stylesheet with plain class names (no CSS modules) is enough for the shell and the
+ * login page; split into modules later if it grows. Colours follow the user's light/dark setting.
+ */
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #5f6368;
+  --border: #d0d4d9;
+  --accent: #1f4fd8;
+  --accent-fg: #ffffff;
+  --error: #b3261e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --fg: #ececec;
+    --muted: #a0a4ab;
+    --border: #353a42;
+    --accent: #7aa2ff;
+    --accent-fg: #101216;
+    --error: #ff8a80;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+/* Login page */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+/* Forms */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.field input {
+  padding: 8px 10px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.button {
+  padding: 8px 14px;
+  font: inherit;
+  color: var(--accent-fg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button-secondary {
+  color: var(--fg);
+  background: transparent;
+  border-color: var(--border);
+}
+
+/* Signed-in shell */
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  flex: 1;
+}
+
+.app-nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.app-nav a[aria-current="page"] {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.app-main {
+  padding: 16px;
+  max-width: 1100px;
+}

@@ -1,16 +1,15 @@
 /**
- * Placeholder home page for the Alphaleo BD frontend skeleton.
+ * Home route "/" (task B3): only decides where to send the visitor.
  *
- * Proves the Next.js app builds and runs (`npm run dev`, Docker). It holds no business
- * rules and calls no API; the login page and empty screen shells replace it in task B3.
+ * Replaces the B1 placeholder. Signed-in visitors go to the app (/leads), everyone else to /login.
+ * It renders nothing itself and holds no business rules.
  */
+import { redirect } from "next/navigation";
 
-/** Renders a static "skeleton is running" message. */
-export default function HomePage() {
-  return (
-    <main>
-      <h1>Alphaleo BD</h1>
-      <p>Frontend skeleton is running.</p>
-    </main>
-  );
+import { getSessionState } from "@/lib/auth-server";
+
+/** Redirects by session state; never renders content. */
+export default async function HomePage() {
+  const session = await getSessionState();
+  redirect(session.status === "signed-in" ? "/leads" : "/login");
 }
