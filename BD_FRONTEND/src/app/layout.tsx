@@ -2,10 +2,13 @@
  * Root layout of the Alphaleo BD frontend.
  *
  * Next.js requires one root layout that wraps every page; it sets the document
- * language and title. The real shell (navigation, session handling) comes in task B3.
+ * language and title and loads the global stylesheet (B3). The signed-in shell and the session
+ * check live in `(app)/layout.tsx`, so the login page stays outside them.
  */
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Alphaleo BD",
