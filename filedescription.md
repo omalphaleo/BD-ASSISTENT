@@ -36,6 +36,7 @@ How to read: each file has a short **Purpose** (what it does and why it exists),
 | `docs/requirements/Q-A.md` | Requirements source of truth (D-001 to D-113); wins over the plan on conflict. |
 | `docs/requirements/BD-Ans-2026-10-23-R1.docx` | Original business answers, superseded by `Q-A.md`. |
 | `docs/decisions/0001-2026-11-12-docker-in-scope-for-local-dev.md` | Decision record: Docker Compose is allowed for local development. |
+| `docs/decisions/0002-2026-11-19-a2-core-tables-decisions.md` | Decision record for A2 (M1, Developer A): admin-editable personal-domain and generic-prefix settings, test clock safety, and the split between Procrastinate, database idempotency and `JobLock`. |
 | `milestone/m1.md` | Detailed description of milestone M1 (setup and data model) and the two-developer split. |
 
 ## 3. `BD_BACKEND/` configuration and packaging
@@ -112,13 +113,16 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `password_needs_rehash(hash)` | True if the hash uses weaker parameters than current. | Lets old hashes be upgraded after a successful login. |
 
 ### `app/core/models.py`
-**Purpose:** the tables for sign-in: users and their sessions. Created by migrations 0002 and 0003; read by `core/services.py`.
+**Purpose:** the `core` tables: users and sessions for sign-in (migrations 0002, 0003; read by `core/services.py`), plus the settings store, test-clock offset and job locks (migration 0005, M1 task A2). The A2 tables have no service, API or `core.clock` connection yet (decision record `docs/decisions/0002-2026-11-19-a2-core-tables-decisions.md`).
 
 | Name | What it does | Why it is used |
 |---|---|---|
 | `UserRole` (enum) | `rep`, `manager`, `admin`. | Roles for the permission module (planned); currently only returned in API responses. |
 | `User` (table `users`) | id, email, password hash, role, `is_active`, timestamps; email must be lowercase and is unique ignoring case. | The person who signs in. |
 | `UserSession` (table `sessions`) | user id, SHA-256 token hash (unique), created/expires/revoked times, with checks. | Server-side sessions that can be expired or revoked; the raw token is never stored. |
+| `Setting` (table `settings`) | Unique lowercase `key` (letters, digits, `_`, `.` only), JSONB `value`, `version` (at least 1), timestamps, nullable `updated_by` FK to users (SET NULL). | Admin-editable configuration such as limits, model names and the personal-domain and generic-prefix lists; new keys need no migration. No rows seeded in A2. |
+| `ClockOffset` (table `clock_offsets`) | At most one row (`singleton` true and unique): signed `offset_seconds` (default 0), `updated_at`, nullable `updated_by` FK to users (SET NULL). | Persisted admin test-clock offset. No row means zero. Not read by `core.clock` yet; the real-sending safety rule is a later service. |
+| `JobLock` (table `job_locks`) | Unique `name`, `locked_by` worker id, `locked_at`, `expires_at` (must be after `locked_at`), index on `expires_at`. | Application-level lock (e.g. one poll per mailbox); a row exists only while held, and expiry frees a crashed worker's lock. Acquire and release logic is planned. |
 
 ### `app/core/schemas.py`
 **Purpose:** strict shapes for the auth API so the boundary validates input and never serializes the `User` object (which holds the password hash). Used by `core/api.py`.
@@ -216,6 +220,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `versions/0002_create_users.py` | `upgrade()` creates the `user_role` enum, `users` table, lowercase-email check and case-insensitive unique index; `downgrade()` drops them (all users lost). |
 | `versions/0003_create_sessions.py` | `upgrade()` creates `sessions` (FK to users with cascade, two checks, three indexes); `downgrade()` drops it (everyone logged out). |
 | `versions/0004_create_audit_log.py` | `upgrade()` creates `audit_log`, its indexes, the function `audit_log_forbid_change()` and two triggers (row-level update/delete, statement-level truncate); `downgrade()` drops all of it (history lost). |
+| `versions/0005_create_core_tables.py` | `upgrade()` creates `settings` (unique key, key-format and version checks, FK `updated_by`), `clock_offsets` (one-row cap, FK `updated_by`) and `job_locks` (unique name, expiry check, expiry index); inserts no rows. `downgrade()` drops all three (settings, offset and locks lost). |
 
 Alembic calls every `upgrade()`/`downgrade()` itself. Applied migrations are never edited; each model change adds a new one.
 
@@ -229,6 +234,10 @@ Common helpers repeated in several files: `_alembic_config(url)` (Alembic config
 | `test_audit_log.py` | `record()` stores all fields and follows the clock; does not commit; triggers reject UPDATE/DELETE/TRUNCATE; secret keys and unknown actions are rejected; `AuditAction` values are unique and dotted; the audit package does not import `core` modules. Helpers: `_count_rows`. |
 | `test_auth_routes.py` | `/auth/login`, `/auth/logout`, `/auth/me` through the real app: no secrets in responses, cookie flags, only the token hash stored, every failure looks identical, one committed audit row per failure, exactly one password check per path, weak hash upgraded, 422 never echoes values, logout idempotent, independent sessions. Fixtures: `api_app`, `use_settings`, `client`, `make_client`, `user`, `disabled_user`; helpers `_login`, `_count_rows`, `_failed_login_rows`, `_cookie_attributes`, `_make_settings`, `_keys_at_any_depth`. |
 | `test_clock.py` | `now()` is aware UTC; `set_offset`/`reset_offset` shift and restore it. |
+| `test_clock_offset_model.py` | `clock_offsets`: starts empty, defaults (offset 0, singleton true), signed offsets, second row and `singleton=false` rejected, `updated_by` FK and SET NULL. Fixtures `engine`, `session`, `user`. |
+| `test_core_tables_migration.py` | Migration 0005 upgrades, downgrades to 0004 and upgrades again on a throwaway database; all three tables empty after upgrade. Fixture `roundtrip_url`, helpers `_existing_core_tables`, `_row_counts`. |
+| `test_job_lock_model.py` | `job_locks`: unique name, different names coexist, re-lock after release, expiry-after-lock check, owner required, clock use. Helper `_new_lock`. |
+| `test_setting_model.py` | `settings`: generated fields, duplicate key, key-format check (valid and invalid keys), JSON values round-trip, SQL NULL value, version rule, `updated_by` FK and SET NULL, clock use. |
 | `test_config.py` | Missing `DATABASE_URL` fails; `psycopg_conninfo`; defaults and env overrides; bad lifetime, cookie name or origin rejected; production rules. Fixture: `base_env`. |
 | `test_current_user.py` | A tiny app with protected routes: no, bad, expired, revoked or disabled session all give the same 401; role change visible next request; dependencies cached per request; cookie name from settings; no side effects. Helpers `_sign_in`, `_expire_by_clock`, `_disable`, `_arrange_*`. |
 | `test_health.py` | `/health` returns 200 normally and 503 when the database session fails (via dependency override). Fixture: `client`. |
