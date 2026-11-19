@@ -1,0 +1,29 @@
+{
+  "name": "alphaleo-bd-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Alphaleo BD frontend (Next.js + TypeScript). No business rules; talks to the FastAPI backend only.",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.15.0",
+    "eslint-config-next": "16.4.6",
+    "typescript": "6.0.3"
+  }
+}

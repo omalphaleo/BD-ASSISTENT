@@ -1,6 +1,6 @@
-# UNTESTED: written before the Next.js app exists (BD_FRONTEND/ has no package.json yet).
-# Revisit and test when the Next.js skeleton is added (plan.md M1 frontend task).
-# Assumes a standard Next.js App Router project with `output: "standalone"` in next.config.ts.
+# Three-stage build (deps, build, standalone run) for the Next.js frontend skeleton (task B1).
+# Verified with a direct `docker build` and `docker run`; the image serves the placeholder page.
+# Requires package-lock.json, a public/ folder and `output: "standalone"` in next.config.ts.
 # No secrets here: only NEXT_PUBLIC_* values, which are public by definition, are build args.
 
 FROM node:22-slim AS deps

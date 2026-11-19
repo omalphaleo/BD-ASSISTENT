@@ -1,6 +1,6 @@
 # Local development only. Values come from the root .env (copy .env.example); no secrets here.
 # Start:  docker compose up -d db api worker
-# Frontend is optional and off by default (no app yet): docker compose --profile frontend up
+# Frontend is optional and off by default: docker compose --profile frontend up
 
 services:
   db:
@@ -48,7 +48,7 @@ services:
       api:
         condition: service_started # api builds the image and runs migrations first
 
-  frontend: # UNTESTED until the Next.js skeleton exists
+  frontend: # Dockerfile verified (B1); the compose profile itself still needs a run against your .env
     profiles: ["frontend"]
     build:
       context: ./BD_FRONTEND

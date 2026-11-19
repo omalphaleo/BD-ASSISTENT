@@ -806,7 +806,7 @@ Pull a **minimal Gemini adapter and fake provider** forward to M3 (already inclu
 
 | # | Item | Status | Impact |
 |---|---|---|---|
-| U1 | Exact package pins and any further tech decisions | Open: `app.design` not supplied; pin versions at M1 | M1 |
+| U1 | Exact package pins and any further tech decisions | Open: `app.design` not supplied; pin versions at M1. Frontend pins approved in B1 (2026-11-18): Node 22 (engines 22 to 24), npm, next 16.4.6, react and react-dom 19.3.1, typescript 6.0.3, eslint 10.15.0, eslint-config-next 16.4.6, @types/node 22.20.5, @types/react and @types/react-dom 19.3.0. Backend pins still open. | M1 |
 | U2 | Three predefined BD source layouts (columns, quirks) | Open: needs `Agentic Databse.xlsx` (7 sheets, 3 layouts; profiled in Q-A, about 16% personal emails, company name missing in about 62% of the largest sheet) | M2 |
 | U3 | Personal-email domain list; generic address prefixes | Open: seed lists needed (rules settled, D-069 / D-072) | M2 |
 | U4 | Lead status values | Closed: Qualified / Handed Off plus status flags (D-022, D-065); journey states stay derived | M1/M3 |

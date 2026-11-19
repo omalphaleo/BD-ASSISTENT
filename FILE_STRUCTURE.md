@@ -25,7 +25,7 @@ BD ASSISTANT/                  # project root
 │   └── decisions/             # exists: one short file per significant technical decision (0001 = Docker for local dev)
 ├── milestone/                 # exists: one detailed description per milestone (m1.md; M2–M8 planned)
 ├── BD_BACKEND/                # exists: backend skeleton (see below)
-└── BD_FRONTEND/               # exists: only an untested Dockerfile and .dockerignore (Next.js planned M1)
+└── BD_FRONTEND/               # exists: Next.js + TypeScript skeleton (B1); API client, login and tests planned
 ```
 
 ## BD_BACKEND (M1)
@@ -59,7 +59,7 @@ BD_BACKEND/
 
 Each module folder holds `models.py`, `schemas.py`, `services.py`, `api.py` (router), and `tasks.py` if it has background jobs.
 
-## BD_FRONTEND (planned, M1)
+## BD_FRONTEND (skeleton exists since B1; `src/components/`, `src/lib/api/` and `tests/` are planned)
 
 ```
 BD_FRONTEND/

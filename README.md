@@ -4,7 +4,7 @@ Alphaleo BD is an internal, standalone web app that runs a company's outbound bu
 
 ## Status
 
-M1 started. The backend skeleton exists (FastAPI app with `/health`, settings, database connection, Alembic migrations with pgvector, Procrastinate no-op worker, tests) together with Docker files. No business features and no frontend yet; `BD_FRONTEND/` has only an **untested** Dockerfile. The Docker path below was verified; the Mac-native path is documented but not yet verified. Open items are tracked in [docs/plan.md](docs/plan.md) section 17.
+M1 started. The backend skeleton exists (FastAPI app with `/health`, settings, database connection, Alembic migrations with pgvector, Procrastinate no-op worker, tests) together with Docker files. No business features yet; `BD_FRONTEND/` holds a runnable Next.js + TypeScript skeleton (placeholder page only; API client, login and tests come in later M1 tasks). The Docker path below was verified; the Mac-native path is documented but not yet verified. Open items are tracked in [docs/plan.md](docs/plan.md) section 17.
 
 ## Technology stack
 
@@ -14,7 +14,7 @@ Python 3.12 · FastAPI · SQLAlchemy 2 + Alembic · PostgreSQL 17 with pgvector 
 
 ```
 BD_BACKEND/         FastAPI API, worker, migrations, tests, Dockerfile
-BD_FRONTEND/        Next.js frontend (not built yet; untested Dockerfile only)
+BD_FRONTEND/        Next.js + TypeScript frontend skeleton
 docker-compose.yml  local dev: db (pgvector), api, worker, optional frontend
 docs/               plan.md, requirements/, decisions/
 ```
@@ -26,7 +26,7 @@ Full structure and where new files go: [FILE_STRUCTURE.md](FILE_STRUCTURE.md).
 Pick one path. Both use the same code and environment variables (see `docs/decisions/0001-2026-11-12-docker-in-scope-for-local-dev.md`).
 
 - **Docker path:** Docker with Compose v2. Nothing else is needed for the backend.
-- **Native path (Mac):** Homebrew, PostgreSQL 17 with the pgvector extension, Python 3.12, and a current Node.js LTS (Node only when the frontend exists).
+- **Native path (Mac):** Homebrew, PostgreSQL 17 with the pgvector extension, Python 3.12, and and Node.js 22 LTS (needed only for the frontend; Node 24 also works).
 
 Later: a Gemini API key (free tier for development on test data; paid before any real prospect data) and, from M7, a Microsoft 365 app registration. Secrets go in git-ignored `.env` files; each side gets a `.env.example`.
 
@@ -37,7 +37,7 @@ Later: a Gemini API key (free tier for development on test data; paid before any
 3. `docker compose up -d --build db api worker`. The API container applies Alembic migrations on start; the worker applies the Procrastinate schema and starts with no tasks.
 4. Check: `curl http://localhost:8000/health` returns `{"status":"ok","database":"ok"}` (503 if the database is down). API docs: `http://localhost:8000/docs`.
 5. PostgreSQL is published on `127.0.0.1:5432` only. Logs: `docker compose logs -f api worker`. Stop: `docker compose down` (add `-v` to delete the database volume).
-6. The `frontend` service is behind the `frontend` profile and its Dockerfile is **untested** until the Next.js skeleton exists.
+6. The `frontend` service is behind the `frontend` profile (`docker compose --profile frontend up --build`, then open `http://localhost:3000`). Its Dockerfile is verified with a direct `docker build`/`docker run`; the compose profile run itself is still to be confirmed.
 
 ## Setup and running: Mac-native path (documented, not yet verified)
 
@@ -46,7 +46,7 @@ Later: a Gemini API key (free tier for development on test data; paid before any
 3. `cp .env.example .env` and set `DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/DBNAME`.
 4. `alembic upgrade head` (the migration runs `CREATE EXTENSION vector`, which needs a role allowed to create extensions).
 5. API: `uvicorn app.main:app --reload`. Worker (separate terminal): `procrastinate --app=app.worker.app schema --apply` once, then `procrastinate --app=app.worker.app worker`.
-6. Frontend: not built yet (M1 frontend task).
+6. Frontend: `cd BD_FRONTEND`, `cp .env.local.example .env.local` (public values only), `npm install`, then `npm run dev` and open `http://localhost:3000`. Checks: `npm run typecheck`, `npm run lint`, `npm run build`.
 
 ## Tests and checks
 
