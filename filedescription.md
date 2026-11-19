@@ -47,6 +47,7 @@ How to read: each file has a short **Purpose** (what it does and why it exists),
 | `Dockerfile` | Backend image used for both API and worker; installs the package (dev extras when `INSTALL_DEV=true`), runs as a non-root user, default command starts uvicorn on port 8000. |
 | `.dockerignore` | Keeps secrets, virtualenvs and caches out of the image. |
 | `.env.example` | Template for a native (non-Docker) `.env`: `DATABASE_URL`, `APP_ENV`, session settings. |
+| `openapi.json` | Generated, committed OpenAPI schema (sorted keys, 2-space indent); the single contract the frontend client is generated from. Never hand-edited: regenerate with `python -m app.export_openapi` after every API change (task A1). |
 | `temp.md` | Empty placeholder. |
 
 ## 4. `BD_BACKEND/app/` (application code)
@@ -59,6 +60,12 @@ Package markers so `app.*` imports resolve; they contain only docstrings. No fun
 
 ### `app/main.py`
 **Purpose:** the FastAPI entry point served by uvicorn (`app.main:app`). Creates the app, installs the error handler and mounts the routes. Holds no business logic. Imported by `tests/test_auth_routes.py` and `tests/test_health.py`. No functions; module-level `app` is the object.
+
+### `app/export_openapi.py`
+Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contract and a stale file is caught. Run `python -m app.export_openapi` (write) or `--check` (exit 1 if stale). Constants: `OPENAPI_PATH`, `JSON_INDENT`, `STALE_EXIT_CODE`, `REGENERATE_COMMAND`.
+- `build_schema_text()`: renders `app.openapi()` as stable JSON (sorted keys, fixed indent, trailing newline) so output is byte-identical for the same API.
+- `is_up_to_date(path)`: True if the file exists and equals the generated text; used by the test and `--check`.
+- `main(argv)`: CLI entry; writes the file, or with `--check` returns 0/1 without writing.
 
 ### `app/config.py`
 **Purpose:** reads environment variables (and a local `.env`) into one validated `Settings` object, so a missing or unsafe setting stops the process at startup. Used by `db.py`, `worker.py`, `core/api.py`, `core/dependencies.py`, `core/services.py`, `core/cookies.py` and `migrations/env.py`.
@@ -228,6 +235,7 @@ Common helpers repeated in several files: `_alembic_config(url)` (Alembic config
 | `factories/__init__.py` | Header-only stub package (M1 task A0); per-module factory files (`core.py`, `leads.py`, ...) are added later. No functions. |
 | `test_migration_heads.py` | `test_alembic_has_single_head`: the Alembic history has exactly one head, so parallel migrations that fork the chain fail the build. No database needed. |
 | `test_migrations.py` | All migrations apply to an empty database and pgvector is installed. |
+| `test_openapi_export.py` | Committed `openapi.json` equals the generated schema (stale file fails with the regenerate command); schema lists `/health` and `/auth/*`; generation is deterministic; `is_up_to_date` flags missing and changed files; `main(["--check"])` returns 0 and does not rewrite. No database. |
 | `test_passwords.py` | Argon2id format, no plaintext in hash, salting, unicode, malformed hash returns False, empty password rejected, rehash detection. No database. |
 | `test_session_model.py` | `sessions` constraints: unique token hash, foreign key, cascade delete, expiry check, hash length, clock use. Helpers `_new_session`, `_count_sessions`. |
 | `test_session_service.py` | Token generation and hashing, `create_session` (hash only, lifetime, inactive user), `get_active_session` (unknown, wrong length with zero SQL, expiry, revoke, disabled user, single joined SELECT, role refresh), `revoke_session`, `revoke_all_user_sessions`. Helpers `_make_user`, `_collect_statements`. |

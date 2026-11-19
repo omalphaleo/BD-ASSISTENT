@@ -75,7 +75,7 @@ flowchart LR
 
 ## 4. API communication
 
-- REST + JSON. FastAPI generates the OpenAPI schema; the frontend's typed client is generated from it, and CI fails if the client is out of date.
+- REST + JSON. FastAPI generates the OpenAPI schema; the frontend's typed client is generated from it, and CI fails if the client is out of date. The schema is exported to the committed `BD_BACKEND/openapi.json` by `python -m app.export_openapi` (`app/export_openapi.py`); a backend test fails while that file is stale, so it is regenerated in every PR that changes an endpoint.
 - Auth: server-side sessions stored in PostgreSQL, delivered as an HttpOnly, Secure, SameSite=Lax cookie. Cookie auth uses an anti-CSRF header plus Origin checks; CORS is limited to the frontend origin. Login is throttled. Login method is password for the MVP (open item U17).
 - Authorization: a central permission module, applied by route dependencies and re-checked on object ownership inside services. A role-by-endpoint test fails if a route has no declared permission.
 - In production the frontend and API sit behind one reverse proxy on one domain so the cookie is first-party.

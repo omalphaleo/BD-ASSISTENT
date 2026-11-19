@@ -56,6 +56,8 @@ Tests need a reachable PostgreSQL with pgvector; they create and use a throwaway
 - Native: from `BD_BACKEND/` with the virtualenv active and `DATABASE_URL` set, run `pytest` and `ruff check .`
 - Single test: `pytest tests/test_health.py::test_health_ok`
 
+API contract: the frontend client is generated from the committed `BD_BACKEND/openapi.json`. After any endpoint or schema change, run `python -m app.export_openapi` from `BD_BACKEND/` (`--check` only verifies); a test fails while the file is stale.
+
 The plan's root `make check` (ruff, pytest, tsc, ESLint, frontend tests) is still planned.
 
 ## Milestones
