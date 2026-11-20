@@ -1,6 +1,6 @@
 # FILE_STRUCTURE.md
 
-Where things live and where new things go. Module responsibilities and dependencies are in `ARCHITECTURE.md`; do not repeat them here. "Exists" means present today; "planned" is created by the milestone shown (`docs/plan.md` section 16). Update this file in the same change that adds, moves or removes a top-level directory or a module.
+Where things live and where new things go. Module responsibilities and dependencies are in `ARCHITECTURE.md`; do not repeat them here. "Exists" means present today; "planned" is created by the milestone shown (`docs/plan.md` section 16). Update this file in the same change that adds, moves or removes a file or folder.
 
 ## Project root
 
@@ -17,6 +17,7 @@ BD ASSISTANT/                  # project root
 ├── docker-compose.yml         # exists: local dev (db pgvector/pg17, api, worker, optional frontend profile)
 ├── .env.example               # exists: variables for compose (POSTGRES_*); real .env is git-ignored
 ├── .gitignore                 # exists
+├── .claude/                   # exists: shared Claude Code config (settings.json, skills/ai-adapter, skills/outreach-compliance)
 ├── docs/
 │   ├── plan.md                # exists: implementation plan (roadmap, rationale, open items)
 │   ├── requirements/
@@ -30,31 +31,41 @@ BD ASSISTANT/                  # project root
 
 ## BD_BACKEND (M1)
 
-Exists today: `pyproject.toml`, `.env.example`, `alembic.ini`, `Dockerfile`, `.dockerignore`, `migrations/` (env, template, `0001` enabling pgvector, `0002` users table and `user_role` enum, `0003` sessions table, `0004` append-only audit_log table with triggers, `0005` settings, clock_offsets and job_locks tables), `app/{main,config,db,worker}.py`, `app/export_openapi.py` (writes/checks the committed `openapi.json`, the frontend's API contract), `openapi.json`, `app/core/api.py` (`/health`, `/auth/login`, `/auth/logout`, `/auth/me`), `app/core/clock.py` (`now()` with test offset), `app/core/models.py` (`User`, `UserRole`, `UserSession`, `Setting`, `ClockOffset`, `JobLock`), `app/core/passwords.py` (Argon2id hashing), `app/core/schemas.py` (`LoginRequest`, `UserResponse`), `app/core/cookies.py` (set and clear the session cookie), `app/core/errors.py` (422 handler that never echoes submitted values), `app/core/services.py` (session create, lookup and revoke; `login`, `logout`, `normalize_email`), `app/core/dependencies.py` (`get_current_session`, `get_current_user`, `CurrentUser`), `app/models.py` (registry importing every module's `models.py` so Alembic and tests see the whole schema; frozen after M1 task A0), `app/audit/{__init__,models,services}.py` (`AuditLog`, `AuditAction`, `record()`), header-only stub packages `app/{imports,leads,compliance,content,campaigns,outreach,mail,notifications}/{__init__,models}.py` (no models yet), `tests/factories/__init__.py` (empty package), and `tests/` (`conftest.py`, `test_migration_heads.py` (single Alembic head), `test_openapi_export.py` (openapi.json is current), health, config, migrations, clock, user model, user migration, `test_session_model.py`, `test_passwords.py`, `test_session_service.py`, `test_current_user.py`, `test_audit_log.py`, `test_auth_routes.py`, `test_setting_model.py`, `test_clock_offset_model.py`, `test_job_lock_model.py`, `test_core_tables_migration.py`). Everything else in the tree below is planned.
+Exists today: `pyproject.toml`, `.env.example`, `alembic.ini`, `Dockerfile`, `.dockerignore`, `temp.md` (empty scratch), `migrations/` (also `migrations.md`) (env, template, `0001` enabling pgvector, `0002` users table and `user_role` enum, `0003` sessions table, `0004` append-only audit_log table with triggers, `0005` settings, clock_offsets and job_locks tables), `app/{main,config,db,worker}.py`, `app/export_openapi.py` (writes/checks the committed `openapi.json`, the frontend's API contract), `openapi.json`, `app/core/api.py` (`/health`, `/auth/login`, `/auth/logout`, `/auth/me`), `app/core/clock.py` (`now()` with test offset), `app/core/models.py` (`User`, `UserRole`, `UserSession`, `Setting`, `ClockOffset`, `JobLock`), `app/core/passwords.py` (Argon2id hashing), `app/core/schemas.py` (`LoginRequest`, `UserResponse`), `app/core/cookies.py` (set and clear the session cookie), `app/core/errors.py` (422 handler that never echoes submitted values), `app/core/services.py` (session create, lookup and revoke; `login`, `logout`, `normalize_email`), `app/core/dependencies.py` (`get_current_session`, `get_current_user`, `CurrentUser`), `app/models.py` (registry importing every module's `models.py` so Alembic and tests see the whole schema; frozen after M1 task A0), `app/audit/{__init__,models,services}.py` (`AuditLog`, `AuditAction`, `record()`), header-only stub packages `app/{imports,leads,compliance,content,campaigns,outreach,mail,notifications}/{__init__,models}.py` (no models yet), `tests/factories/__init__.py` (empty package), and `tests/` (`conftest.py`, `test_migration_heads.py` (single Alembic head), `test_openapi_export.py` (openapi.json is current), health, config, migrations, clock, user model, user migration, `test_session_model.py`, `test_passwords.py`, `test_session_service.py`, `test_current_user.py`, `test_audit_log.py`, `test_auth_routes.py`, `test_setting_model.py`, `test_clock_offset_model.py`, `test_job_lock_model.py`, `test_core_tables_migration.py`). Everything else in the tree below is planned.
 
 ```
 BD_BACKEND/
-├── pyproject.toml             # dependencies, ruff and pytest configuration
-├── .env.example               # every variable, no values; .env is git-ignored
-├── alembic.ini
-├── migrations/                # Alembic revisions
+├── pyproject.toml             # exists: dependencies, ruff and pytest configuration
+├── .env.example               # exists: every variable, no values; .env is git-ignored
+├── alembic.ini                # exists
+├── Dockerfile                 # exists: API/worker image
+├── .dockerignore              # exists
+├── openapi.json               # exists: committed API contract for the frontend (regenerated by app/export_openapi.py)
+├── temp.md                    # exists: empty scratch file, not part of the product
+├── migrations/                # exists: Alembic
+│   ├── env.py, script.py.mako # exists
+│   ├── migrations.md          # exists: plain-language explainer of migrations
+│   └── versions/              # exists: 0001 pgvector, 0002 users, 0003 sessions, 0004 audit_log, 0005 core tables; 0006+ planned
 ├── app/
-│   ├── main.py                # FastAPI app and router registration
-│   ├── config.py              # settings from environment, fail fast
-│   ├── db.py                  # engine, session, base model
-│   ├── worker.py              # Procrastinate app and task registration
-│   ├── core/                  # users, roles, permissions, clock, settings store, session auth, shared utilities
-│   ├── imports/               # files, source profiles, mapping, raw rows, validation, reports
-│   ├── leads/                 # people, companies, matching, merge, search, segments, notes, quarantine
-│   ├── compliance/            # eligibility service, opt-outs, erasure, real-sending gate
-│   ├── content/               # voice, profiles, structures, knowledge base, versions
-│   ├── ai/                    # provider adapter, tasks, payload builders, validators, retrieval, prompt loader
-│   ├── campaigns/             # campaigns, selection, sequences, review queue
-│   ├── outreach/              # outreach_messages queue, scheduler, limits, retries
-│   ├── mail/                  # Sender interface, MockSender, GraphSender, reply monitor, threading
-│   ├── notifications/         # in-app and email notifications, SLA reminders, dashboard queries
-│   └── audit/                 # append-only audit log
-└── tests/                     # mirrors app/, plus integration and end-to-end flows
+│   ├── __init__.py            # exists
+│   ├── main.py                # exists: FastAPI app and router registration
+│   ├── config.py              # exists: settings from environment, fail fast
+│   ├── db.py                  # exists: engine, session, base model
+│   ├── worker.py              # exists: Procrastinate app and task registration
+│   ├── export_openapi.py      # exists: writes/checks openapi.json
+│   ├── models.py              # exists: registry importing every module's models (frozen after A0)
+│   ├── core/                  # exists: api, clock, cookies, dependencies, errors, models, passwords, schemas, services; permissions planned
+│   ├── audit/                 # exists: models, services (append-only audit log)
+│   ├── imports/               # stub (__init__, models): files, source profiles, mapping, raw rows, validation, reports
+│   ├── leads/                 # stub: people, companies, matching, merge, search, segments, notes, quarantine
+│   ├── compliance/            # stub: eligibility service, opt-outs, erasure, real-sending gate
+│   ├── content/               # stub: voice, profiles, structures, knowledge base, versions
+│   ├── campaigns/             # stub: campaigns, selection, sequences, review queue
+│   ├── outreach/              # stub: outreach_messages queue, scheduler, limits, retries
+│   ├── mail/                  # stub: Sender interface, MockSender, GraphSender, reply monitor, threading
+│   ├── notifications/         # stub: in-app and email notifications, SLA reminders, dashboard queries
+│   └── ai/                    # planned: provider adapter, tasks, payload builders, validators, retrieval, prompt loader
+└── tests/                     # exists: flat test_*.py files, conftest.py, factories/__init__.py (empty); per-module folders planned
 ```
 
 Each module folder holds `models.py`, `schemas.py`, `services.py`, `api.py` (router), and `tasks.py` if it has background jobs.

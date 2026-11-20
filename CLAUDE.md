@@ -20,6 +20,7 @@ Do not implement beyond what the user has approved. When asked to "propose first
 1. Inspect the relevant project files first, and change only what the task needs. Use the current prompt and project files as guidance.
 2. Update the owning docs (table below) in the same task. Docs describe what exists; mark anything unbuilt as "planned".
 2a. Whenever a file is created, modified, renamed or deleted, update `filedescription.md` in the same task so it matches the current project structure: add, rename or remove the file's entry, and keep its purpose and its function/class list (what each does and why it is used) accurate. Documentation that no longer matches the code counts as a defect during code review.
+2b. Whenever a file or folder is created, moved or deleted, also add, move or remove its entry in `FILE_STRUCTURE.md` in the same task (path, exists/planned, one-line purpose). `FILE_STRUCTURE.md` holds the tree; `filedescription.md` holds per-file and per-function detail.
 3. Use only the approved stack. Ask before adding a dependency, tool, framework or service the plan does not list. Version pins are still open (`docs/plan.md` U1): propose, don't guess.
 
 ## Documentation ownership (one home per topic; link, don't copy)
@@ -75,7 +76,7 @@ Plan labels: `[AGREED]`, `[ASSUMPTION]`, `[SUGGESTION]`, `[UNRESOLVED]`. Never i
 
 ## Tests and Definition of Done
 - Every business rule has an automated test. DB tests run against real PostgreSQL with pgvector, not SQLite. Tests never call Gemini or Microsoft (use fakes or recorded responses). Test data is synthetic.
-- Done means: changes reviewed for correctness, security and side effects; `ruff` and `pytest` green (and `make check` once it exists); tests for each rule touched; permission checks present and tested; audit events added; no secrets or personal data in code, logs or fixtures; migrations apply on an empty DB; owning docs updated.
+- Done means: changes reviewed for correctness, security and side effects; `ruff` and `pytest` green (and `make check` once it exists); tests for each rule touched; permission checks present and tested; audit events added; no secrets or personal data in code, logs or fixtures; migrations apply on an empty DB; owning docs updated; `FILE_STRUCTURE.md` matches the tree for every file or folder added, moved or removed.
 
 ## Documentation standards
 
