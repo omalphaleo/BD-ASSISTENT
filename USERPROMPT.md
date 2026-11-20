@@ -1499,3 +1499,26 @@ Summary: Appended sections 11-19 to `milestone/m1.md`: current status, A/B split
 - Verified: `ruff check .` clean and the new files are `ruff format` clean (four older files already fail `ruff format --check`: `app/core/api.py`, `tests/test_audit_log.py`, `tests/test_auth_routes.py`, `tests/test_session_service.py`; not touched). pytest was NOT run: it is not installed in this shell and no PostgreSQL is reachable, so the new tests, the migration and the schema-drift test are unverified.
 - Status update (2026-11-19): Needs input: run the full `pytest` locally (needs `DATABASE_URL`) before the PR; open: seeding mechanism and contents of the default email lists (before M2) and whether setting keys need a stricter pattern.
 - Follow-up (2026-11-19): after "build the image and test all testcases", ran `docker compose build api` then `docker compose run --rm api pytest`: 204 passed, 1 warning (httpx/starlette deprecation), including the new A2 tests, the 0005 round trip and the schema-drift test. This supersedes the "pytest not run" note above.
+
+## T-044: Implement A3 leads tables (2026-11-20)
+
+Prompt (verbatim): "a detailed implementation plan for A3 based on the existing project documentation, architecture, and approved decisions.
+Before implementation:
+1. Review the relevant documentation and understand the A3 requirements.
+2. Break down the implementation into clear tasks and logical steps.
+3. Identify any unresolved requirements, ambiguities, or technical decisions.
+4. For each unresolved item, explain the available options, their pros and cons, and your recommendation.
+5. Highlight any suggestions or potential improvements that need my approval.
+Important:
+1. Do not make assumptions about unclear requirements.
+2. Do not make implementation changes yet.
+3. Present unresolved questions one at a time so I can make decisions.
+4. Wait for my approval before finalizing the implementation plan.
+The goal is to finalize a clear, agreed-upon A3 implementation plan before starting development."
+
+
+Status: In progress
+
+Summary (T-044): Added the 16 leads models in app/leads/models.py and migration 0006 (no seed rows; quarantine raw_row_id left for A4; touches/lead_events link columns left without FKs for B). Added 4 test files and shared conftest fixtures; docs updated (filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, milestone/m1.md). Verified through Docker: ruff clean, 261 tests pass.
+
+Status update: Completed (2026-11-20). Git commands left to the developer.
