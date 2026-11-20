@@ -135,7 +135,7 @@ def test_leads_migration_inserts_no_rows(roundtrip_url: str) -> None:
 
 
 def test_quarantine_and_link_columns_follow_the_agreed_split(migrated_engine: Engine) -> None:
-    """A3 leaves out raw_row_id (A4 adds it) and keeps plain UUID link columns without FKs."""
+    """raw_row_id exists since A4's 0007; the B-owned link columns stay plain UUIDs without FKs."""
     with migrated_engine.connect() as conn:
         columns = {
             (table, column)
@@ -155,7 +155,7 @@ def test_quarantine_and_link_columns_follow_the_agreed_split(migrated_engine: En
             )
         ).scalar_one()
 
-    assert ("quarantine_records", "raw_row_id") not in columns
+    assert ("quarantine_records", "raw_row_id") in columns
     assert {("touches", "campaign_id"), ("lead_events", "outreach_message_id")} <= columns
     assert link_fks == 0
 

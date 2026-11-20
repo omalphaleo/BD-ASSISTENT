@@ -1522,3 +1522,15 @@ Status: In progress
 Summary (T-044): Added the 16 leads models in app/leads/models.py and migration 0006 (no seed rows; quarantine raw_row_id left for A4; touches/lead_events link columns left without FKs for B). Added 4 test files and shared conftest fixtures; docs updated (filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, milestone/m1.md). Verified through Docker: ruff clean, 261 tests pass.
 
 Status update: Completed (2026-11-20). Git commands left to the developer.
+
+## T-045: Implement A4 imports tables (2026-11-20)
+
+Prompt (verbatim): "a detailed implementation plan for A4 based on the existing project documentation, architecture, and approved decisions. (same planning brief as T-044: review docs, break into tasks, list unresolved items with options and a recommendation, present questions one at a time, no implementation until approved)" Follow-up: "plan approved start working on it and run pytest via docker"
+
+Decisions agreed: raw_rows.person_id plus email_normalized; SourceProfile free layout, no seed; ColumnMapping per-file record; typed report counts plus JSONB reasons and row-based import_changes (no expiry, retention open); column-guard trigger on raw_rows; no stored file bytes, status uploaded/mapping/processing/completed/failed; shared helpers moved to app/core/model_helpers.py.
+
+Status: In progress
+
+Summary (T-045): Added the six imports models in app/imports/models.py and migration 0007 (tables, raw_rows immutability trigger, quarantine_records.raw_row_id with unique FK). Moved the shared model helpers to app/core/model_helpers.py (leads imports them; no schema change). Added test_imports_models.py and test_imports_tables_migration.py and flipped the A3 raw_row_id assertion. Docs updated (filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, milestone/m1.md). Verified through Docker: ruff clean, 300 tests pass.
+
+Status update: Completed (2026-11-20). Open: retention of import_changes (plan U18). Git commands left to the developer.
