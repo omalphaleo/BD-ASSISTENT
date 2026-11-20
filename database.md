@@ -1,7 +1,7 @@
 <!--
 database.md: beginner-friendly reference for every database model in BD Assistant.
 Needed so a new developer can learn what each table stores without reading the code first.
-Verified against the SQLAlchemy models under BD_BACKEND/app on 2026-11-20 (migrations 0001-0007).
+Verified against the SQLAlchemy models under BD_BACKEND/app on 2026-11-20 (migrations 0001-0008).
 -->
 
 # BD Assistant database models
@@ -57,6 +57,10 @@ This file explains every database table ("model") that exists in the code today:
 | 26 | [RawRow](#26-rawrow) | `raw_rows` | `app/imports/models.py` |
 | 27 | [ImportReport](#27-importreport) | `import_reports` | `app/imports/models.py` |
 | 28 | [ImportChange](#28-importchange) | `import_changes` | `app/imports/models.py` |
+| 29 | [OptOut](#29-optout) | `opt_outs` | `app/compliance/models.py` |
+| 30 | [ComplianceGateStatus](#30-compliancegatestatus) | `compliance_gate_status` | `app/compliance/models.py` |
+| 31 | [ComplianceChecklistItem](#31-compliancechecklistitem) | `compliance_checklist_items` | `app/compliance/models.py` |
+| 32 | [ErasureRecord](#32-erasurerecord) | `erasure_records` | `app/compliance/models.py` |
 
 All paths above are relative to `BD_BACKEND/`. The registry `BD_BACKEND/app/models.py` imports every module's `models.py` so Alembic and the tests see the whole schema.
 
@@ -77,6 +81,8 @@ users ──< sessions
 ```
 
 `>`/`<` mean "many rows point to one row". Companies also own `contact_channels`.
+
+The compliance tables stand apart on purpose: `opt_outs` is matched to people by email address (not by a link), and `erasure_records` keeps a plain person id with no link, so both outlive the person they refer to. `compliance_gate_status` and `compliance_checklist_items` only point to `users`.
 
 ---
 
@@ -645,13 +651,93 @@ These six tables back the Excel/CSV/Apollo import (M2). No service reads or writ
 
 ---
 
+# Compliance module (`app/compliance/models.py`)
+
+Added by migration 0008 (task A5). Tables only: the eligibility service, opt-out screens, erase-person and the real-sending gate that use them are planned (M3, M8).
+
+## 29. OptOut
+
+**Model Overview:** One "do not contact" event for an email address.
+
+**File Location:** `BD_BACKEND/app/compliance/models.py` (class `OptOut`, table `opt_outs`).
+
+**Purpose:** The only enforced suppression (D-066). It is stored per email address and deliberately has no link to `people`, so it still works after erase-person (D-099) and for addresses that have no lead yet. Removing an opt-out does not delete the row: it sets `removed_at` with a reason (manager/admin only). The same address can then opt out again as a new row, so the history stays. A partial unique index allows only one active row (`removed_at` empty) per address. Example: `dana@acme.com`, source `reply`, reason "Asked to stop in reply".
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `email_normalized` | String(320), required | Lowercase address (CHECK). Indexed; unique among active rows only. |
+| `source` | Text, required, one of `manual`, `imported`, `reply` | Where the opt-out came from (`OptOutSource`). |
+| `reason` | Text, optional | Why; imported opt-out lists may not have one. |
+| `created_by` | UUID, optional, foreign key to `users.id` (SET NULL) | User who recorded it. Indexed. |
+| `created_at` | DateTime (timezone), required | When it was recorded. |
+| `removed_at` | DateTime (timezone), optional | When the opt-out was removed; empty while active. |
+| `removed_by` | UUID, optional, foreign key to `users.id` (SET NULL) | User who removed it. Only allowed when `removed_at` is set. Indexed. |
+| `removal_reason` | Text, optional | Required when `removed_at` is set; empty otherwise (CHECK). |
+
+## 30. ComplianceGateStatus
+
+**Model Overview:** The one row that says whether real sending is switched on.
+
+**File Location:** `BD_BACKEND/app/compliance/models.py` (class `ComplianceGateStatus`, table `compliance_gate_status`).
+
+**Purpose:** Real sending stays off until an admin passes the checklist (D-081); until then email goes only to the test-recipient list. There is exactly one row: migration 0008 creates it with real sending off, and a unique `singleton` flag (forced true by a CHECK) makes a second row impossible. Activation history lives in the audit log. A kill switch is not here yet (planned, M8). Example: `real_sending_enabled = false` today.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `singleton` | Boolean, required, default `true` | Always true and unique, so the table can hold only one row. |
+| `real_sending_enabled` | Boolean, required, default `false` | Whether real sending is on. True exactly when `enabled_at` is set (CHECK). |
+| `enabled_at` | DateTime (timezone), optional | When real sending was switched on. |
+| `enabled_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Admin who switched it on. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 31. ComplianceChecklistItem
+
+**Model Overview:** One of the four conditions that must pass before real sending.
+
+**File Location:** `BD_BACKEND/app/compliance/models.py` (class `ComplianceChecklistItem`, table `compliance_checklist_items`).
+
+**Purpose:** The D-081 checklist: Microsoft 365 sending connected, a tested unsubscribe option, saved footer wording, saved postal address. The four keys are fixed (CHECK, `ChecklistItemKey`) and seeded as "not passed" by migration 0008, so an item cannot be removed to weaken the gate. Example: `footer_saved`, passed by an admin on 2026-12-01 with the note "Footer v1".
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `item_key` | Text, required, unique, one of `m365_connected`, `unsubscribe_tested`, `footer_saved`, `postal_address_saved` | Which condition this row is. |
+| `is_passed` | Boolean, required, default `false` | Whether the condition passed. True exactly when `passed_at` is set (CHECK). |
+| `passed_at` | DateTime (timezone), optional | When it was marked passed. |
+| `passed_by` | UUID, optional, foreign key to `users.id` (SET NULL) | User who marked it. Indexed. |
+| `note` | Text, optional | Free note, for example what was tested. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 32. ErasureRecord
+
+**Model Overview:** Proof that a person was erased, with no personal data in it.
+
+**File Location:** `BD_BACKEND/app/compliance/models.py` (class `ErasureRecord`, table `erasure_records`).
+
+**Purpose:** Erase-person (D-099) removes the person's data everywhere but keeps their address in `opt_outs`. This row records that it happened. It has no foreign key to `people` because the person no longer exists, and it copies no name or address. Example: an admin erased person `7c1e...`, removing 2 raw rows and 1 stored email: `{"raw_rows": 2, "emails": 1}`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `former_person_id` | UUID, required | Id the person had (plain value, no foreign key). Indexed. |
+| `erased_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Admin who ran the erasure. Indexed. |
+| `erased_at` | DateTime (timezone), required | When the erasure ran. |
+| `reason` | Text, required | Why the person was erased. |
+| `removed_counts` | JSONB, required, default `{}` | Area name to number of records removed, e.g. `{"raw_rows": 2}`. |
+
+---
+
 # Not built yet (no models to document)
 
-These module packages exist only as header-only stubs in `app/<module>/models.py`, with no tables yet:
+These are not built yet. Most module packages exist only as header-only stubs in `app/<module>/models.py`, with no tables yet:
 
 | Module | Planned tables (from the code comments and `CLAUDE.local.md`) |
 |---|---|
-| `app/compliance/` | `OptOut`, `EligibilitySnapshot`, `ComplianceGateStatus`, `ComplianceChecklistItem`, `ErasureRecord` (task A5) |
+| `app/compliance/` | `EligibilitySnapshot` (optional; skipped in task A5, planned for M3). The other four compliance tables are built, see section 29 onward. |
 | `app/content/`, `app/campaigns/`, `app/outreach/`, `app/mail/`, `app/notifications/` | Owned by Developer B; tables not created yet |
 
 When any of these are added, add their sections here in the same task.

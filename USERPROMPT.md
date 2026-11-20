@@ -1534,3 +1534,15 @@ Status: In progress
 Summary (T-045): Added the six imports models in app/imports/models.py and migration 0007 (tables, raw_rows immutability trigger, quarantine_records.raw_row_id with unique FK). Moved the shared model helpers to app/core/model_helpers.py (leads imports them; no schema change). Added test_imports_models.py and test_imports_tables_migration.py and flipped the A3 raw_row_id assertion. Docs updated (filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, milestone/m1.md). Verified through Docker: ruff clean, 300 tests pass.
 
 Status update: Completed (2026-11-20). Open: retention of import_changes (plan U18). Git commands left to the developer.
+
+## T-046: Implement A5 compliance tables (2026-11-20)
+
+Prompt (verbatim): "a detailed implementation plan for A5 based on the existing project documentation, architecture, and approved decisions. (same planning brief as T-044: review docs, break into tasks, list unresolved items with options and a recommendation, present questions one at a time, no implementation yet, wait for approval;)"
+
+Decisions agreed: opt_outs is one row per opt-out event with soft removal and a partial unique index on the active address, no FK to people; EligibilitySnapshot skipped (planned); compliance_gate_status is a single seeded row with real-sending state only (no kill switch); compliance_checklist_items has the four fixed D-081 keys seeded in 0008; erasure_records holds no personal data (counts only, former_person_id without FK).
+
+Status: In progress
+
+Summary (T-046): Added four compliance models in app/compliance/models.py (OptOut, ComplianceGateStatus, ComplianceChecklistItem, ErasureRecord) and migration 0008, which seeds one disabled gate row and the four D-081 checklist rows. Added test_compliance_models.py and test_compliance_tables_migration.py; updated filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, docs/plan.md and milestone/m1.md. Verified in Docker: ruff check clean, 322 tests pass, single Alembic head 0008, migration applied on the dev database.
+
+Status update: Completed (2026-11-20). Gate G1 is ready once the PR merges. Open: EligibilitySnapshot and the kill switch are planned (M3/M8). Git commands left to the developer.
