@@ -13,6 +13,7 @@ BD ASSISTANT/                  # project root
 ├── FILE_STRUCTURE.md          # exists: this file
 ├── filedescription.md         # exists: per-file purpose list (snapshot of tracked files)
 ├── ARCHITECTURE.md            # exists: how the system is built
+├── database.md                # exists: beginner-friendly reference of every database model and field
 ├── Makefile                   # planned (M1): `make check` runs all lint, type and test steps
 ├── docker-compose.yml         # exists: local dev (db pgvector/pg17, api, worker, optional frontend profile)
 ├── .env.example               # exists: variables for compose (POSTGRES_*); real .env is git-ignored

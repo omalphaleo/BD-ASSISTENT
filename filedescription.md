@@ -17,6 +17,7 @@ How to read: each file has a short **Purpose** (what it does and why it exists),
 | `CLAUDE.md` | Rules for Claude Code: task workflow, documentation ownership, coding and documentation standards, definition of done. |
 | `README.md` | Human entry point: what the app is, current status, tech stack, setup and commands. |
 | `ARCHITECTURE.md` | Target design of the system: modules, data flow, API, database, AI. |
+| `database.md` | Beginner-friendly reference for all 28 database models (core, audit, leads, imports): purpose, file location, example and every field. Update with any model or migration change. |
 | `FILE_STRUCTURE.md` | Where files live and where new ones go (existing vs planned). |
 | `filedescription.md` | This file: per-file purposes and per-function explanations. |
 | `PROMPT.md` | Versioned registry of every prompt sent to AI SDK/API calls (no AI code exists yet). |
