@@ -1499,3 +1499,50 @@ Summary: Appended sections 11-19 to `milestone/m1.md`: current status, A/B split
 - Verified: `ruff check .` clean and the new files are `ruff format` clean (four older files already fail `ruff format --check`: `app/core/api.py`, `tests/test_audit_log.py`, `tests/test_auth_routes.py`, `tests/test_session_service.py`; not touched). pytest was NOT run: it is not installed in this shell and no PostgreSQL is reachable, so the new tests, the migration and the schema-drift test are unverified.
 - Status update (2026-11-19): Needs input: run the full `pytest` locally (needs `DATABASE_URL`) before the PR; open: seeding mechanism and contents of the default email lists (before M2) and whether setting keys need a stricter pattern.
 - Follow-up (2026-11-19): after "build the image and test all testcases", ran `docker compose build api` then `docker compose run --rm api pytest`: 204 passed, 1 warning (httpx/starlette deprecation), including the new A2 tests, the 0005 round trip and the schema-drift test. This supersedes the "pytest not run" note above.
+
+## T-044: Implement A3 leads tables (2026-11-20)
+
+Prompt (verbatim): "a detailed implementation plan for A3 based on the existing project documentation, architecture, and approved decisions.
+Before implementation:
+1. Review the relevant documentation and understand the A3 requirements.
+2. Break down the implementation into clear tasks and logical steps.
+3. Identify any unresolved requirements, ambiguities, or technical decisions.
+4. For each unresolved item, explain the available options, their pros and cons, and your recommendation.
+5. Highlight any suggestions or potential improvements that need my approval.
+Important:
+1. Do not make assumptions about unclear requirements.
+2. Do not make implementation changes yet.
+3. Present unresolved questions one at a time so I can make decisions.
+4. Wait for my approval before finalizing the implementation plan.
+The goal is to finalize a clear, agreed-upon A3 implementation plan before starting development."
+
+
+Status: In progress
+
+Summary (T-044): Added the 16 leads models in app/leads/models.py and migration 0006 (no seed rows; quarantine raw_row_id left for A4; touches/lead_events link columns left without FKs for B). Added 4 test files and shared conftest fixtures; docs updated (filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, milestone/m1.md). Verified through Docker: ruff clean, 261 tests pass.
+
+Status update: Completed (2026-11-20). Git commands left to the developer.
+
+## T-045: Implement A4 imports tables (2026-11-20)
+
+Prompt (verbatim): "a detailed implementation plan for A4 based on the existing project documentation, architecture, and approved decisions. (same planning brief as T-044: review docs, break into tasks, list unresolved items with options and a recommendation, present questions one at a time, no implementation until approved)" Follow-up: "plan approved start working on it and run pytest via docker"
+
+Decisions agreed: raw_rows.person_id plus email_normalized; SourceProfile free layout, no seed; ColumnMapping per-file record; typed report counts plus JSONB reasons and row-based import_changes (no expiry, retention open); column-guard trigger on raw_rows; no stored file bytes, status uploaded/mapping/processing/completed/failed; shared helpers moved to app/core/model_helpers.py.
+
+Status: In progress
+
+Summary (T-045): Added the six imports models in app/imports/models.py and migration 0007 (tables, raw_rows immutability trigger, quarantine_records.raw_row_id with unique FK). Moved the shared model helpers to app/core/model_helpers.py (leads imports them; no schema change). Added test_imports_models.py and test_imports_tables_migration.py and flipped the A3 raw_row_id assertion. Docs updated (filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, milestone/m1.md). Verified through Docker: ruff clean, 300 tests pass.
+
+Status update: Completed (2026-11-20). Open: retention of import_changes (plan U18). Git commands left to the developer.
+
+## T-046: Implement A5 compliance tables (2026-11-20)
+
+Prompt (verbatim): "a detailed implementation plan for A5 based on the existing project documentation, architecture, and approved decisions. (same planning brief as T-044: review docs, break into tasks, list unresolved items with options and a recommendation, present questions one at a time, no implementation yet, wait for approval;)"
+
+Decisions agreed: opt_outs is one row per opt-out event with soft removal and a partial unique index on the active address, no FK to people; EligibilitySnapshot skipped (planned); compliance_gate_status is a single seeded row with real-sending state only (no kill switch); compliance_checklist_items has the four fixed D-081 keys seeded in 0008; erasure_records holds no personal data (counts only, former_person_id without FK).
+
+Status: In progress
+
+Summary (T-046): Added four compliance models in app/compliance/models.py (OptOut, ComplianceGateStatus, ComplianceChecklistItem, ErasureRecord) and migration 0008, which seeds one disabled gate row and the four D-081 checklist rows. Added test_compliance_models.py and test_compliance_tables_migration.py; updated filedescription.md, FILE_STRUCTURE.md, ARCHITECTURE.md, docs/plan.md and milestone/m1.md. Verified in Docker: ruff check clean, 322 tests pass, single Alembic head 0008, migration applied on the dev database.
+
+Status update: Completed (2026-11-20). Gate G1 is ready once the PR merges. Open: EligibilitySnapshot and the kill switch are planned (M3/M8). Git commands left to the developer.
