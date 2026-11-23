@@ -1746,3 +1746,29 @@ Prompt: "Resume logging prompts in USERPROMPT.md as before. Don't create branche
 Status: Completed
 - Summary: Logging resumed; the previous prompt was backfilled as T-060. No branch created and nothing committed.
 - Status update (2026-11-23): Completed.
+
+## T-062: Analyze the full project: is B5 done, and what remains for Developer B in M1 (2026-11-23)
+
+Prompt: "analyze full project and tell me B5 is done? and tell the remaining tasking of dev b in m1"
+
+Status: Completed
+- Status: Completed
+- Summary: B5 is functionally done and verified (scripts/check.sh passes, Makefile wrapper, compose profile verified fresh, docs updated) but lives in wip commits on m1/dev-b, not on m1/b-make-check or a PR. Remaining Dev B in M1: B6 to B11 (B6 unblocked: A5 is on origin/main), B12 (blocked on A8), plus finishing B4 once A8 lands.
+- Status update (2026-11-23): Completed (analysis only).
+
+## T-063: Why does B5 need its own branch, and what is in B6 and what does it depend on? (2026-11-23)
+
+Prompt: "y b5 needs its owm branch? and what do we have in b6 and on what it depends?"
+
+Status: Completed
+- Status: Completed
+- Summary: Explained that milestone/m1.md fixes one branch and one PR per task (B5 = m1/b-make-check) so PRs stay small and mergeable independently, and described B6 (content tables, migration 0009) and its dependency on G1 (A5 merged, already on origin/main, migrations 0001-0008 there), with the open embedding-dimension question.
+- Status update (2026-11-23): Completed (explanation only).
+
+## T-064: Do I need to pull A5 before starting B6? (2026-11-23)
+
+Prompt: "basically i need to pull A5 before starting B6?"
+
+Status: Completed
+- Summary: Yes: A5 (migration 0008) is on origin/main, so B6 must start from it. Advised pulling/rebasing onto origin/main (not merging dev-a), after the wip commits are split or kept, and noted the conflict-prone files. Explanation only.
+- Status update (2026-11-23): Completed.
