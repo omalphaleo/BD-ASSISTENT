@@ -15,6 +15,8 @@ BD ASSISTANT/                  # project root
 ├── ARCHITECTURE.md            # exists: how the system is built
 ├── database.md                # exists: beginner-friendly reference of every database model and field
 ├── Makefile                   # planned (M1): `make check` runs all lint, type and test steps
+├── Makefile                   # exists (B5): thin `make check` wrapper around scripts/check.sh
+├── scripts/check.sh           # exists (B5): all lint, type and test steps; `bash scripts/check.sh` works without make
 ├── docker-compose.yml         # exists: local dev (db pgvector/pg17, api, worker, optional frontend profile)
 ├── .env.example               # exists: variables for compose (POSTGRES_*); real .env is git-ignored
 ├── .gitignore                 # exists
@@ -71,18 +73,34 @@ BD_BACKEND/
 
 Each module folder holds `models.py`, `schemas.py`, `services.py`, `api.py` (router), and `tasks.py` if it has background jobs.
 
-## BD_FRONTEND (skeleton exists since B1; `src/components/`, `src/lib/api/` and `tests/` are planned)
+## BD_FRONTEND (skeleton since B1, generated API client since B2, layout, login and empty shells since B3, tests since B4)
 
 ```
 BD_FRONTEND/
 ├── package.json
 ├── next.config.ts
-├── .env.local.example         # API base URL only; no secrets
+├── vitest.config.mts          # Vitest config (B4): jsdom, "@" alias, runs tests/unit only
+├── vitest.setup.ts            # jest-dom matchers and cleanup after each test (B4)
+├── playwright.config.ts       # Playwright config (B4): Chromium, starts the frontend, loads .env.local
+├── openapi-ts.config.ts       # generator config (B2): reads ../BD_BACKEND/openapi.json
+├── scripts/check-api.mjs      # fails when the generated client is stale (npm run check:api)
+├── .env.local.example         # API base URL (+ optional server-side API_INTERNAL_URL); no secrets
 ├── src/
-│   ├── app/                   # App Router routes (login, leads, campaigns, review, outbox, admin …)
-│   ├── components/            # shared UI: tables, filter chips, forms, email preview
-│   └── lib/api/               # typed client generated from the FastAPI OpenAPI schema; never hand-edited
-└── tests/                     # Vitest component tests and Playwright journeys
+│   ├── app/                   # App Router routes
+│   │   ├── globals.css        # the one global stylesheet (plain class names, no modules)
+│   │   ├── login/             # public login page
+│   │   └── (app)/             # route group: every signed-in screen; layout.tsx checks /auth/me server-side
+│   │       └── leads/ campaigns/ review/ outbox/ admin/ users/ profile/   # empty shells (B3)
+│   ├── components/            # shared UI: AppShell, NavBar, LoginForm, LogoutButton, PlaceholderPage; later tables, filter chips, email preview
+│   └── lib/
+│       ├── api/               # typed client generated from the FastAPI OpenAPI schema; never hand-edited
+│       ├── api-client.ts      # hand-written setup (base URL, cookies, 401 redirect); pages import the API from here
+│       ├── auth-server.ts     # server-only session lookup (cookie forwarded per request)
+│       ├── auth-context.tsx   # AuthProvider and useCurrentUser() for client components
+│       └── nav-items.ts       # menu entries and the roles that see them (cosmetic)
+└── tests/
+    ├── unit/                  # Vitest component tests (LoginForm, AppShell, nav-items); run by npm test
+    └── e2e/                   # Playwright journeys (login.spec.ts, helpers.ts); run by npm run test:e2e
 ```
 
 ## Where new things go

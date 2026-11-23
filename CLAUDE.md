@@ -12,9 +12,9 @@ Do not implement beyond what the user has approved. When asked to "propose first
 
 ### Log (`USERPROMPT.md` only)
 1. `USERPROMPT.md` is an append-only record of prompts and task summaries. Never read it for context. The only lookup allowed: Grep `^## T-` (headings only) to find the last ID, then use ID + 1.
-2. Before any code or documentation task, append an entry: next ID, today's date, the user's prompt verbatim (replace secrets with `[REDACTED]`), `Status: In progress`. Skip logging for plain questions and explanations.
-3. After the work, append a 2-3 line `Summary` and a `Status update` (Completed, Blocked or Needs input, with date). Follow-up prompts go under the same entry or a new one.
-4. Never edit, overwrite, reorder or delete earlier entries.
+2. For every user prompt, including plain questions, explanations, planning requests and follow-ups, append an entry before doing any other work: next ID, today's date, the user's prompt verbatim (replace secrets with `[REDACTED]`), `Status: In progress`. Never skip logging.
+3. After the work, append a 2-3 line `Summary` (one line for a question or explanation) and a `Status update` (Completed, Blocked or Needs input, with date). Then change the `Status:` line of that same entry from `In progress` to the same final value, so a finished entry never still says "In progress". Follow-up prompts go under the same entry or a new one.
+4. Never edit, overwrite, reorder or delete earlier entries. The only permitted edit is the `Status:` line of the entry opened in the current task, as described in item 3.
 
 ### Task (code and docs)
 1. Inspect the relevant project files first, and change only what the task needs. Use the current prompt and project files as guidance.
@@ -110,4 +110,4 @@ call hash_password()/verify_password() and never touch the hashing library direc
 **Keep it in sync.** When you change a file's behaviour, update its header and the docstrings and comments of every function you touched in the same task. Documentation that no longer matches the code counts as a defect during the code review in General rule 9.
 
 ## Commands
-Backend commands (Docker and native) are in `README.md`. Single test: `pytest tests/test_health.py::test_health_ok`. The root `Makefile` / `make check` (ruff, pytest, tsc, ESLint, frontend tests) is planned, not built.
+Backend commands (Docker and native) are in `README.md`. Single test: `pytest tests/test_health.py::test_health_ok`. All checks (ruff, pytest, tsc, ESLint, Vitest): `make check`, or `bash scripts/check.sh` where make is unavailable.

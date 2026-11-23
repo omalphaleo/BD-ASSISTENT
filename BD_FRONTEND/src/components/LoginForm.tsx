@@ -6,6 +6,7 @@
  * Needed as the entry to the app: it calls the generated `loginAuthLoginPost`, which sets the
  * session cookie. The form decides nothing; it shows the server's answer. Any 401 gets one
  * fixed message, so the screen never reveals whether the email or the password was wrong.
+ * The brand block (title, tagline) is presentation only.
  */
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
@@ -54,7 +55,10 @@ export default function LoginForm() {
 
   return (
     <form className="auth-card" onSubmit={handleSubmit}>
-      <h1>Alphaleo BD</h1>
+      <div className="auth-brand">
+        <h1>Alphaleo BD</h1>
+        <p className="auth-tagline">Outbound business development</p>
+      </div>
       <label className="field">
         <span>Email</span>
         <input
@@ -82,7 +86,7 @@ export default function LoginForm() {
           {error}
         </p>
       )}
-      <button className="button" type="submit" disabled={submitting}>
+      <button className="button button-block" type="submit" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
       </button>
     </form>
