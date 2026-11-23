@@ -1721,3 +1721,28 @@ Status: Needs input
 - Status: Needs input
 - Summary: Added scripts/check.sh (db up, image rebuild, ruff and pytest in Docker, then tsc, ESLint, Vitest) and a thin Makefile; `bash scripts/check.sh` passes (161 backend tests, 12 Vitest) and a planted ruff error stops it with exit 1. Compose frontend profile verified (/login 200, /leads redirects). Docs and CLAUDE.md Commands line updated. The three commits were denied by the permission settings, so nothing is committed.
 - Status update (2026-11-23): Needs input (commit permission; the commits are listed for you to run).
+
+## T-059: Two B4 fixes, review CLAUDE.md in the last commit, fresh frontend compose check (2026-11-23)
+
+Prompt: "Two small B4 fixes (a normal commit on top): In playwright.config.ts, make the Edge channel optional with E2E_BROWSER_CHANNEL instead of hardcoding channel: "msedge". In login.spec.ts, change the alert locator to p[role="alert"]. CLAUDE.md is in this commit. Check git diff HEAD~1 -- CLAUDE.md. If it's intended, send it to Developer A as its own PR, and take it out of the task branches. If not, revert that file. Fresh frontend check. Run docker compose --profile frontend up -d --build once and open http://localhost:3000/login."
+
+Status: Needs input
+- Status: Needs input
+- Summary: E2E_BROWSER_CHANNEL now optional in playwright.config.ts (documented in .env.local.example, README, filedescription); login.spec.ts uses p[role="alert"]; lint and typecheck clean. Fresh `docker compose --profile frontend up -d --build` succeeded: /login 200, /leads redirects to /login. CLAUDE.md diff reviewed (logging rule + Commands line); the separate PR and removal from this branch await approval.
+- Status update (2026-11-23): Needs input (CLAUDE.md handling).
+
+## T-060: Leave CLAUDE.md and USERPROMPT.md alone, no branch, no commit (2026-11-23, backfilled)
+
+Prompt: "Leave CLAUDE.md and USERPROMPT.md as they are. Don't create any branch and don't commit anything."
+
+Status: Completed
+- Summary: Acknowledged. Left both files untouched in that turn (so this entry was logged afterwards, at the user's request to resume logging); no branch created and nothing committed.
+- Status update (2026-11-23): Completed.
+
+## T-061: Resume logging prompts in USERPROMPT.md (2026-11-23)
+
+Prompt: "Resume logging prompts in USERPROMPT.md as before. Don't create branches or commit anything."
+
+Status: Completed
+- Summary: Logging resumed; the previous prompt was backfilled as T-060. No branch created and nothing committed.
+- Status update (2026-11-23): Completed.

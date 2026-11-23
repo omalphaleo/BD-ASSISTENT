@@ -22,11 +22,13 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
-  {
-    name: "chromium",
-    use: { ...devices["Desktop Chrome"], channel: "msedge" }, // or "chrome"
-  },
-],
+    {
+      name: "chromium",
+      // E2E_BROWSER_CHANNEL (for example "msedge" or "chrome") runs an installed browser, for
+      // machines where Playwright's own Chromium download is blocked. Unset: bundled Chromium.
+      use: { ...devices["Desktop Chrome"], channel: process.env.E2E_BROWSER_CHANNEL || undefined },
+    },
+  ],
   // Starts the frontend when it is not running yet; the backend must already be up.
   webServer: {
     command: "npm run dev",

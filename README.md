@@ -63,7 +63,7 @@ API contract: the frontend client is generated from the committed `BD_BACKEND/op
 - `npm run test:e2e` runs the Playwright login journey in `tests/e2e/` in Chromium. It needs the real stack, so it is not part of `make check`:
   1. Start PostgreSQL, apply the migrations and start the API (see the setup sections above). The backend must allow the frontend origin (planned task A8); until then the browser login is blocked.
   2. Create two fake test accounts in the test database, one `rep` and one `admin`, and set `E2E_REP_EMAIL`, `E2E_REP_PASSWORD`, `E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD` in `BD_FRONTEND/.env.local` (git-ignored) or in your shell. Never use real users or passwords.
-  3. Once per machine, install the browser: `npx playwright install chromium`.
+  3. Once per machine, install the browser: `npx playwright install chromium`. If that download is blocked, set `E2E_BROWSER_CHANNEL=msedge` (or `chrome`) to use an installed browser instead.
   4. Run `npm run test:e2e`. Playwright starts `npm run dev` itself unless the frontend is already running on `http://localhost:3000` (override with `E2E_BASE_URL`).
 
 **All checks in one command** (from the repo root): `make check`, or `bash scripts/check.sh` where make is unavailable (it is the same script). It starts the database, rebuilds the backend image, then runs ruff and pytest in Docker and tsc, ESLint and Vitest in `BD_FRONTEND/` (run `npm ci` there first), stopping at the first failure. Playwright is not included.

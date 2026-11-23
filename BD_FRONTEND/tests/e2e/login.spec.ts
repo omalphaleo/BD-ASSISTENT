@@ -17,11 +17,9 @@ test.describe("login journey", () => {
 
     await submitLoginForm(page, { email: rep.email, password: WRONG_PASSWORD });
 
-    // Scoped to the form: Next.js adds its own role="alert" route announcer to every page, so an
-    // unscoped getByRole("alert") matches two elements and fails Playwright's strict mode.
-    await expect(page.locator("form").getByRole("alert")).toHaveText(
-      "Incorrect email or password.",
-    );
+    // p[role="alert"]: Next.js adds its own <div role="alert"> route announcer to every page, so
+    // an unscoped getByRole("alert") matches two elements and fails Playwright's strict mode.
+    await expect(page.locator('p[role="alert"]')).toHaveText("Incorrect email or password.");
     await expect(page).toHaveURL(/\/login$/);
   });
 
