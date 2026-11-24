@@ -20,6 +20,10 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 
+# Playwright output (B4)
+test-results/
+playwright-report/
+
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -27,3 +31,6 @@ Thumbs.db
 .vscode/
 
 book.md
+
+# local dev helper script
+BD_BACKEND/create_dummy_user.py

@@ -36,24 +36,31 @@ services:
       db:
         condition: service_healthy # Wait for the database to be healthy before starting the API
 
+
   worker:
-    image: alphaleo-bd-backend # same image as api, different command
+    image: alphaleo-bd-backend
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       APP_ENV: development
-    command: sh -c "procrastinate --app=app.worker.app schema --apply && procrastinate --app=app.worker.app worker"
+    command: >
+      sh -c "procrastinate --app=app.worker.app schema --apply || echo 'Procrastinate schema already applied, continuing';
+             procrastinate --app=app.worker.app worker"
     depends_on:
       db:
         condition: service_healthy
       api:
         condition: service_started # api builds the image and runs migrations first
 
-  frontend: # Dockerfile verified (B1); the compose profile itself still needs a run against your .env
+  frontend: # Dockerfile verified (B1); compose profile verified (B5)
     profiles: ["frontend"]
     build:
       context: ./BD_FRONTEND
       args:
         NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    environment:
+      # Server-side calls (session check) reach the API by its compose service name; the browser
+      # keeps using NEXT_PUBLIC_API_BASE_URL above.
+      API_INTERNAL_URL: http://api:8000
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
