@@ -9,6 +9,7 @@ import uuid
 from collections.abc import Iterator
 
 import pytest
+from csrf_client import CsrfTestClient
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -50,7 +51,7 @@ def _make_user(session: Session, role: UserRole, *, name: str | None = None) -> 
 
 def _client(session: Session, app: FastAPI, user: User | None) -> TestClient:
     """Return a client signed in as the user through a real session cookie."""
-    client = TestClient(app)
+    client = CsrfTestClient(app)
     if user is not None:
         token, _ = services.create_session(session, user)
         client.cookies.set(get_settings().session_cookie_name, token)

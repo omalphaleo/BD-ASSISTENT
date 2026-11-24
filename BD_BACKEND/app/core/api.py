@@ -19,12 +19,14 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.core import services, user_services
 from app.core.cookies import clear_session_cookie, set_session_cookie
+from app.core.csrf import csrf_token_for_session_token
 from app.core.models import User
 from app.core.permissions import Permission, public_route, require_permission
 from app.core.schemas import (
     ChangeRoleRequest,
     CreateUserRequest,
     LoginRequest,
+    SessionUserResponse,
     UserDetailResponse,
     UserResponse,
 )
@@ -72,15 +74,17 @@ def health(session: Session = Depends(get_session)) -> JSONResponse:
     return JSONResponse(content={"status": "ok", "database": "ok"})
 
 
-@auth_router.post("/login", response_model=UserResponse, dependencies=[Depends(public_route)])
+@auth_router.post(
+    "/login", response_model=SessionUserResponse, dependencies=[Depends(public_route)]
+)
 def login(
     body: LoginRequest,
     request: Request,
     response: Response,
     db: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
-) -> UserResponse:
-    """Sign in with email and password; sets the session cookie.
+) -> SessionUserResponse:
+    """Sign in with email and password; sets the session cookie and returns the CSRF token.
 
     Raises:
         HTTPException: 401 with one fixed body for any credential failure; no cookie is set.
@@ -97,7 +101,10 @@ def login(
     except services.InvalidCredentialsError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, INVALID_CREDENTIALS_DETAIL) from None
     set_session_cookie(response, token, settings)
-    return UserResponse.model_validate(user)
+    return SessionUserResponse(
+        **UserResponse.model_validate(user).model_dump(),
+        csrf_token=csrf_token_for_session_token(token),
+    )
 
 
 @auth_router.post(
@@ -117,12 +124,20 @@ def logout(
     return response
 
 
-@auth_router.get("/me", response_model=UserResponse)
+@auth_router.get("/me", response_model=SessionUserResponse)
 def me(
     current_user: Annotated[User, Depends(require_permission(Permission.VIEW_OWN_PROFILE))],
-) -> UserResponse:
-    """Return the signed-in user; 401 if nobody is signed in (every role may view itself)."""
-    return UserResponse.model_validate(current_user)
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> SessionUserResponse:
+    """Return the signed-in user and the session's CSRF token (the frontend calls this after
+    a page reload to get the token back); 401 if nobody is signed in."""
+    # The guard above only passes with a valid session cookie, so the cookie is present here.
+    session_token = request.cookies[settings.session_cookie_name]
+    return SessionUserResponse(
+        **UserResponse.model_validate(current_user).model_dump(),
+        csrf_token=csrf_token_for_session_token(session_token),
+    )
 
 
 def _client_ip(request: Request) -> str | None:

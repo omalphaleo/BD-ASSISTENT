@@ -1,9 +1,12 @@
-"""Central permission module: the capability table, route guards and the owner-only check.
+"""Define the application's central server-side permission rules.
 
-Needed so access is enforced on the server in one reviewable place (plan.md section 4, never
-only by hiding buttons). Every route declares exactly one guard, `public_route` or
-`require_permission(...)`; the role-by-endpoint matrix test reads those declarations and
-fails on any route without one. Services call `require_owner` to re-check object ownership.
+This module translates the role rules in plan.md section 4 into named capabilities,
+FastAPI route guards, and an owner-only check. It is used whenever an endpoint or
+service must decide whether a signed-in user is allowed to perform an action.
+
+Every route should declare either that it is public or which capability it requires.
+The route tests read those declarations and compare them with the permission table,
+preventing a route from being left unprotected accidentally.
 """
 
 import enum
@@ -30,11 +33,16 @@ _SCHEMA_REF = f"#/components/schemas/{ERROR_RESPONSE_SCHEMA_NAME}"
 
 
 class Permission(enum.StrEnum):
-    """One capability per row of the plan.md section 4 table (granularity noted per member).
+    """Name an action that the application is allowed to authorize.
 
-    "Log in / out" has no member: those routes are `public_route`. Members whose row also
-    has an object-level rule ("importer only", "within own visibility") grant only the role
-    part here; the milestone that builds the endpoint adds the object check.
+    Each member represents one capability from plan.md section 4. Routes use these
+    names with `require_permission()` so the role they need is visible at the
+    endpoint. Login and logout do not have a member because they are public routes.
+
+    Some capabilities also need object-specific rules later, such as importing
+    only files owned by the caller or exporting leads within the caller's
+    visibility. This enum grants the role portion; `require_owner()` or another
+    service-level check adds that finer rule.
     """
 
     # Own profile (used by /auth/me and, in A7, "my profile").
@@ -106,56 +114,105 @@ PERMISSION_ROLES: dict[Permission, frozenset[UserRole]] = {
 
 
 class PermissionDeniedError(Exception):
-    """Raised when a signed-in user lacks a capability or does not own an object.
+    """Report that an authenticated action was denied.
 
-    app.core.errors turns it into a 403 with the fixed PERMISSION_DENIED_DETAIL body.
+    The exception is raised by route guards and service-level owner checks when
+    the user has a valid session but is not allowed to continue. It carries no
+    user-facing details.
+
+    The API error handler in `app.core.errors` converts this exception into the
+    fixed 403 response body defined by `PERMISSION_DENIED_DETAIL`.
     """
 
 
 def has_permission(user: User, permission: Permission) -> bool:
-    """Tell whether the user's role grants the capability.
+    """Check whether a user may use a capability.
 
-    A deactivated user never has a permission, as a second line of defence behind the 401
-    that current_user already gives them.
+    This is the role lookup used by permission guards and service code. The user
+    must be active, and their role must appear in `PERMISSION_ROLES[permission]`.
+
+    Args:
+        user: The authenticated user to check.
+        permission: The capability required by the route or service.
+
+    Returns:
+        `True` if the user is active and their role grants the capability;
+        otherwise `False`.
+
+    Example:
+        An admin is allowed `MANAGE_USERS`, while an inactive admin is not.
     """
     return user.is_active and user.role in PERMISSION_ROLES[permission]
 
 
 def is_owner(user: User, owner_id: uuid.UUID | None) -> bool:
-    """Tell whether the user owns an object whose owner id is `owner_id`.
+    """Check whether a user owns an object.
+
+    This helper supports object-level rules that cannot be decided by role
+    alone. For example, a rep may edit drafts generally but only their own.
 
     Args:
-        user: The signed-in user.
-        owner_id: The object's owner, or None when it has none (such an object is nobody's).
+        user: The authenticated user.
+        owner_id: The object's owner ID, or `None` if the object has no owner.
+
+    Returns:
+        `True` only when `owner_id` is present and matches the user's ID.
     """
     return owner_id is not None and user.id == owner_id
 
 
 def require_owner(user: User, owner_id: uuid.UUID | None) -> None:
-    """Owner-only rule for services: only the object's owner may pass.
+    """Require a user to own the object being changed.
 
-    Called in addition to the role capability (for example EDIT_DRAFT) so a background job
-    or a second route cannot skip the ownership check (plan.md section 4).
+    Services call this after or alongside a role capability. It prevents another
+    route or background task from bypassing an ownership rule. For example,
+    `EDIT_DRAFT` also requires ownership of the specific draft.
+
+    Args:
+        user: The authenticated user making the request.
+        owner_id: The object's owner ID, or `None` if it has no owner.
 
     Raises:
-        PermissionDeniedError: If the user is not the owner.
+        PermissionDeniedError: If the object has no owner or belongs to someone
+            else, for every user role.
     """
     if not is_owner(user, owner_id):
         raise PermissionDeniedError
 
 
 class PermissionGuard:
-    """Route dependency that demands one capability; carries it so tests can read it back."""
+    """Protect a FastAPI route with one named capability.
+
+    A route creates a guard through `require_permission()`. FastAPI calls the
+    guard after resolving the current authenticated user, then checks whether
+    that user is active and has the required role.
+
+    The guard stores its capability so route matrix tests can inspect the real
+    dependency attached to an endpoint.
+    """
 
     def __init__(self, permission: Permission) -> None:
+        """Create a guard for one capability.
+
+        Args:
+            permission: The capability a caller must have to use the route.
+        """
         self.permission = permission
 
     def __call__(self, current_user: CurrentUser) -> User:
-        """Return the signed-in user if their role grants the capability.
+        """Return the user only when their role grants the capability.
+
+        Args:
+            current_user: The authenticated user resolved from the session cookie.
+
+        Returns:
+            The authenticated user. Route handlers can use this object directly.
 
         Raises:
-            HTTPException: 401 via current_user when nobody is signed in (checked first).
-            PermissionDeniedError: If the role lacks the capability (rendered as 403).
+            HTTPException: Raised with 401 by `get_current_user()` if there is no
+                valid signed-in session.
+            PermissionDeniedError: Raised with 403 if the user is signed in but
+                does not have this capability.
         """
         if not has_permission(current_user, self.permission):
             raise PermissionDeniedError
@@ -163,36 +220,79 @@ class PermissionGuard:
 
 
 class PublicRoute:
-    """No-op marker dependency: states that a route is public on purpose."""
+    """Mark a route as intentionally public.
+
+    This dependency performs no authorization work. It makes a public route
+    visible to FastAPI and to the route matrix test. Examples include health
+    checks, login, and logout.
+    """
 
     def __call__(self) -> None:
-        """Do nothing; the marker only exists for the matrix test to find."""
+        """Accept the request without checking a session or capability.
+
+        This method intentionally does nothing. The dependency object remains
+        attached to the route so tests can confirm the route was declared public.
+        """
 
 
 def require_permission(permission: Permission) -> PermissionGuard:
-    """Build the dependency for a route that needs `permission` (used as Depends(...))."""
+    """Create a FastAPI dependency for a required capability.
+
+    Route handlers normally use this through `Depends(...)`. For example,
+    `Depends(require_permission(Permission.MANAGE_USERS))` allows only an admin
+    to call a user-management endpoint.
+
+    Args:
+        permission: The capability that a caller must have.
+
+    Returns:
+        A `PermissionGuard` configured for that capability.
+    """
     return PermissionGuard(permission)
 
 
-# Declared on routes anyone may call, e.g. dependencies=[Depends(public_route)].
+# Shared public-route marker used by routes anyone may call.
 public_route = PublicRoute()
 
 
 @dataclass(frozen=True)
 class RouteDeclaration:
-    """What a route declares: public on purpose, and/or the capabilities it requires."""
+    """Describe a route's public or permission declaration.
+
+    The route matrix test uses this value to ensure that every endpoint chooses
+    exactly one access model: it is public or it requires one or more
+    capabilities.
+    """
 
     public: bool
     permissions: tuple[Permission, ...]
 
     @property
     def is_valid(self) -> bool:
-        """A route must declare exactly one way: public, or at least one capability."""
+        """Check whether the route has exactly one valid access declaration.
+
+        Returns:
+            `True` for a public route with no permissions or a protected route
+            with at least one permission. `False` for a route with neither
+            declaration or both kinds of declaration.
+        """
         return self.public != bool(self.permissions)
 
 
 def _dependency_calls(dependant: Dependant) -> Iterator[Callable[..., Any]]:
-    """Yield every dependency callable reachable from a route, including nested ones."""
+    """Find dependency functions used by a route and its nested dependencies.
+
+    FastAPI may attach dependencies directly to a route or through included
+    routers. This helper recursively walks that dependency tree and yields each
+    callable. `get_route_declaration()` uses the results to locate public-route
+    and permission guard objects.
+
+    Args:
+        dependant: The FastAPI dependency tree to inspect.
+
+    Returns:
+        An iterator of dependency callables, including nested callables.
+    """
     for sub in dependant.dependencies:
         if sub.call is not None:
             yield sub.call
@@ -200,26 +300,39 @@ def _dependency_calls(dependant: Dependant) -> Iterator[Callable[..., Any]]:
 
 
 class ApiRouteView(Protocol):
-    """The route attributes this module reads (an APIRoute or a FastAPI RouteContext has them)."""
+    """Describe the route attributes needed for authorization inspection.
+
+    FastAPI exposes a route or route context depending on the framework version.
+    This protocol gives both forms the small shared interface used here: path,
+    HTTP methods, and dependency tree.
+    """
 
     @property
     def path_format(self) -> str | None:
-        """The route's path template, e.g. /auth/me (includes any router prefix)."""
+        """Return the route template, such as `/users/{user_id}`."""
 
     @property
     def methods(self) -> set[str] | None:
-        """The HTTP methods the route answers."""
+        """Return the HTTP methods handled by the route."""
 
     @property
     def dependant(self) -> Dependant:
-        """The route's dependency tree, including router-level dependencies."""
+        """Return the route's complete dependency tree."""
 
 
 def get_route_declaration(route: ApiRouteView) -> RouteDeclaration:
-    """Read what the route declares by inspecting its actual dependencies.
+    """Read a route's public or permission declaration from its dependencies.
 
-    Reading the enforcing dependency itself means the declaration cannot drift from what
-    is enforced (decision A6-3).
+    This function inspects the actual guard objects attached to the route rather
+    than a separate metadata table. That keeps tests tied to the authorization
+    behavior FastAPI will enforce.
+
+    Args:
+        route: An API route or route context to inspect.
+
+    Returns:
+        A `RouteDeclaration` stating whether the route is public and listing all
+        permission guards found in its dependency tree.
     """
     calls = list(_dependency_calls(route.dependant))
     return RouteDeclaration(
@@ -229,12 +342,19 @@ def get_route_declaration(route: ApiRouteView) -> RouteDeclaration:
 
 
 def iter_api_routes(app: FastAPI) -> Iterator[ApiRouteView]:
-    """Yield every API route of the app, with prefixes and router-level dependencies applied.
+    """Yield application API routes in a FastAPI-version-safe way.
 
-    FastAPI's own /docs and /openapi.json are not API routes and are skipped. Newer FastAPI
-    keeps included routers lazy (app.routes holds an opaque wrapper), so the public
-    iter_route_contexts is used when it exists; older FastAPI copies routes flat into
-    app.routes. The canary test fails if a FastAPI upgrade stops either path working.
+    Framework routes such as `/docs` and `/openapi.json` are skipped. Newer
+    FastAPI versions expose routers through route contexts, while older versions
+    place `APIRoute` objects directly in `app.routes`. This function detects
+    both layouts so route authorization tests continue to work across upgrades.
+
+    Args:
+        app: The FastAPI application whose API routes should be inspected.
+
+    Returns:
+        An iterator of route objects containing path, method, and dependency
+        information.
     """
     iter_route_contexts = getattr(fastapi_routing, "iter_route_contexts", None)
     if iter_route_contexts is None:
@@ -246,7 +366,15 @@ def iter_api_routes(app: FastAPI) -> Iterator[ApiRouteView]:
 
 
 def _error_response(description: str) -> dict[str, Any]:
-    """Build an OpenAPI response entry that points at the shared ErrorResponse schema."""
+    """Build an OpenAPI response entry for a standardized error.
+
+    Args:
+        description: Human-readable explanation of the response status.
+
+    Returns:
+        A dictionary containing the description and a JSON reference to
+        `ErrorResponse` in the OpenAPI components section.
+    """
     return {
         "description": description,
         "content": {"application/json": {"schema": {"$ref": _SCHEMA_REF}}},
@@ -254,14 +382,27 @@ def _error_response(description: str) -> dict[str, Any]:
 
 
 def install_permission_openapi(app: FastAPI) -> None:
-    """Document 401 and 403 on every permission-guarded route in the OpenAPI schema.
+    """Add authentication and authorization responses to guarded routes.
 
-    Done once from the same declarations the matrix test reads, so the schema cannot drift
-    from enforcement and routes need no per-route `responses=` (decision A6-8).
+    This function wraps the application's OpenAPI generator. Whenever the
+    schema is requested, it inspects each route and adds `401` and `403`
+    responses to routes that require permissions. Public routes are unchanged.
+
+    The `401` response describes an invalid or missing session. The `403`
+    response describes a valid session that lacks permission. Both responses use
+    the shared `ErrorResponse` schema, so routes do not need separate
+    `responses=` declarations.
+
+    Args:
+        app: The FastAPI application to update.
+
+    Returns:
+        Nothing. The function replaces `app.openapi` with a schema wrapper.
     """
     build_default_schema = app.openapi
 
     def openapi_with_permission_errors() -> dict[str, Any]:
+        """Build the normal schema and add permission error responses."""
         schema = build_default_schema()
         schemas = schema.setdefault("components", {}).setdefault("schemas", {})
         if ERROR_RESPONSE_SCHEMA_NAME in schemas:  # already added; FastAPI caches the schema

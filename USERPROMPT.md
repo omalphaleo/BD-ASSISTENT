@@ -1796,3 +1796,10 @@ Prompt: "describe a7", followed by the user's decisions on the open points: "1. 
 Status: Completed
 - Summary: Described A7, then implemented it: core/user_services.py, /users routes (me, list, create, change role, deactivate, reactivate), new schemas, narrowed 422 documented in openapi.json, tests/test_users_api.py, matrix test updated, docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, m1.md). Verified in Docker: ruff clean, 468 tests pass.
 - Status update (2026-11-24): Completed. Changes are uncommitted in the working tree; PR pending review.
+
+## T-052: Implement A8 (CSRF, Origin check, CORS) with six approved decisions (2026-11-24)
+- Prompt: "Implement A8 using these six approved decisions: 1. CSRF token sha256(\"csrf:\" + raw_session_token) returned in login and /auth/me, kept in frontend memory, re-fetched after reload, constant-time compare. 2. Origin check: if present must equal settings.frontend_origin, if absent continue to CSRF; applies to login. 3. X-CSRF-Token required for POST/PUT/PATCH/DELETE, exempt only POST /auth/login, logout needs token, GET/HEAD/OPTIONS need none. 4. No audit for rejected CSRF. 5. CORS exactly frontend_origin, credentials, explicit methods/headers incl. X-CSRF-Token, no wildcards. 6. No new dependencies, tables or columns. Add tests, update docs and B12 contract in m1.md, regenerate openapi.json, run Ruff and full backend tests in Docker. No Git operations."
+- Status: Completed
+- Summary: Implemented A8: new app/core/csrf.py (session-derived token, Origin check, app-level verify_csrf, OpenAPI 403), CORSMiddleware in main.py, csrf_token on login and /auth/me (SessionUserResponse), tests/test_csrf.py plus a CsrfTestClient helper, openapi.json regenerated. Docs updated (m1.md contract for B12, ARCHITECTURE, FILE_STRUCTURE, filedescription). Verified in Docker: ruff clean, 499 tests pass. No Git operations.
+- Status update (2026-11-24): Completed.
+

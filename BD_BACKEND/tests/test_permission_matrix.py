@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from typing import Annotated
 
 import pytest
+from csrf_client import CsrfTestClient
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import update
@@ -101,7 +102,7 @@ def _make_user(session: Session, role: UserRole) -> User:
 
 def _client_for(session: Session, app: FastAPI, user: User | None) -> TestClient:
     """Return a client for the app, signed in as the user (anonymous when user is None)."""
-    client = TestClient(app)
+    client = CsrfTestClient(app)
     if user is not None:
         token, _ = services.create_session(session, user)
         client.cookies.set(get_settings().session_cookie_name, token)
@@ -264,7 +265,8 @@ def test_real_auth_me_requires_sign_in(db_session: Session) -> None:
 
 
 def test_openapi_documents_401_and_403_only_on_guarded_routes() -> None:
-    """OpenAPI lists 401/403 (ErrorResponse) for /auth/me but not for the public routes."""
+    """OpenAPI lists 401/403 (ErrorResponse) for /auth/me; public routes get no 401, and a
+    403 only where the CSRF check applies (the public POST routes)."""
     schema = real_app.openapi()
     paths = schema["paths"]
 
@@ -273,9 +275,8 @@ def test_openapi_documents_401_and_403_only_on_guarded_routes() -> None:
     expected_ref = {"$ref": "#/components/schemas/ErrorResponse"}
     assert me_responses["403"]["content"]["application/json"]["schema"] == expected_ref
     assert "ErrorResponse" in schema["components"]["schemas"]
-    for public_path, method in (
-        ("/health", "get"),
-        ("/auth/login", "post"),
-        ("/auth/logout", "post"),
-    ):
-        assert not {"401", "403"} & set(paths[public_path][method]["responses"])
+    assert not {"401", "403"} & set(paths["/health"]["get"]["responses"])
+    for public_path in ("/auth/login", "/auth/logout"):
+        responses = paths[public_path]["post"]["responses"]
+        assert "401" not in responses
+        assert responses["403"]["content"]["application/json"]["schema"] == expected_ref

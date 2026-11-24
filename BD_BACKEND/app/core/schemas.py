@@ -55,6 +55,16 @@ class UserResponse(BaseModel):
     role: UserRole
 
 
+class SessionUserResponse(UserResponse):
+    """The signed-in user plus the CSRF token of the current session (login and /auth/me).
+
+    The frontend keeps the token in memory and sends it as X-CSRF-Token on every POST, PUT,
+    PATCH and DELETE except login (A8).
+    """
+
+    csrf_token: str
+
+
 class UserDetailResponse(UserResponse):
     """A user as shown on the admin user list and "my profile": adds status and timestamps.
 

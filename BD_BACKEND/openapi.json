@@ -82,6 +82,36 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "SessionUserResponse": {
+        "additionalProperties": false,
+        "description": "The signed-in user plus the CSRF token of the current session (login and /auth/me).\n\nThe frontend keeps the token in memory and sends it as X-CSRF-Token on every POST, PUT,\nPATCH and DELETE except login (A8).",
+        "properties": {
+          "csrf_token": {
+            "title": "Csrf Token",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "csrf_token"
+        ],
+        "title": "SessionUserResponse",
+        "type": "object"
+      },
       "UserDetailResponse": {
         "additionalProperties": false,
         "description": "A user as shown on the admin user list and \"my profile\": adds status and timestamps.\n\nNever includes the password hash.",
@@ -122,31 +152,6 @@
           "updated_at"
         ],
         "title": "UserDetailResponse",
-        "type": "object"
-      },
-      "UserResponse": {
-        "additionalProperties": false,
-        "description": "The signed-in user as returned by the API: no password hash, no timestamps.",
-        "properties": {
-          "email": {
-            "title": "Email",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "role": {
-            "$ref": "#/components/schemas/UserRole"
-          }
-        },
-        "required": [
-          "id",
-          "email",
-          "role"
-        ],
-        "title": "UserResponse",
         "type": "object"
       },
       "UserRole": {
@@ -222,7 +227,7 @@
   "paths": {
     "/auth/login": {
       "post": {
-        "description": "Sign in with email and password; sets the session cookie.\n\nRaises:\n    HTTPException: 401 with one fixed body for any credential failure; no cookie is set.",
+        "description": "Sign in with email and password; sets the session cookie and returns the CSRF token.\n\nRaises:\n    HTTPException: 401 with one fixed body for any credential failure; no cookie is set.",
         "operationId": "login_auth_login_post",
         "requestBody": {
           "content": {
@@ -239,11 +244,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/SessionUserResponse"
                 }
               }
             },
             "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "CSRF check failed"
           },
           "422": {
             "content": {
@@ -269,6 +284,16 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "CSRF check failed"
           }
         },
         "summary": "Logout",
@@ -279,14 +304,14 @@
     },
     "/auth/me": {
       "get": {
-        "description": "Return the signed-in user; 401 if nobody is signed in (every role may view itself).",
+        "description": "Return the signed-in user and the session's CSRF token (the frontend calls this after\na page reload to get the token back); 401 if nobody is signed in.",
         "operationId": "me_auth_me_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/SessionUserResponse"
                 }
               }
             },
@@ -426,7 +451,7 @@
                 }
               }
             },
-            "description": "Not permitted"
+            "description": "Not permitted; or CSRF check failed"
           },
           "422": {
             "content": {
@@ -542,7 +567,7 @@
                 }
               }
             },
-            "description": "Not permitted"
+            "description": "Not permitted; or CSRF check failed"
           },
           "422": {
             "content": {
@@ -606,7 +631,7 @@
                 }
               }
             },
-            "description": "Not permitted"
+            "description": "Not permitted; or CSRF check failed"
           },
           "422": {
             "content": {
@@ -670,7 +695,7 @@
                 }
               }
             },
-            "description": "Not permitted"
+            "description": "Not permitted; or CSRF check failed"
           },
           "422": {
             "content": {
