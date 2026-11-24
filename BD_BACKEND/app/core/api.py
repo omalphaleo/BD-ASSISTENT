@@ -20,6 +20,7 @@ from app.config import Settings, get_settings
 from app.core import services, user_services
 from app.core.cookies import clear_session_cookie, set_session_cookie
 from app.core.csrf import csrf_token_for_session_token
+from app.core.login_throttle import LoginThrottleLimits
 from app.core.models import User
 from app.core.permissions import Permission, public_route, require_permission
 from app.core.schemas import (
@@ -96,7 +97,12 @@ def login(
     ip_address = request.client.host if request.client else None
     try:
         token, user = services.login(
-            db, body.email, body.password, ip_address=ip_address, lifetime=lifetime
+            db,
+            body.email,
+            body.password,
+            ip_address=ip_address,
+            lifetime=lifetime,
+            throttle_limits=LoginThrottleLimits.from_settings(settings),
         )
     except services.InvalidCredentialsError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, INVALID_CREDENTIALS_DETAIL) from None

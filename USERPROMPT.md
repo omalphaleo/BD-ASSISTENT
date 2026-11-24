@@ -1803,3 +1803,15 @@ Status: Completed
 - Summary: Implemented A8: new app/core/csrf.py (session-derived token, Origin check, app-level verify_csrf, OpenAPI 403), CORSMiddleware in main.py, csrf_token on login and /auth/me (SessionUserResponse), tests/test_csrf.py plus a CsrfTestClient helper, openapi.json regenerated. Docs updated (m1.md contract for B12, ARCHITECTURE, FILE_STRUCTURE, filedescription). Verified in Docker: ruff clean, 499 tests pass. No Git operations.
 - Status update (2026-11-24): Completed.
 
+## T-053: Implement A9 (login throttling) with nine approved decisions (2026-11-24)
+- Prompt: "A9 decisions: 1. audit rows only (no new table). 2. 5 failed attempts per 15 min per account and 20 per 15 min per IP, configurable via config.py. 3. unknown emails can only be throttled by IP. 4. same 401 InvalidCredentialsError. 5. reject a correct password during a block. 6. reset per-account failures on success (count only auth.login_failed rows after the user's latest auth.login_succeeded), per-IP strictly rolling window. 7. keep request.client.host. 8. blocked attempts log LOGIN_THROTTLED and do not count. 9. use AuditAction.LOGIN_THROTTLED."
+- Status: Completed
+- Summary: Implemented A9: new app/core/login_throttle.py (limits dataclass, find_throttle_scope counting auth.login_failed audit rows), login() now rejects throttled attempts with the same 401 and audits auth.login_throttled, writes auth.login_succeeded on success, three LOGIN_* settings in config.py and .env.example, tests/test_login_throttle.py. Docs updated (m1.md, ARCHITECTURE, FILE_STRUCTURE, filedescription). Verified in Docker: ruff check clean, 515 tests pass. No Git operations.
+- Status update (2026-11-24): Completed. Open for review: auth.login_succeeded was added (it did not exist) and "unknown email" was implemented as address-only limiting.
+
+
+## T-054: Describe A10 (2026-11-24)
+- Prompt: "describe a10"
+- Status: Completed
+- Summary: Described A10 (worker sample job) from milestone/m1.md and app/worker.py.
+- Status update (2026-11-24): Completed.

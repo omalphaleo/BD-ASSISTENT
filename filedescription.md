@@ -77,6 +77,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | Name | What it does | Why it is used |
 |---|---|---|
 | `Settings` (class) | Typed settings: `database_url` (required), `app_env`, `session_lifetime_hours` (default 12), `session_cookie_name` (default `bd_session`), `session_cookie_secure` (default true), `frontend_origin`. | Single, validated source of configuration; no config lives in code. |
+| `Settings.login_max_failures_per_account`, `login_max_failures_per_ip`, `login_throttle_window_minutes` | Login throttling limits (defaults 5, 20, 15; must be above 0; env `LOGIN_MAX_FAILURES_PER_ACCOUNT`, `LOGIN_MAX_FAILURES_PER_IP`, `LOGIN_THROTTLE_WINDOW_MINUTES`). | Configurable limits for A9; zero would lock everyone out, so it is rejected. |
 | `Settings._validate_session_and_origin()` | On construction, checks `frontend_origin` is a bare http(s) origin (no path, credentials, query) and, in production, requires secure cookies and https. | Fails fast on unsafe production settings. |
 | `Settings.psycopg_conninfo` (property) | Returns `database_url` without the `+psycopg` driver suffix. | Procrastinate needs a plain libpq URL (used by `worker.py`). |
 | `get_settings()` | Builds `Settings` once and caches it. | Everyone shares one settings object; raises if `DATABASE_URL` is missing. |
@@ -225,7 +226,8 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `normalize_email(email)` | Strip and lowercase. | Emails are stored lowercase, so lookups must match. |
 | `_dummy_password_hash()` | Hash of a throwaway password, built once. | Unknown emails still cost one Argon2 check, so timing does not reveal which emails exist. |
 | `_record_login_failure(...)` | Writes and commits one `auth.login_failed` audit row; stores the attempted email only if it looks like an email. | Failed logins are audited; people sometimes paste passwords into the email field. |
-| `login(db, email, password, *, ip_address, lifetime=None)` | Checks credentials with one password verification on every path, audits failures, upgrades weak hashes, creates the session; raises `InvalidCredentialsError`. | The login rule, behind `POST /auth/login`. |
+| `_record_login_throttled(db, *, user, scope, ip_address)` | Writes and commits one `auth.login_throttled` audit row (summary holds only the scope). | Blocked attempts are audited but, being a different action, are never counted as failures (A9 decision 8). |
+| `login(db, email, password, *, ip_address, lifetime=None, throttle_limits=None)` | Checks credentials with one password verification on every path, then rejects the attempt if the account or address is throttled (even with a correct password), audits failures, upgrades weak hashes, writes `auth.login_succeeded`, creates the session; raises `InvalidCredentialsError` for failures and blocks alike. | The login rule, behind `POST /auth/login`; a block looks exactly like a wrong password. |
 | `logout(db, token)` | Revokes the session if a token is given; never raises for bad tokens. | Behind `POST /auth/logout`. |
 | `InactiveUserError`, `InvalidCredentialsError` | Exceptions for a disabled user and for any login failure. | The second is turned into HTTP 401 in `api.py`; the first is only raised and tested. |
 | `AuthenticatedSession` | Pair of `user` and `session`. | Return value of `get_active_session`. |
@@ -268,6 +270,17 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `clear_session_cookie(response, settings)` | Deletes the cookie with identical attributes. | A mismatch in path or flags would make the browser keep it. |
 | `SESSION_COOKIE_SAMESITE`, `SESSION_COOKIE_PATH`, `SECONDS_PER_HOUR` | Cookie constants. | No magic values. |
 
+### `app/core/login_throttle.py`
+**Purpose:** decides whether a login attempt is blocked by too many recent failures (M1 task A9). It only reads existing `audit_log` rows, so there is no new table. Used by `core/services.py::login` and `core/api.py`.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `LoginThrottleLimits` (frozen dataclass) | The limits: failures per account, failures per address, window length (defaults 5, 20, 15 minutes). `from_settings(settings)` builds it from `Settings`. | One typed object instead of loose numbers. |
+| `ThrottleScope` (enum) | `account` or `ip`. | Records in the audit summary which limit blocked. |
+| `find_throttle_scope(db, *, user_id, ip_address, limits)` | Returns the blocking scope or `None`. Account: `auth.login_failed` rows for the user after the window start and after their latest `auth.login_succeeded`. Address: `auth.login_failed` rows from that address inside the rolling window (successes ignored). An unknown email (no `user_id`) is limited by address only; a missing address skips the address limit. | The rule itself; throttled rows are never counted, so a block expires by itself. |
+| `_count_failures_for_user`, `_count_failures_for_ip` | The two count queries. | Keep `find_throttle_scope` readable. |
+| Constants `DEFAULT_MAX_FAILURES_PER_ACCOUNT`, `DEFAULT_MAX_FAILURES_PER_IP`, `DEFAULT_WINDOW_MINUTES` | Documented defaults. | No magic numbers. |
+
 ### `app/core/csrf.py`
 **Purpose:** CSRF protection for the cookie session (M1 task A8): the session-bound token, the Origin check and the request guard. `verify_csrf` is installed on every route by `app/main.py`; the contract for the frontend is in `milestone/m1.md` section 16. Used by `core/api.py`, `app/main.py` and the tests.
 
@@ -296,7 +309,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | Name | What it does | Why it is used |
 |---|---|---|
 | `health(session)` | `GET /health`: runs `SELECT 1`; 200 ok, or 503 degraded when the database is unreachable. | Probes (Docker, operators) get a clear body and no error text. |
-| `login(body, request, response, db, settings)` | `POST /auth/login`: calls `services.login`, maps `InvalidCredentialsError` to 401 with one message, sets the cookie, returns `SessionUserResponse` (user plus `csrf_token`). | Sign-in endpoint; uses the direct client IP only (forwarded headers not trusted yet). The only state-changing route exempt from the CSRF token. |
+| `login(body, request, response, db, settings)` | `POST /auth/login`: calls `services.login` (with `LoginThrottleLimits.from_settings(settings)`), maps `InvalidCredentialsError` to 401 with one message, sets the cookie, returns `SessionUserResponse` (user plus `csrf_token`). | Sign-in endpoint; uses the direct client IP only (forwarded headers not trusted yet). The only state-changing route exempt from the CSRF token. |
 | `logout(db, settings, request)` | `POST /auth/logout`: revokes the session and clears the cookie; 204 once the CSRF check passed. | Needs no authentication so an expired session can still sign out, but since A8 it needs `X-CSRF-Token` (derived from the cookie, so an expired cookie still works; no cookie at all is 403). |
 | `me(current_user, request, settings)` | `GET /auth/me`: returns the signed-in user and the session's `csrf_token`, or 401 (every role holds `VIEW_OWN_PROFILE`). | Lets a frontend check who is signed in and recover the token after a page reload. |
 | `my_profile(current_user)` | `GET /users/me`: the caller's own profile (`UserDetailResponse`). | "My profile" screen. |
@@ -316,7 +329,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 
 | Name | What it does | Why it is used |
 |---|---|---|
-| `AuditAction` (enum) | Allowed actions such as `auth.login_failed`, `user.created`, `user.role_changed`. | A fixed vocabulary stops typos being stored forever. Only `LOGIN_FAILED` is used in production code; the rest are reserved for later tasks. |
+| `AuditAction` (enum) | Allowed actions such as `auth.login_failed`, `auth.login_succeeded`, `auth.login_throttled`, `user.created`, `user.role_changed`. | A fixed vocabulary stops typos being stored forever. The login actions (failed, succeeded, throttled) and the user-management actions are used in production code. |
 | `FORBIDDEN_SUMMARY_KEYS` | `password`, `password_hash`, `token`, `token_hash`, `session_token`. | Secrets must never enter a permanent log. |
 | `_find_forbidden_key(value)` | Recursively finds a forbidden key in a summary (case-insensitive). | Used by `record`. |
 | `record(db, *, action, actor_user_id, object_type, object_id, summary, ip_address)` | Validates the action and summary, adds the row and flushes (never commits); raises `ValueError` on bad input. | The caller's commit makes the audit row and the action it describes succeed or fail together. |
@@ -356,6 +369,7 @@ Common helpers repeated in several files: `_alembic_config(url)` (Alembic config
 | `test_compliance_tables_migration.py` | Migration 0008 upgrades, downgrades to 0007 and upgrades again on a throwaway database; seeds exactly one gate row (disabled) and four checklist rows and no other rows; the source and item_key CHECKs list exactly the `OptOutSource` and `ChecklistItemKey` values. Fixture `roundtrip_url`, helpers `alembic_config`, `_scalar`, `_tables_exist`, `_check_values`. |
 | `test_audit_log.py` | `record()` stores all fields and follows the clock; does not commit; triggers reject UPDATE/DELETE/TRUNCATE; secret keys and unknown actions are rejected; `AuditAction` values are unique and dotted; the audit package does not import `core` modules. Helpers: `_count_rows`. |
 | `test_auth_routes.py` | `/auth/login`, `/auth/logout`, `/auth/me` through the real app (using `CsrfTestClient`; login and `/auth/me` bodies include `csrf_token`): no secrets in responses, cookie flags, only the token hash stored, every failure looks identical, one committed audit row per failure, exactly one password check per path, weak hash upgraded, 422 never echoes values, logout idempotent, independent sessions. Fixtures: `api_app`, `use_settings`, `client`, `make_client`, `user`, `disabled_user`; helpers `_login`, `_count_rows`, `_failed_login_rows`, `_cookie_attributes`, `_make_settings`, `_keys_at_any_depth`. |
+| `test_login_throttle.py` | The A9 checks on PostgreSQL: block at 5 account failures (correct password rejected, no session), 4 do not block, throttled rows are not counted, the block ends after the window (test clock), success resets the account count, accounts are independent, the address limit and unknown emails, success does not reset the address count, `auth.login_succeeded` row, identical 401 over HTTP, throttle settings defaults, overrides and rejection of zero. |
 | `csrf_client.py` | Test helper (not a test file). `CsrfTestClient` is a `TestClient` that adds `X-CSRF-Token`, derived from the session cookie it holds, to POST, PUT, PATCH and DELETE unless the caller passed the header. Used by `test_auth_routes.py`, `test_users_api.py` and `test_permission_matrix.py` so they need not repeat the header. |
 | `test_csrf.py` | The A8 checks on PostgreSQL with plain clients: token formula and difference from the stored hash, safe methods need no token, missing, wrong, other-session and non-ASCII tokens are 403 (also before 422), a valid token passes, anonymous POST is 403 not 401, all failures share one body, foreign and near-miss Origins are 403 (also on login, which stays token-free), matching or absent Origin falls through to the token, login and `/auth/me` return the same session-bound token, logout needs the token, rejected requests write no audit row, CORS preflight (frontend allowed with credentials, other origins and unlisted headers refused, no wildcards, CORS headers on a CSRF 403), OpenAPI 403 and `csrf_token`. Fixtures `app`, `admin_client`; helpers `_make_user`, `_signed_in`, `_login`, `_preflight`. |
 | `test_clock.py` | `now()` is aware UTC; `set_offset`/`reset_offset` shift and restore it. |
