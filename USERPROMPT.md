@@ -1878,3 +1878,29 @@ Status: Completed
 - Status: Completed
 - Summary: Replaced m2.md sections 15-26 (the backend/frontend split) with two feature workstreams, each end to end: W1 Intake and processing (Developer A, 36 points) and W2 Data quality and resolution (Developer B, 35 points incl. B11 and B12). Added the ingest_row contract as the single seam, an M2-0 scaffold that pre-wires shared files, an M2-only ownership change for approval, gates, integration steps, workload table, progress table, Git workflow. No application code changed.
 - Status update (2026-11-25): Completed.
+
+## T-063: Plain-language task guide and Claude Code settings suggestions in m2.md (2026-11-25)
+- Prompt: "For documenting tasks A0-A5 and B1-B6, refer to M1.md as the reference for how task descriptions should be structured ... 4-5 line description ... beginner-friendly. Also document the recommended Claude Code configurations at both the user level and project level ... suggestions, not mandatory ... permissions, approval settings, safeguards ... reduce overlapping file modifications and conflicts ... clearly distinguish suggested configurations from enforced project rules." (abbreviated)
+- Interpretation: "A0-A5" read as M2-0 and M2-A1 to M2-A5, "B1-B6" as M2-B1 to M2-B6 (the M2 task IDs in m2.md section 19).
+- Status: Completed
+- Summary: Appended sections 27-30 to milestone/m2.md: a beginner glossary and 4-line plain-language descriptions for M2-0, M2-A1 to A5 and M2-B1 to B6; suggested Claude Code settings at project level (shared and per-developer ownership fences) and user level, working habits, and a table separating enforced rules from suggestions. Nothing applied to any settings file; no application code changed.
+- Status update (2026-11-25): Completed.
+
+
+
+
+## T-064: Describe m2-a0 (2026-11-25)
+- Prompt: "describe m2-a0"
+- Status: Completed
+- Summary: Described M2-0 (contracts and scaffold) from milestone/m2.md sections 18, 19 and 27. No files changed besides this log.
+- Status update (2026-11-25): Completed.
+
+## T-065: Detailed implementation plan for M2-A0 (2026-11-25)
+- Prompt: "a detailed implementation plan for M2-A0 based on the existing project documentation, architecture, and approved decisions. Before implementation: review docs, break into tasks, identify unresolved items with options/pros/cons/recommendation, highlight suggestions needing approval. Do not assume, do not implement, present unresolved questions one at a time, wait for approval." (abbreviated)
+- Status: Needs input
+- Summary: Reviewed m2.md (sections 15-26), audit/permissions/main/worker code and the frontend shell; drafted the M2-0 task breakdown and the list of open decisions, and asked question 1. No code changed.
+- Status update (2026-11-25): Needs input (waiting for decisions).
+
+## T-066: Align CLAUDE.local.md and Claude settings files with m2.md (2026-11-25)
+- Prompt: "understand m2.md and do changes in claude.local.md and setting.local.json and setting.json according to requirement which written in m2.md"
+- Status: In progress
