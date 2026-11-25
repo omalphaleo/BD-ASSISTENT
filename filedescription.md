@@ -63,7 +63,7 @@ Package markers so `app.*` imports resolve; they contain only docstrings. No fun
 **Purpose:** added in M1 task A0 so every module has a fixed place before its real code exists. `__init__.py` is a docstring-only package marker; `models.py` is a header-only file with no models yet (`leads/models.py` and `imports/models.py` are no longer stubs, see their own sections). Each `models.py` is already imported by `app/models.py`, so the owning task adds its tables there without editing the registry. No functions.
 
 ### `app/main.py`
-**Purpose:** the FastAPI entry point served by uvicorn (`app.main:app`). Creates the app, installs the error handler and mounts the routes. Holds no business logic. Imported by `tests/test_auth_routes.py` and `tests/test_health.py`. No functions; module-level `app` is the object.
+**Purpose:** the FastAPI entry point served by uvicorn (`app.main:app`). Creates the app with the app-level `verify_csrf` dependency (so every route gets the Origin and CSRF-token checks, A8), adds `CORSMiddleware` limited to `settings.frontend_origin` (credentials on, explicit methods and headers, no wildcards), installs the error handlers, mounts the routes and adds the 401/403 entries to the OpenAPI schema. Holds no business logic. Imported by `tests/test_auth_routes.py`, `tests/test_csrf.py` and `tests/test_health.py`. No functions; module-level `app` is the object and `CORS_ALLOWED_METHODS` / `CORS_ALLOWED_HEADERS` are the explicit CORS lists. Because it reads `get_settings()` once at import to build CORS, `DATABASE_URL` must be set when the module is imported (also for `python -m app.export_openapi`).
 
 ### `app/export_openapi.py`
 Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contract and a stale file is caught. Run `python -m app.export_openapi` (write) or `--check` (exit 1 if stale). Constants: `OPENAPI_PATH`, `JSON_INDENT`, `STALE_EXIT_CODE`, `REGENERATE_COMMAND`.
@@ -77,6 +77,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | Name | What it does | Why it is used |
 |---|---|---|
 | `Settings` (class) | Typed settings: `database_url` (required), `app_env`, `session_lifetime_hours` (default 12), `session_cookie_name` (default `bd_session`), `session_cookie_secure` (default true), `frontend_origin`. | Single, validated source of configuration; no config lives in code. |
+| `Settings.login_max_failures_per_account`, `login_max_failures_per_ip`, `login_throttle_window_minutes` | Login throttling limits (defaults 5, 20, 15; must be above 0; env `LOGIN_MAX_FAILURES_PER_ACCOUNT`, `LOGIN_MAX_FAILURES_PER_IP`, `LOGIN_THROTTLE_WINDOW_MINUTES`). | Configurable limits for A9; zero would lock everyone out, so it is rejected. |
 | `Settings._validate_session_and_origin()` | On construction, checks `frontend_origin` is a bare http(s) origin (no path, credentials, query) and, in production, requires secure cookies and https. | Fails fast on unsafe production settings. |
 | `Settings.psycopg_conninfo` (property) | Returns `database_url` without the `+psycopg` driver suffix. | Procrastinate needs a plain libpq URL (used by `worker.py`). |
 | `get_settings()` | Builds `Settings` once and caches it. | Everyone shares one settings object; raises if `DATABASE_URL` is missing. |
@@ -95,7 +96,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 **Purpose:** model registry. Imports the `models` module of all ten modules (`audit`, `campaigns`, `compliance`, `content`, `core`, `imports`, `leads`, `mail`, `notifications`, `outreach`) so their tables register on `Base.metadata`. Needed because Alembic (`migrations/env.py`) and the schema-drift test only see imported models. Frozen after M1 task A0: new models go in each module's own `models.py`, not here. No functions.
 
 ### `app/worker.py`
-**Purpose:** the Procrastinate app (PostgreSQL-backed background job runner) started by the `worker` compose service. No tasks are registered yet (M1 no-op). Builds `app` at import time from `get_settings().psycopg_conninfo`, so it also fails fast without `DATABASE_URL`. No functions.
+**Purpose:** the Procrastinate app (PostgreSQL-backed background job runner) started by the `worker` compose service. Its only task is the core sample job (M1 task A10), registered through `import_paths=["app.core.tasks"]` (not a direct import, because `core/tasks.py` imports `app` from here). Builds `app` at import time from `get_settings().psycopg_conninfo`, so it also fails fast without `DATABASE_URL`. No functions.
 
 ### `app/core/clock.py`
 **Purpose:** the only place that reads the system clock, so time-dependent rules can be tested by shifting time.
@@ -190,6 +191,26 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `LoginRequest` | Body of `POST /auth/login`: trimmed email (max 320), password (max 1024, not trimmed); extra fields rejected. | Validates input; spaces can be part of a password. |
 | `LoginRequest._email_has_at_sign()` | Rejects an email with no `@`. | Cheap sanity check; full validation is not needed to look a user up. |
 | `UserResponse` | `{id, email, role}`. | The only user data returned to clients. |
+| `SessionUserResponse` | `UserResponse` plus `csrf_token`. | Returned by login and `GET /auth/me` only (A8), so the frontend learns the token of the current session. |
+| `UserDetailResponse` | `UserResponse` plus `is_active`, `created_at`, `updated_at`. | The admin user list and "my profile" (A7); still never the password hash. |
+| `CreateUserRequest` (+ `_email_has_at_sign()`) | Body of `POST /users`: trimmed email, role, initial password (12 to 1024 characters, not trimmed); extra fields rejected. | Validates admin input; the password is hashed in the service. |
+| `ChangeRoleRequest` | Body of `PATCH /users/{id}`: the new `role`. | Only the role is editable (see A7 notes in `m1.md`). |
+| `ValidationErrorItem`, `ValidationErrorResponse` | `{type, loc, msg}` and `{detail: [...]}`. | Only used to document the real 422 body in `openapi.json` (A7; the body itself comes from `errors.py`). |
+| `ErrorResponse` | `{detail}`, extra fields rejected. | Only used to describe the 401 and 403 bodies in `openapi.json` (the real bodies come from `dependencies.py` and `errors.py`). |
+| Constants `PASSWORD_MAX_LENGTH`, `PASSWORD_MIN_LENGTH` | Password length bounds (the minimum applies only to admin-set initial passwords). | Named values; login still accepts older shorter passwords. |
+
+### `app/core/user_services.py`
+**Purpose:** the business logic of user management (M1 task A7): list, create, change role, deactivate and reactivate users, with the admin safeguards and the audit trail. Routes in `core/api.py` call it and add nothing. Every mutating function re-checks `MANAGE_USERS` and commits itself together with its audit row.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `list_users(db, actor)` | All users ordered by email. | Admin user list. |
+| `create_user(db, actor, *, email, password, role, ip_address)` | Normalizes the email, refuses a duplicate (any letter case, also under a race), hashes the password with Argon2id, audits `user.created`. | Admin creates accounts with an initial password; no plaintext is stored or audited. |
+| `change_role(db, actor, user_id, *, role, ip_address)` | Changes the role and audits `user.role_changed` with before and after; same role is a silent no-op; own role is refused. | Role changes are sensitive and audited (plan module S). |
+| `deactivate_user(db, actor, user_id, *, ip_address)` | Sets `is_active` false, audits `user.disabled` and revokes all the user's sessions in one commit; idempotent. | A deactivated user must lose access at once (approved A7 design point 2). |
+| `reactivate_user(db, actor, user_id, *, ip_address)` | Sets `is_active` true and audits `user.enabled`; old sessions stay revoked. | Undo a mistaken deactivation. |
+| `_require_manage_users`, `_get_user_for_update`, `_lock_active_admin_count`, `_guard_admin_loss` | Capability re-check; row lock on the target; locked count of active admins; the self and last-admin safeguards. | The locks stop two admins removing each other at the same moment. |
+| `UserManagementError` and `UserNotFoundError`, `EmailAlreadyExistsError`, `SelfModificationError`, `LastAdminError` | Expected failures. | Mapped to fixed 404 or 409 bodies in `api.py`. |
 
 ### `app/core/services.py`
 **Purpose:** the business logic of login, logout and sessions. Routes and dependencies call these functions and never touch tokens, hashes or the sessions table directly. Expiry is absolute; the raw token is returned only once and only its hash is stored. Used by `core/api.py` and `core/dependencies.py`.
@@ -201,18 +222,21 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `create_session(db, user, lifetime=None)` | Saves a new session, commits, returns `(raw_token, row)`; raises `InactiveUserError` for a disabled user. | Called by `login` after a successful check. |
 | `get_active_session(db, token)` | Returns the user and session if the hash matches, not revoked, not expired and user active; else `None`. Wrong-length tokens skip the database. | Called by `core/dependencies.py` to identify the caller; read-only. |
 | `revoke_session(db, token)` | Marks a session revoked (idempotent), returns whether one was revoked now. | Logout. |
-| `revoke_all_user_sessions(db, user_id)` | Revokes all of a user's active sessions, returns the count. | Tests only for now; planned for password change or disabling a user. |
+| `revoke_all_user_sessions(db, user_id)` | Revokes all of a user's active sessions, returns the count. | Called by `user_services.deactivate_user`; also planned for password change. |
 | `normalize_email(email)` | Strip and lowercase. | Emails are stored lowercase, so lookups must match. |
 | `_dummy_password_hash()` | Hash of a throwaway password, built once. | Unknown emails still cost one Argon2 check, so timing does not reveal which emails exist. |
 | `_record_login_failure(...)` | Writes and commits one `auth.login_failed` audit row; stores the attempted email only if it looks like an email. | Failed logins are audited; people sometimes paste passwords into the email field. |
-| `login(db, email, password, *, ip_address, lifetime=None)` | Checks credentials with one password verification on every path, audits failures, upgrades weak hashes, creates the session; raises `InvalidCredentialsError`. | The login rule, behind `POST /auth/login`. |
+| `_record_login_throttled(db, *, user, scope, ip_address)` | Writes and commits one `auth.login_throttled` audit row (summary holds only the scope). | Blocked attempts are audited but, being a different action, are never counted as failures (A9 decision 8). |
+| `login(db, email, password, *, ip_address, lifetime=None, throttle_limits=None)` | Checks credentials with one password verification on every path, then rejects the attempt if the account or address is throttled (even with a correct password), audits failures, upgrades weak hashes, writes `auth.login_succeeded`, creates the session; raises `InvalidCredentialsError` for failures and blocks alike. | The login rule, behind `POST /auth/login`; a block looks exactly like a wrong password. |
 | `logout(db, token)` | Revokes the session if a token is given; never raises for bad tokens. | Behind `POST /auth/logout`. |
 | `InactiveUserError`, `InvalidCredentialsError` | Exceptions for a disabled user and for any login failure. | The second is turned into HTTP 401 in `api.py`; the first is only raised and tested. |
 | `AuthenticatedSession` | Pair of `user` and `session`. | Return value of `get_active_session`. |
+| `SampleJobResult` (frozen dataclass) | Holds `echoed_message`. | Return type of the sample job service; equal inputs give equal results. |
+| `run_sample_job(message)` | Returns a `SampleJobResult` with the same message; no writes, no clock, no tables. | The idempotent body of the worker sample job (A10); `core/tasks.py` wraps it, and later task services copy the shape. |
 | Constants `TOKEN_BYTES`, `TOKEN_LENGTH`, `EMAIL_MAX_LENGTH`, `DUMMY_PASSWORD`, `REASON_*` | Token sizes, email limit, dummy password, audit failure reasons. | Named values instead of magic numbers; the reasons are never shown to clients. |
 
 ### `app/core/dependencies.py`
-**Purpose:** answers "who is calling?" for protected routes by turning the session cookie into the user. Authentication only: 401, never 403. Used by `core/api.py::me`.
+**Purpose:** answers "who is calling?" for protected routes by turning the session cookie into the user. Authentication only: 401, never 403 (the 403 checks live in `core/permissions.py`, which builds on `CurrentUser`).
 
 | Name | What it does | Why it is used |
 |---|---|---|
@@ -220,6 +244,24 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `get_current_user(auth)` | Returns the session's user. | Convenience for routes. |
 | `CurrentUser` | Type alias `Annotated[User, Depends(get_current_user)]`. | Routes write `current_user: CurrentUser` to require sign-in. |
 | `NOT_AUTHENTICATED_DETAIL` | The one 401 message. | Responses never reveal why a token failed. |
+
+### `app/core/permissions.py`
+**Purpose:** the central permission module (M1 task A6, `plan.md` section 4): who may use each capability, the guards routes declare, and the owner-only rule. Every route declares exactly one of `public_route` or `require_permission(...)`; the matrix test reads those declarations. Used by `core/api.py`, `core/errors.py`, `app/main.py` and the tests. The capability list covers the whole `plan.md` section 4 table now; capabilities whose endpoints are not built yet (everything except `VIEW_OWN_PROFILE`) are **planned** and unused until their milestone.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `Permission` | One capability per `plan.md` section 4 row (the "sending limits, mailboxes, users, test clock" row is split into four). Log in/out has none: those routes are public. | Routes name what they guard instead of repeating role lists. |
+| `PERMISSION_ROLES` | Maps each capability to the roles that hold it. Only reps get `EDIT_DRAFT` and `APPROVE_DRAFT`; managers and admins get `VIEW_ALL_DRAFTS` (read-only). | The single reviewable source of truth for grants (Q-ROLES-03). |
+| `has_permission(user, permission)` | True if the user is active and their role holds the capability. | Used by the guard and by services. |
+| `is_owner(user, owner_id)` | True only when `owner_id` is the user's id; a missing owner is nobody's. | Ownership test without depending on any draft model. |
+| `require_owner(user, owner_id)` | Raises `PermissionDeniedError` unless the user owns the object. | Services call it so a job or a second route cannot skip the owner-only rule. |
+| `PermissionDeniedError` | Domain exception for a denial. | Turned into a 403 by `core/errors.py`. |
+| `PermissionGuard`, `require_permission(permission)` | Route dependency: signed-in user (401 first) whose role holds the capability, else 403; carries its capability. | One line per route; tests read the capability back. |
+| `PublicRoute`, `public_route` | No-op marker dependency. | States "public on purpose" so a forgotten route is distinguishable. |
+| `RouteDeclaration` | What a route declares (`public`, `permissions`, `is_valid`). | Result type for the matrix test. |
+| `ApiRouteView`, `get_route_declaration(route)`, `iter_api_routes(app)` | Read a route's guards from its dependency tree; iterate API routes across FastAPI versions (lazy included routers in newer ones). | Lets the test and the OpenAPI step see what is enforced. |
+| `install_permission_openapi(app)` | Adds 401 and 403 (`ErrorResponse`) to every guarded route in the OpenAPI schema. | The generated frontend client can type the errors without per-route `responses=`. |
+| `PERMISSION_DENIED_DETAIL`, `ERROR_RESPONSE_SCHEMA_NAME` | The fixed 403 message and the schema name. | The 403 body never names a capability, owner or lead data. |
 
 ### `app/core/cookies.py`
 **Purpose:** defines the session cookie flags in one place. Used by `core/api.py::login` and `::logout`.
@@ -230,25 +272,62 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `clear_session_cookie(response, settings)` | Deletes the cookie with identical attributes. | A mismatch in path or flags would make the browser keep it. |
 | `SESSION_COOKIE_SAMESITE`, `SESSION_COOKIE_PATH`, `SECONDS_PER_HOUR` | Cookie constants. | No magic values. |
 
+### `app/core/tasks.py`
+**Purpose:** the Procrastinate tasks of the `core` module, starting with the worker sample job (M1 task A10, the "run sample job" demo step). It is the pattern later `tasks.py` files copy: a thin task that only calls a service, with a queueing lock against duplicate jobs. Registered by `worker.py` through `import_paths`. Run by hand with `python -m app.core.tasks`.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `sample_job(message)` (task `core.sample_job`, queueing lock `core.sample_job`) | Calls `services.run_sample_job` and logs one line with the echoed message. | The thin-wrapper pattern; the lock refuses a second identical job while one waits. |
+| `defer_sample_job()` (async) | Opens the app and defers one job; returns `True` if queued, `False` if `AlreadyEnqueued`. | Lets the command line and the tests defer the job the same way. |
+| `main()` | Runs `defer_sample_job` and prints "queued" or "already waiting". | Entry for `python -m app.core.tasks`. |
+| Constants `SAMPLE_JOB_NAME`, `SAMPLE_JOB_QUEUEING_LOCK`, `SAMPLE_JOB_MESSAGE` | Task name, lock key, echoed text. | No magic strings. |
+
+### `app/core/login_throttle.py`
+**Purpose:** decides whether a login attempt is blocked by too many recent failures (M1 task A9). It only reads existing `audit_log` rows, so there is no new table. Used by `core/services.py::login` and `core/api.py`.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `LoginThrottleLimits` (frozen dataclass) | The limits: failures per account, failures per address, window length (defaults 5, 20, 15 minutes). `from_settings(settings)` builds it from `Settings`. | One typed object instead of loose numbers. |
+| `ThrottleScope` (enum) | `account` or `ip`. | Records in the audit summary which limit blocked. |
+| `find_throttle_scope(db, *, user_id, ip_address, limits)` | Returns the blocking scope or `None`. Account: `auth.login_failed` rows for the user after the window start and after their latest `auth.login_succeeded`. Address: `auth.login_failed` rows from that address inside the rolling window (successes ignored). An unknown email (no `user_id`) is limited by address only; a missing address skips the address limit. | The rule itself; throttled rows are never counted, so a block expires by itself. |
+| `_count_failures_for_user`, `_count_failures_for_ip` | The two count queries. | Keep `find_throttle_scope` readable. |
+| Constants `DEFAULT_MAX_FAILURES_PER_ACCOUNT`, `DEFAULT_MAX_FAILURES_PER_IP`, `DEFAULT_WINDOW_MINUTES` | Documented defaults. | No magic numbers. |
+
+### `app/core/csrf.py`
+**Purpose:** CSRF protection for the cookie session (M1 task A8): the session-bound token, the Origin check and the request guard. `verify_csrf` is installed on every route by `app/main.py`; the contract for the frontend is in `milestone/m1.md` section 16. Used by `core/api.py`, `app/main.py` and the tests.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `csrf_token_for_session_token(session_token)` | Returns `sha256("csrf:" + raw session token)` as hex. | Token derived from the session, so no table or column is needed and it dies with the session; the prefix keeps it different from the stored `token_hash`. |
+| `verify_csrf(request, settings)` | App-level dependency. For POST, PUT, PATCH and DELETE: a present `Origin` must equal `settings.frontend_origin` exactly; except for `POST /auth/login`, `X-CSRF-Token` must match the token derived from the session cookie (constant-time compare). Raises 403 with the fixed body `{"detail": "CSRF check failed"}` otherwise; nothing is audited. | Stops a foreign site from using the browser's cookie; login only gets the Origin check because nobody has a token yet. |
+| `_tokens_match(presented, expected)` | `hmac.compare_digest` on UTF-8 bytes. | Constant-time, and a non-ASCII header cannot raise. |
+| `install_csrf_openapi(app)` | Adds the 403 (`ErrorResponse`) to every POST, PUT, PATCH and DELETE operation in `openapi.json`, or appends "or CSRF check failed" to the existing permission 403. | The schema documents what enforcement does. |
+| `CSRF_HEADER_NAME`, `CSRF_TOKEN_PREFIX`, `STATE_CHANGING_METHODS`, `LOGIN_PATH`, `CSRF_FAILED_DETAIL` | Named constants. | No magic values. |
+
 ### `app/core/errors.py`
-**Purpose:** error shaping for the whole API. FastAPI's default 422 echoes the submitted value, which would send a password back to the client. Registered by `app/main.py`.
+**Purpose:** error shaping for the whole API. FastAPI's default 422 echoes the submitted value, which would send a password back to the client; and a permission denial raised in a guard or a service must become one fixed 403. Registered by `app/main.py`.
 
 | Name | What it does | Why it is used |
 |---|---|---|
 | `validation_error_handler(request, exc)` | Returns a 422 with only `type`, `loc`, `msg` per error. | Never echoes submitted values. |
-| `register_error_handlers(app)` | Installs that handler on the app. | Called once from `main.py`. |
-| `VALIDATION_ERROR_STATUS`, `SAFE_ERROR_KEYS` | The status code and the allowed error keys. | Named constants. |
+| `permission_denied_handler(request, exc)` | Returns a 403 with the fixed body `{"detail": "Not permitted"}` for any `PermissionDeniedError`. | One status and body for every denial (A6), nothing about the capability or owner. |
+| `install_validation_error_openapi(app)` | Rewrites every 422 in `openapi.json` to `ValidationErrorResponse` (`type`, `loc`, `msg`) and drops FastAPI's default schemas. | The documented 422 now matches what the handler really returns (A7). |
+| `register_error_handlers(app)` | Installs both handlers on the app. | Called once from `main.py`. |
+| `VALIDATION_ERROR_STATUS`, `PERMISSION_DENIED_STATUS`, `SAFE_ERROR_KEYS`, `VALIDATION_RESPONSE_NAME` | The status codes, the allowed error keys and the schema name. | Named constants. |
 
 ### `app/core/api.py`
-**Purpose:** the HTTP routes, kept thin; all logic is in `core/services.py`. Mounted by `app/main.py`.
+**Purpose:** the HTTP routes, kept thin; all logic is in `core/services.py` and `core/user_services.py`. Mounted by `app/main.py`. Every route declares its access: `/health`, `/auth/login` and `/auth/logout` use `public_route`; `/auth/me` and `/users/me` use `require_permission(Permission.VIEW_OWN_PROFILE)`; the other `/users` routes use `MANAGE_USERS` (admin only).
 
 | Name | What it does | Why it is used |
 |---|---|---|
 | `health(session)` | `GET /health`: runs `SELECT 1`; 200 ok, or 503 degraded when the database is unreachable. | Probes (Docker, operators) get a clear body and no error text. |
-| `login(body, request, response, db, settings)` | `POST /auth/login`: calls `services.login`, maps `InvalidCredentialsError` to 401 with one message, sets the cookie, returns `UserResponse`. | Sign-in endpoint; uses the direct client IP only (forwarded headers not trusted yet). |
-| `logout(db, settings, request)` | `POST /auth/logout`: revokes the session and clears the cookie; 204 always. | Needs no authentication so an expired session can still sign out. |
-| `me(current_user)` | `GET /auth/me`: returns the signed-in user, or 401. | Lets a frontend check who is signed in. |
-| `router`, `auth_router`, `INVALID_CREDENTIALS_DETAIL` | Route groups and the single login-failure message. | The message never says which part was wrong. |
+| `login(body, request, response, db, settings)` | `POST /auth/login`: calls `services.login` (with `LoginThrottleLimits.from_settings(settings)`), maps `InvalidCredentialsError` to 401 with one message, sets the cookie, returns `SessionUserResponse` (user plus `csrf_token`). | Sign-in endpoint; uses the direct client IP only (forwarded headers not trusted yet). The only state-changing route exempt from the CSRF token. |
+| `logout(db, settings, request)` | `POST /auth/logout`: revokes the session and clears the cookie; 204 once the CSRF check passed. | Needs no authentication so an expired session can still sign out, but since A8 it needs `X-CSRF-Token` (derived from the cookie, so an expired cookie still works; no cookie at all is 403). |
+| `me(current_user, request, settings)` | `GET /auth/me`: returns the signed-in user and the session's `csrf_token`, or 401 (every role holds `VIEW_OWN_PROFILE`). | Lets a frontend check who is signed in and recover the token after a page reload. |
+| `my_profile(current_user)` | `GET /users/me`: the caller's own profile (`UserDetailResponse`). | "My profile" screen. |
+| `list_users`, `create_user`, `change_user_role`, `deactivate_user`, `reactivate_user` | `GET /users`, `POST /users` (201), `PATCH /users/{id}` (role only), `POST /users/{id}/deactivate`, `POST /users/{id}/reactivate`; admin only. Map `UserManagementError` to 404 or 409 with fixed messages. | Admin user management for the frontend (A7). |
+| `_client_ip(request)`, `_http_error(error)`, `USER_ERROR_RESPONSES` | Direct peer address for audit; error to (status, fixed detail). | Same IP rule as login; one table for messages. |
+| `router`, `auth_router`, `users_router`, `INVALID_CREDENTIALS_DETAIL` | Route groups and the single login-failure message. | The message never says which part was wrong. |
 
 ### `app/audit/models.py`
 **Purpose:** the `audit_log` table definition. Leaf module (imports only `db` and `core.clock`, never `core.models`; a test enforces it).
@@ -262,7 +341,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 
 | Name | What it does | Why it is used |
 |---|---|---|
-| `AuditAction` (enum) | Allowed actions such as `auth.login_failed`, `user.created`, `user.role_changed`. | A fixed vocabulary stops typos being stored forever. Only `LOGIN_FAILED` is used in production code; the rest are reserved for later tasks. |
+| `AuditAction` (enum) | Allowed actions such as `auth.login_failed`, `auth.login_succeeded`, `auth.login_throttled`, `user.created`, `user.role_changed`. | A fixed vocabulary stops typos being stored forever. The login actions (failed, succeeded, throttled) and the user-management actions are used in production code. |
 | `FORBIDDEN_SUMMARY_KEYS` | `password`, `password_hash`, `token`, `token_hash`, `session_token`. | Secrets must never enter a permanent log. |
 | `_find_forbidden_key(value)` | Recursively finds a forbidden key in a summary (case-insensitive). | Used by `record`. |
 | `record(db, *, action, actor_user_id, object_type, object_id, summary, ip_address)` | Validates the action and summary, adds the row and flushes (never commits); raises `ValueError` on bad input. | The caller's commit makes the audit row and the action it describes succeed or fail together. |
@@ -301,16 +380,30 @@ Common helpers repeated in several files: `_alembic_config(url)` (Alembic config
 | `test_compliance_models.py` | The compliance tables on real PostgreSQL: opt-out defaults, one active opt-out per address, re-opt-out after removal, lowercase, source and removal CHECKs, SET NULL on user delete; the gate is seeded disabled and a second or non-singleton row is rejected; the checklist is seeded with the four keys and enforces unique keys and the passed/timestamp CHECK; erasure records need no person and survive its deletion. |
 | `test_compliance_tables_migration.py` | Migration 0008 upgrades, downgrades to 0007 and upgrades again on a throwaway database; seeds exactly one gate row (disabled) and four checklist rows and no other rows; the source and item_key CHECKs list exactly the `OptOutSource` and `ChecklistItemKey` values. Fixture `roundtrip_url`, helpers `alembic_config`, `_scalar`, `_tables_exist`, `_check_values`. |
 | `test_audit_log.py` | `record()` stores all fields and follows the clock; does not commit; triggers reject UPDATE/DELETE/TRUNCATE; secret keys and unknown actions are rejected; `AuditAction` values are unique and dotted; the audit package does not import `core` modules. Helpers: `_count_rows`. |
-| `test_auth_routes.py` | `/auth/login`, `/auth/logout`, `/auth/me` through the real app: no secrets in responses, cookie flags, only the token hash stored, every failure looks identical, one committed audit row per failure, exactly one password check per path, weak hash upgraded, 422 never echoes values, logout idempotent, independent sessions. Fixtures: `api_app`, `use_settings`, `client`, `make_client`, `user`, `disabled_user`; helpers `_login`, `_count_rows`, `_failed_login_rows`, `_cookie_attributes`, `_make_settings`, `_keys_at_any_depth`. |
+| `test_auth_routes.py` | `/auth/login`, `/auth/logout`, `/auth/me` through the real app (using `CsrfTestClient`; login and `/auth/me` bodies include `csrf_token`): no secrets in responses, cookie flags, only the token hash stored, every failure looks identical, one committed audit row per failure, exactly one password check per path, weak hash upgraded, 422 never echoes values, logout idempotent, independent sessions. Fixtures: `api_app`, `use_settings`, `client`, `make_client`, `user`, `disabled_user`; helpers `_login`, `_count_rows`, `_failed_login_rows`, `_cookie_attributes`, `_make_settings`, `_keys_at_any_depth`. |
+| `test_sample_job.py` | The A10 checks on Procrastinate's in-memory connector (no PostgreSQL, no network): service is idempotent, task is registered, a deferred job runs to success and logs the message, a second defer while one waits raises `AlreadyEnqueued`, and `defer_sample_job` returns `True` then `False`. |
+| `test_login_throttle.py` | The A9 checks on PostgreSQL: block at 5 account failures (correct password rejected, no session), 4 do not block, throttled rows are not counted, the block ends after the window (test clock), success resets the account count, accounts are independent, the address limit and unknown emails, success does not reset the address count, `auth.login_succeeded` row, identical 401 over HTTP, throttle settings defaults, overrides and rejection of zero. |
+| `csrf_client.py` | Test helper (not a test file). `CsrfTestClient` is a `TestClient` that adds `X-CSRF-Token`, derived from the session cookie it holds, to POST, PUT, PATCH and DELETE unless the caller passed the header. Used by `test_auth_routes.py`, `test_users_api.py` and `test_permission_matrix.py` so they need not repeat the header. |
+| `test_csrf.py` | The A8 checks on PostgreSQL with plain clients: token formula and difference from the stored hash, safe methods need no token, missing, wrong, other-session and non-ASCII tokens are 403 (also before 422), a valid token passes, anonymous POST is 403 not 401, all failures share one body, foreign and near-miss Origins are 403 (also on login, which stays token-free), matching or absent Origin falls through to the token, login and `/auth/me` return the same session-bound token, logout needs the token, rejected requests write no audit row, CORS preflight (frontend allowed with credentials, other origins and unlisted headers refused, no wildcards, CORS headers on a CSRF 403), OpenAPI 403 and `csrf_token`. Fixtures `app`, `admin_client`; helpers `_make_user`, `_signed_in`, `_login`, `_preflight`. |
 | `test_clock.py` | `now()` is aware UTC; `set_offset`/`reset_offset` shift and restore it. |
 | `test_clock_offset_model.py` | `clock_offsets`: starts empty, defaults (offset 0, singleton true), signed offsets, second row and `singleton=false` rejected, `updated_by` FK and SET NULL. Fixtures `engine`, `session`, `user`. |
 | `test_core_tables_migration.py` | Migration 0005 upgrades, downgrades to 0004 and upgrades again on a throwaway database; all three tables empty after upgrade. Fixture `roundtrip_url`, helpers `_existing_core_tables`, `_row_counts`. |
 | `test_job_lock_model.py` | `job_locks`: unique name, different names coexist, re-lock after release, expiry-after-lock check, owner required, clock use. Helper `_new_lock`. |
 | `test_setting_model.py` | `settings`: generated fields, duplicate key, key-format check (valid and invalid keys), JSON values round-trip, SQL NULL value, version rule, `updated_by` FK and SET NULL, clock use. |
 | `test_config.py` | Missing `DATABASE_URL` fails; `psycopg_conninfo`; defaults and env overrides; bad lifetime, cookie name or origin rejected; production rules. Fixture: `base_env`. |
+| `test_permissions.py` | No database. The table covers every capability; `has_permission` follows the table and denies inactive users; only reps edit or approve drafts while managers and admins view them read-only; `is_owner` and `require_owner` (a non-owner of any role, or an ownerless object, is rejected); a denial becomes exactly `{"detail": "Not permitted"}` with 403 and leaks nothing. Helper `_user`. |
+| `test_users_api.py` | The `/users` API and `user_services` on PostgreSQL: rep and manager get 403 on every admin endpoint, anonymous 401, every role reads own profile, admin list order, create (normalized email, Argon2 hash, audit without the password, duplicate 409, invalid bodies 422 without echo), role change audited and no-op silent, self demotion and self deactivation refused, last-admin guard, deactivation revokes sessions and is idempotent, reactivation needs a new session, unknown id 404, narrowed 422 in OpenAPI. Fixture `app` (uses `CsrfTestClient`, so writes carry the CSRF header); helpers `_make_user`, `_client`, `_audit_actions`. |
+| `test_permission_matrix.py` | The role-by-endpoint matrix. Structural: every real route declares exactly one of public or a capability, the ten existing routes declare what is expected, an undeclared or doubly-declared route is detected, a canary fails if FastAPI hides guards. Behavioural (PostgreSQL): one probe route per capability called as rep, manager, admin (200 or 403 per a hand-copied `plan.md` section 4 matrix) and anonymous (401), a disabled admin gets 401, real `/auth/me` per role. OpenAPI: 401 and 403 only on guarded routes (public POST routes get only the CSRF 403). Fixtures `probe_app`, `real_app_client_factory`; helpers `_override_session`, `_make_user`, `_client_for`, `_add_probe`. |
 | `test_current_user.py` | A tiny app with protected routes: no, bad, expired, revoked or disabled session all give the same 401; role change visible next request; dependencies cached per request; cookie name from settings; no side effects. Helpers `_sign_in`, `_expire_by_clock`, `_disable`, `_arrange_*`. |
 | `test_health.py` | `/health` returns 200 normally and 503 when the database session fails (via dependency override). Fixture: `client`. |
-| `factories/__init__.py` | Header-only stub package (M1 task A0); per-module factory files (`core.py`, `leads.py`, ...) are added later. No functions. |
+| `factories/__init__.py` | Header-only package marker (M1 task A0). No functions. Tests import it as `factories` (the `tests/` folder is on the path, there is no `tests/__init__.py`). |
+| `factories/common.py` | Shared helpers. `next_number()` returns a run-wide unique integer so default emails, names and hashes never collide; `persist(session, row)` adds and flushes (never commits). |
+| `factories/core.py` | `make_user`, `make_user_session`, `make_setting`, `make_clock_offset` (call once per test: the table allows one row), `make_job_lock`. Reused by B's factories for users. |
+| `factories/leads.py` | One `make_*` per leads table (company, person, person email/phone, social profile, contact channel, quarantine record, duplicate candidate, merge record, segment, lead note/event, touch, status flag, industry and state mapping). Parents are created when not passed; the duplicate-candidate factory orders the pair by id as the CHECK requires. |
+| `factories/imports.py` | `make_source_profile`, `make_import_file` (valid unique SHA-256), `make_column_mapping`, `make_raw_row`, `make_import_report`, `make_import_change`. Raw rows are only inserted, never updated (D-099). |
+| `factories/compliance.py` | `make_opt_out`, `make_erasure_record`, plus `make_compliance_gate_status` and `make_compliance_checklist_item`, which return the rows migration 0008 already seeded (with overrides applied) instead of inserting a duplicate. |
+| `test_factories.py` | Smoke tests: every repeatable factory inserts two distinct valid rows, the three single-row factories return a valid row, overrides win, and the seeded factories return the migration rows. Catches a factory drifting from `models.py`. |
+| `test_schema_rule_gaps.py` | The A11 gap tests (34 foreign-key cases, 7 CHECK cases): each builds a valid row with a factory, sets one column invalid and expects PostgreSQL to reject it by constraint name. Covers rules the A2-A5 tests did not name. |
 | `test_migration_heads.py` | `test_alembic_has_single_head`: the Alembic history has exactly one head, so parallel migrations that fork the chain fail the build. No database needed. |
 | `test_migrations.py` | All migrations apply to an empty database and pgvector is installed. |
 | `test_openapi_export.py` | Committed `openapi.json` equals the generated schema (stale file fails with the regenerate command); schema lists `/health` and `/auth/*`; generation is deterministic; `is_up_to_date` flags missing and changed files; `main(["--check"])` returns 0 and does not rewrite. No database. |

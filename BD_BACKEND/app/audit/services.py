@@ -17,6 +17,7 @@ from app.audit.models import AuditLog
 class AuditAction(StrEnum):
     """Allowed audit actions, written as "area.event"; extend this as milestones add actions."""
 
+    LOGIN_SUCCEEDED = "auth.login_succeeded"
     LOGIN_FAILED = "auth.login_failed"
     LOGIN_THROTTLED = "auth.login_throttled"
     USER_CREATED = "user.created"

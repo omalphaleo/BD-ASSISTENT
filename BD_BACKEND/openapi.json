@@ -1,17 +1,61 @@
 {
   "components": {
     "schemas": {
-      "HTTPValidationError": {
+      "ChangeRoleRequest": {
+        "additionalProperties": false,
+        "description": "Body of PATCH /users/{id}: the user's new role.",
         "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
           }
         },
-        "title": "HTTPValidationError",
+        "required": [
+          "role"
+        ],
+        "title": "ChangeRoleRequest",
+        "type": "object"
+      },
+      "CreateUserRequest": {
+        "additionalProperties": false,
+        "description": "Body of POST /users: the new user's email, role and the admin-set initial password.",
+        "properties": {
+          "email": {
+            "maxLength": 320,
+            "minLength": 1,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "minLength": 12,
+            "title": "Password",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "required": [
+          "email",
+          "role",
+          "password"
+        ],
+        "title": "CreateUserRequest",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "description": "Body of a 401 or 403: one fixed message, nothing about the user, owner or capability.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorResponse",
         "type": "object"
       },
       "LoginRequest": {
@@ -38,10 +82,14 @@
         "title": "LoginRequest",
         "type": "object"
       },
-      "UserResponse": {
+      "SessionUserResponse": {
         "additionalProperties": false,
-        "description": "The signed-in user as returned by the API: no password hash, no timestamps.",
+        "description": "The signed-in user plus the CSRF token of the current session (login and /auth/me).\n\nThe frontend keeps the token in memory and sends it as X-CSRF-Token on every POST, PUT,\nPATCH and DELETE except login (A8).",
         "properties": {
+          "csrf_token": {
+            "title": "Csrf Token",
+            "type": "string"
+          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -58,9 +106,52 @@
         "required": [
           "id",
           "email",
-          "role"
+          "role",
+          "csrf_token"
         ],
-        "title": "UserResponse",
+        "title": "SessionUserResponse",
+        "type": "object"
+      },
+      "UserDetailResponse": {
+        "additionalProperties": false,
+        "description": "A user as shown on the admin user list and \"my profile\": adds status and timestamps.\n\nNever includes the password hash.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "UserDetailResponse",
         "type": "object"
       },
       "UserRole": {
@@ -73,15 +164,10 @@
         "title": "UserRole",
         "type": "string"
       },
-      "ValidationError": {
+      "ValidationErrorItem": {
+        "additionalProperties": false,
+        "description": "One rejected field in a 422: where it was, why, and the error type; never the value.",
         "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
           "loc": {
             "items": {
               "anyOf": [
@@ -93,24 +179,42 @@
                 }
               ]
             },
-            "title": "Location",
+            "title": "Loc",
             "type": "array"
           },
           "msg": {
-            "title": "Message",
+            "title": "Msg",
             "type": "string"
           },
           "type": {
-            "title": "Error Type",
+            "title": "Type",
             "type": "string"
           }
         },
         "required": [
+          "type",
           "loc",
-          "msg",
-          "type"
+          "msg"
         ],
-        "title": "ValidationError",
+        "title": "ValidationErrorItem",
+        "type": "object"
+      },
+      "ValidationErrorResponse": {
+        "additionalProperties": false,
+        "description": "Body of a 422, exactly as core.errors.validation_error_handler returns it.",
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationErrorItem"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ValidationErrorResponse",
         "type": "object"
       }
     }
@@ -123,7 +227,7 @@
   "paths": {
     "/auth/login": {
       "post": {
-        "description": "Sign in with email and password; sets the session cookie.\n\nRaises:\n    HTTPException: 401 with one fixed body for any credential failure; no cookie is set.",
+        "description": "Sign in with email and password; sets the session cookie and returns the CSRF token.\n\nRaises:\n    HTTPException: 401 with one fixed body for any credential failure; no cookie is set.",
         "operationId": "login_auth_login_post",
         "requestBody": {
           "content": {
@@ -140,21 +244,31 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/SessionUserResponse"
                 }
               }
             },
             "description": "Successful Response"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "CSRF check failed"
+          },
           "422": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Validation error"
           }
         },
         "summary": "Login",
@@ -170,6 +284,16 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "CSRF check failed"
           }
         },
         "summary": "Logout",
@@ -180,18 +304,38 @@
     },
     "/auth/me": {
       "get": {
-        "description": "Return the signed-in user; 401 if nobody is signed in.",
+        "description": "Return the signed-in user and the session's CSRF token (the frontend calls this after\na page reload to get the token back); 401 if nobody is signed in.",
         "operationId": "me_auth_me_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/SessionUserResponse"
                 }
               }
             },
             "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
           }
         },
         "summary": "Me",
@@ -217,6 +361,356 @@
         "summary": "Health",
         "tags": [
           "core"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "description": "List all users, ordered by email (admin only).",
+        "operationId": "list_users_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserDetailResponse"
+                  },
+                  "title": "Response List Users Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          }
+        },
+        "summary": "List Users",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "description": "Create a user with an initial password (admin only).\n\nRaises:\n    HTTPException: 409 if the email is already registered.",
+        "operationId": "create_user_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create User",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "description": "Return the signed-in user's own profile (every role may view itself).",
+        "operationId": "my_profile_users_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          }
+        },
+        "summary": "My Profile",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{user_id}": {
+      "patch": {
+        "description": "Change a user's role (admin only).\n\nRaises:\n    HTTPException: 404 if the user does not exist; 409 if an admin safeguard applies.",
+        "operationId": "change_user_role_users__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Change User Role",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{user_id}/deactivate": {
+      "post": {
+        "description": "Deactivate a user and end all their sessions (admin only).\n\nRaises:\n    HTTPException: 404 if the user does not exist; 409 if an admin safeguard applies.",
+        "operationId": "deactivate_user_users__user_id__deactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Deactivate User",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{user_id}/reactivate": {
+      "post": {
+        "description": "Reactivate a deactivated user (admin only); they must sign in again.\n\nRaises:\n    HTTPException: 404 if the user does not exist.",
+        "operationId": "reactivate_user_users__user_id__reactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Reactivate User",
+        "tags": [
+          "users"
         ]
       }
     }

@@ -16,6 +16,9 @@ DEFAULT_SESSION_LIFETIME_HOURS = 12
 DEFAULT_SESSION_COOKIE_NAME = "bd_session"
 DEFAULT_FRONTEND_ORIGIN = "http://localhost:3000"
 ALLOWED_ORIGIN_SCHEMES = ("http", "https")
+DEFAULT_LOGIN_MAX_FAILURES_PER_ACCOUNT = 5
+DEFAULT_LOGIN_MAX_FAILURES_PER_IP = 20
+DEFAULT_LOGIN_THROTTLE_WINDOW_MINUTES = 15
 
 
 class Settings(BaseSettings):
@@ -38,6 +41,16 @@ class Settings(BaseSettings):
     session_cookie_secure: bool = True
     # Exact browser origin of the frontend: scheme + host (+ optional port), no path.
     frontend_origin: str = DEFAULT_FRONTEND_ORIGIN
+
+    # Login throttling (env: LOGIN_MAX_FAILURES_PER_ACCOUNT, LOGIN_MAX_FAILURES_PER_IP,
+    # LOGIN_THROTTLE_WINDOW_MINUTES): failed logins allowed inside the rolling window.
+    login_max_failures_per_account: int = Field(
+        default=DEFAULT_LOGIN_MAX_FAILURES_PER_ACCOUNT, gt=0
+    )
+    login_max_failures_per_ip: int = Field(default=DEFAULT_LOGIN_MAX_FAILURES_PER_IP, gt=0)
+    login_throttle_window_minutes: int = Field(
+        default=DEFAULT_LOGIN_THROTTLE_WINDOW_MINUTES, gt=0
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

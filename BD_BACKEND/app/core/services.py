@@ -18,7 +18,10 @@ Design choices:
 
 Login and logout also live here. login() gives the same InvalidCredentialsError and
 similar timing for an unknown email, a wrong password and a disabled user, and records each
-failure in the audit log before raising.
+failure in the audit log before raising. It also rejects attempts blocked by the failed-login
+limits (core.login_throttle) with that same error.
+
+run_sample_job() is the pure body of the worker sample job (A10); core.tasks wraps it.
 """
 
 import hashlib
@@ -37,6 +40,7 @@ from app.audit import services as audit
 from app.audit.services import AuditAction
 from app.config import get_settings
 from app.core.clock import now
+from app.core.login_throttle import LoginThrottleLimits, ThrottleScope, find_throttle_scope
 from app.core.models import User, UserSession
 from app.core.passwords import hash_password, password_needs_rehash, verify_password
 
@@ -248,6 +252,27 @@ def _record_login_failure(
     db.commit()
 
 
+def _record_login_throttled(
+    db: Session, *, user: User | None, scope: ThrottleScope, ip_address: str | None
+) -> None:
+    """Write one auth.login_throttled audit row and commit it.
+
+    Deliberately not auth.login_failed: throttled attempts must not count toward the limit,
+    or a steady stream of attempts would keep the block alive forever (A9 decision 8). The
+    attempted email is not stored, so this row holds no lead or user input.
+    """
+    audit.record(
+        db,
+        action=AuditAction.LOGIN_THROTTLED,
+        actor_user_id=user.id if user is not None else None,
+        object_type="user",
+        object_id=str(user.id) if user is not None else None,
+        summary={"scope": scope.value},
+        ip_address=ip_address,
+    )
+    db.commit()
+
+
 def login(
     db: Session,
     email: str,
@@ -255,6 +280,7 @@ def login(
     *,
     ip_address: str | None,
     lifetime: timedelta | None = None,
+    throttle_limits: LoginThrottleLimits | None = None,
 ) -> tuple[str, User]:
     """Check credentials and start a session.
 
@@ -262,18 +288,24 @@ def login(
     email is unknown), and is_active is checked only after it, so an unknown email, a wrong
     password and a disabled user are indistinguishable by response or timing.
 
+    Throttling (A9): after the verification, an attempt that exceeds the failure limits for
+    the account or the client address is rejected with the same error, even when the
+    password was correct, so an attacker cannot tell a block from a wrong password.
+
     Args:
         db: Database session; committed by this function on success and on failure.
         email: The submitted email; normalized here.
         password: The submitted password, used as given.
-        ip_address: Client IP for the audit log, or None if unknown.
+        ip_address: Client IP for the audit log and the address limit, or None if unknown.
         lifetime: Session lifetime; defaults to the configured session_lifetime_hours.
+        throttle_limits: Failure limits; defaults to the documented defaults (5 per account
+            and 20 per address in 15 minutes).
 
     Returns:
         The raw session token (returned only here) and the signed-in user.
 
     Raises:
-        InvalidCredentialsError: For any failure, after the failure was audited and committed.
+        InvalidCredentialsError: For any failure or block, after it was audited and committed.
     """
     normalized = normalize_email(email)
     # Plain equality is safe: the schema guarantees lower-case storage (CHECK constraint).
@@ -282,6 +314,19 @@ def login(
     # verify_password takes the hash first, then the plain password.
     password_hash = user.password_hash if user is not None else _dummy_password_hash()
     password_matches = verify_password(password_hash, password)
+
+    # Checked for every attempt, after the verification, so a blocked attempt costs the same
+    # as any other and a correct password during a block is still rejected. An unknown email
+    # has no user, so only the address limit can block it.
+    blocked_by = find_throttle_scope(
+        db,
+        user_id=user.id if user is not None else None,
+        ip_address=ip_address,
+        limits=throttle_limits or LoginThrottleLimits(),
+    )
+    if blocked_by is not None:
+        _record_login_throttled(db, user=user, scope=blocked_by, ip_address=ip_address)
+        raise InvalidCredentialsError("login throttled")
 
     if user is None:
         reason = REASON_UNKNOWN_USER
@@ -303,6 +348,15 @@ def login(
     if password_needs_rehash(user.password_hash):
         # Upgrade old hashes silently; create_session commits this change with the session.
         user.password_hash = hash_password(password)
+    # Marks the point after which failures count again; create_session commits this row too.
+    audit.record(
+        db,
+        action=AuditAction.LOGIN_SUCCEEDED,
+        actor_user_id=user.id,
+        object_type="user",
+        object_id=str(user.id),
+        ip_address=ip_address,
+    )
     token, _ = create_session(db, user, lifetime=lifetime)
     return token, user
 
@@ -314,3 +368,26 @@ def logout(db: Session, token: str | None) -> None:
     """
     if token:
         revoke_session(db, token)
+
+
+@dataclass(frozen=True)
+class SampleJobResult:
+    """Outcome of the worker sample job; equal inputs always give equal results."""
+
+    echoed_message: str
+
+
+def run_sample_job(message: str) -> SampleJobResult:
+    """Echo a message back; the pure, side-effect-free body of the worker sample job (A10).
+
+    Idempotent by design: the result depends only on ``message``. It writes nothing, reads no
+    clock and touches no tables, so a retry or a duplicate run changes nothing. Later task
+    services copy this shape: do the work here, keep the Procrastinate task a thin wrapper.
+
+    Args:
+        message: Free text to echo; never lead data or credentials.
+
+    Returns:
+        A SampleJobResult holding the same message.
+    """
+    return SampleJobResult(echoed_message=message)

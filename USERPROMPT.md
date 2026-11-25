@@ -1562,14 +1562,14 @@ Summary (T-046): Added four compliance models in app/compliance/models.py (OptOu
 
 Status update: Completed (2026-11-20). Gate G1 is ready once the PR merges. Open: EligibilitySnapshot and the kill switch are planned (M3/M8). Git commands left to the developer.
 
-## T-042: Implement B2 generated API client (2026-11-19)
+## T-142: Implement B2 generated API client (2026-11-19)
 - Prompt: "Approved. Proceed with B2 as planned. Before raising engines.node, verify the Node floor against the Dockerfile image and my local Node (node -v). Tell me the exact @hey-api/openapi-ts version you pinned." Earlier decisions: `@hey-api/openapi-ts` approved as the generator; use the committed `openapi.json` as-is (no regeneration, no backend route changes, no requests to Developer A); accept generated function names; keep all changes within Developer B's ownership.
 - Status: In progress
 - Summary: Pinned `@hey-api/openapi-ts` 0.99.0 and raised `engines.node` to `>=22.18 <25` (checked: local Node v24.14.0, `node:22-slim` resolves to v22.23.5, generator needs >=22.18.0). Added `openapi-ts.config.ts`, `scripts/check-api.mjs`, `src/lib/api-client.ts`, the generated `src/lib/api/` (4 operations from the committed `openapi.json`, names accepted as-is), scripts `generate:api` and `check:api`, and the ESLint ignore for generated code. Updated `filedescription.md`, `FILE_STRUCTURE.md`, `README.md` and `docs/plan.md` U1.
 - Verified: `typecheck`, `lint` and `build` clean; `generate:api` is deterministic; `check:api` passes on a clean tree and fails (exit 1) after a hand edit; `docker build` of `BD_FRONTEND` succeeds (includes `npm ci`); no changes under `BD_BACKEND/`. `npm install` prints pre-existing ESLint 10 peer warnings from `eslint-config-next` plugins (B1 pins), unrelated to B2.
 - Status update (2026-11-19): Needs input: review B2, then run the Git steps yourself.
 
-## T-043: Implement B3 layout, login page and empty shells (2026-11-19)
+## T-143: Implement B3 layout, login page and empty shells (2026-11-19)
 - Prompt: "Plan approved. Start B3. No dev proxy; keep the approved base-URL design. Don't touch BD_BACKEND, openapi.json or generated code." Approved design: one `globals.css` (no modules); `AuthProvider` only in `(app)/layout.tsx`; `/auth/me` called server-side there with the cookie forwarded per request (never on the shared client); `API_INTERNAL_URL` (falls back to `NEXT_PUBLIC_API_BASE_URL`); 401 interceptor in `api-client.ts` guarded by `typeof window`, skipping the login call; signed-in users redirected away from `/login`; after login `router.replace` + `router.refresh()`, on logout `router.replace("/login")` + `router.refresh()`; `docker-compose.yml` is B-owned.
 - Status: In progress
 - Summary: Added the login page, the signed-in `(app)` layout (server-side `/auth/me` with the cookie forwarded per request, 401 redirects to `/login`, "backend unavailable" message without a redirect), `AppShell`/`NavBar`/`LoginForm`/`LogoutButton`/`PlaceholderPage`, seven empty shells, `globals.css`, `lib/auth-server.ts`, `lib/auth-context.tsx`, `lib/nav-items.ts`; `/` and `/login` redirect by session state; a browser-only 401 interceptor in `api-client.ts` (guarded by `typeof window`, skips the login call); `API_INTERNAL_URL` in `.env.local.example` and `docker-compose.yml` (falls back to `NEXT_PUBLIC_API_BASE_URL`). Updated `filedescription.md`, `FILE_STRUCTURE.md`, `README.md`. No change to `BD_BACKEND`, `openapi.json` or generated code.
@@ -1577,7 +1577,7 @@ Status update: Completed (2026-11-20). Gate G1 is ready once the PR merges. Open
 - Not verified: a real browser login and logout against the real backend. The backend has no CORS yet (task A8), so the browser blocks the cross-origin login request; this was not worked around (no dev proxy, as decided). No automated tests yet (B4).
 - Status update (2026-11-19): Needs input: review B3; ask Developer A that A8 CORS allows the exact frontend origin with credentials and the `Content-Type` and CSRF headers; then run the Git steps yourself.
 
-## T-044: Attractive login page background (B3 visual polish) (2026-11-20)
+## T-144: Attractive login page background (B3 visual polish) (2026-11-20)
 - Prompt: "so for the ui plan the backgroundd make the login page atrractive and specify the files which will be added" then "ok continue". Approved plan: pure CSS gradient + dot grid + glows, dark-mode variant, polished card, system fonts, new `BrandMark.tsx` inline SVG; no new dependencies; no change to login logic.
 - Status: In progress
 - Summary: Restyled the login page with a CSS-only gradient, dot grid and glow background, a polished card with brand block, focus rings and a full-width button; added `BrandMark.tsx` (inline SVG logo). No change to login logic, backend or generated code. Updated `filedescription.md`, `FILE_STRUCTURE.md`, `milestone/m1.md` (B3 design line).
@@ -1586,7 +1586,7 @@ Status update: Completed (2026-11-20). Gate G1 is ready once the PR merges. Open
 
 Follow-up (2026-11-20): "remove that A mark above that alphaleo bd , i dont want". Removed the logo from the login card and deleted `BrandMark.tsx`; updated `filedescription.md`, `FILE_STRUCTURE.md`, `milestone/m1.md`. Status update (2026-11-20): Needs input: review `/login`, then run the Git steps yourself.
 
-## T-045: B4 planning and questions, backfilled (2026-11-20)
+## T-145: B4 planning and questions, backfilled (2026-11-20)
 - Prompts (backfilled, verbatim, in order; all were questions or planning, not logged at the time):
   > so according to the plan b3 is done? or anything is there pending?
   > in b4 what task we have
@@ -1606,7 +1606,7 @@ Follow-up (2026-11-20): "remove that A mark above that alphaleo bd , i dont want
 - Status: Completed
 - Status update (2026-11-20): Completed (planning only). B4 implementation awaits approval of dependency versions.
 
-## T-046: Log every prompt and fix stale "In progress" status (2026-11-20)
+## T-146: Log every prompt and fix stale "In progress" status (2026-11-20)
 - Prompts (verbatim):
   > what ever prompts i am giving they should go into userprompt , y all the prompts are not going?
   > all prompts should go to userprompt.md , every prompt which we give to the claude code , modify cluade code
@@ -1617,14 +1617,14 @@ Follow-up (2026-11-20): "remove that A mark above that alphaleo bd , i dont want
 - Status: Completed
 - Status update (2026-11-20): Completed. Older entries that still say `In progress` (for example T-043, T-044) were not corrected; that needs your approval.
 
-## T-047: Full B4 plan (2026-11-20)
+## T-147: Full B4 plan (2026-11-20)
 - Prompt:
   > ok , so provide the plan of b4 fully now
 - Status: Completed
 - Summary: Gave the full B4 plan in chat (8 new files under `BD_FRONTEND/`, test scenarios, Playwright run order, dependency approval step). No files changed.
 - Status update (2026-11-20): Completed (planning only).
 
-## T-048: Start B4 frontend tests (2026-11-20)
+## T-148: Start B4 frontend tests (2026-11-20)
 - Prompt:
   > ok , continue
 - Status: Needs input
@@ -1636,21 +1636,21 @@ Follow-up (2026-11-20): "remove that A mark above that alphaleo bd , i dont want
 - Not verified: the Playwright journey was not run (needs your fake accounts, a running backend, A8 CORS and `npx playwright install chromium`). `npm audit` reports 4 high findings in the existing `@hey-api/openapi-ts` dependency chain (js-yaml), not in the new packages.
 - Status update (2026-11-20): Needs input: create the fake e2e accounts and run the Playwright journey after A8; review B4, then run the Git steps yourself.
 
-## T-049: User will create the fake e2e accounts and .env.local values (2026-11-20)
+## T-149: User will create the fake e2e accounts and .env.local values (2026-11-20)
 - Prompt:
   > Create your fake rep and admin accounts in the test database. Set E2E_REP_EMAIL, E2E_REP_PASSWORD, E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD in BD_FRONTEND/.env.local this one i will create
 - Status: Completed
 - Summary: Acknowledged that the user creates the fake rep and admin accounts and the `E2E_*` values in `BD_FRONTEND/.env.local`; no files changed.
 - Status update (2026-11-20): Completed.
 
-## T-050: Should the e2e tests connect to the database too? (2026-11-20)
+## T-150: Should the e2e tests connect to the database too? (2026-11-20)
 - Prompt:
   > So, if we create fake users for testing, those users will be stored in the database, right? In that case, our tests will be connected to the backend, and the backend will interact with the database to authenticate those users. Shouldn't we connect the tests to the database as well, so we can properly test the entire flow?
 - Status: Completed
 - Summary: Explained that the Playwright journey already exercises the full flow (browser, frontend, API, database) through the backend, that the frontend tests should not connect to the database directly, and that only account setup and cleanup are a database concern, best owned by the backend side.
 - Status update (2026-11-20): Completed (explanation only, no files changed).
 
-## T-051: How to set up and use Playwright and Vitest for UI testing (2026-11-23)
+## T-151: How to set up and use Playwright and Vitest for UI testing (2026-11-23)
 
 Prompt: "I want to test the UI using **Playwright and Vitest**. How should we set up and perform the testing, and what exactly should we test using each tool?"
 
@@ -1659,7 +1659,7 @@ Status: Completed
 - Summary: Explained the Vitest (jsdom component/unit tests, fakes for API client) vs Playwright (real browser journeys against running backend) split, what belongs in each, how to run them, and what is still missing, based on the existing B4 setup. No files changed besides this log.
 - Status update (2026-11-23): Completed (explanation only).
 
-## T-052: How to run Docker (2026-11-23)
+## T-152: How to run Docker (2026-11-23)
 
 Prompt: "how to run  docker?"
 
@@ -1668,7 +1668,7 @@ Status: Completed
 - Summary: Explained the Docker Compose steps from README.md and docker-compose.yml (copy .env, up db/api/worker, health check, logs, stop). No files changed besides this log.
 - Status update (2026-11-23): Completed (explanation only).
 
-## T-053: Diagnose why the Playwright tests are not working (2026-11-23)
+## T-153: Diagnose why the Playwright tests are not working (2026-11-23)
 
 Prompt: "Once you have analyzed the entire project, identify why the Playwright tests are not working. Review the project structure, configuration, test files, dependencies, and UI/backend integration, and determine the root cause of the failures. Explain what is causing the issue and suggest the necessary fixes."
 
@@ -1677,7 +1677,7 @@ Status: Completed
 - Summary: Ran the suite (4/4 fail). Root cause: backend has no CORS middleware (A8 not built), so the browser blocks cross-origin login ("Cannot reach the server"). Secondary: wrong-password test's getByRole("alert") also matches Next's route announcer. Proposed fixes, changed no code.
 - Status update (2026-11-23): Completed (diagnosis only, no files changed besides this log).
 
-## T-054: Is B4 complete or is anything pending? (2026-11-23)
+## T-154: Is B4 complete or is anything pending? (2026-11-23)
 
 Prompt: "Have we completed B4, or is there anything still pending?"
 
@@ -1686,7 +1686,7 @@ Status: Completed
 - Summary: Checked B4 against milestone/m1.md. Vitest part is done and green (12 tests, lint and typecheck clean); Playwright is set up but its login journey fails (no CORS, A8) and has a locator bug; nothing is committed yet; `make check` wiring belongs to B5.
 - Status update (2026-11-23): Completed (status check only, no files changed besides this log).
 
-## T-055: Fix the alert locator in login.spec.ts and verify the README documents Playwright (2026-11-23)
+## T-155: Fix the alert locator in login.spec.ts and verify the README documents Playwright (2026-11-23)
 
 Prompt: "go ahead with items 2 and 5."
 
@@ -1695,7 +1695,7 @@ Status: Completed
 - Summary: Scoped the wrong-password alert locator to the form in tests/e2e/login.spec.ts (strict-mode fix; lint and typecheck clean). Read README "Frontend tests": it already documents Vitest and the Playwright steps, so no doc change was needed. The test still fails on CORS (A8), as expected.
 - Status update (2026-11-23): Completed.
 
-## T-056: Wait for A8 to commit B4; can we proceed to B5 and what is the plan? (2026-11-23)
+## T-156: Wait for A8 to commit B4; can we proceed to B5 and what is the plan? (2026-11-23)
 
 Prompt: "wait until A8 and can we proceed to B5 ? what is the plan>"
 
@@ -1704,7 +1704,7 @@ Status: Needs input
 - Summary: Agreed to hold the B4 commit until A8. Checked B5 (root Makefile with ruff, pytest, tsc, ESLint, Vitest; verify compose frontend profile): dependencies met, `make` is not installed on this Windows machine, so proposed the plan and asked for approval before writing. No files changed besides this log.
 - Status update (2026-11-23): Needs input (approval of the B5 plan and the Windows `make` question).
 
-## T-057: Install make with choco and implement B5 (2026-11-23)
+## T-157: Install make with choco and implement B5 (2026-11-23)
 
 Prompt: "install make with choco and go ahead"
 
@@ -1713,7 +1713,7 @@ Status: Blocked
 - Summary: `choco install make -y` failed: Chocolatey needs an elevated (Administrator) shell (access denied on C:\ProgramData\chocolatey\lib-bad). Nothing installed and no B5 files written; not working around the permission.
 - Status update (2026-11-23): Blocked until make is installed from an Administrator terminal.
 
-## T-058: scripts/check.sh plus thin Makefile (no CI), split the B4 commit, start B5 (2026-11-23)
+## T-158: scripts/check.sh plus thin Makefile (no CI), split the B4 commit, start B5 (2026-11-23)
 
 Prompt: "make.exe is blocked by Application Control on this machine, so I can't run make. Put the real logic in scripts/check.sh, add a thin Makefile that calls it, and verify with bash scripts/check.sh. No CI. Split the B4 commit as discussed, then start B5. is this the part of B5?"
 
@@ -1722,7 +1722,7 @@ Status: Needs input
 - Summary: Added scripts/check.sh (db up, image rebuild, ruff and pytest in Docker, then tsc, ESLint, Vitest) and a thin Makefile; `bash scripts/check.sh` passes (161 backend tests, 12 Vitest) and a planted ruff error stops it with exit 1. Compose frontend profile verified (/login 200, /leads redirects). Docs and CLAUDE.md Commands line updated. The three commits were denied by the permission settings, so nothing is committed.
 - Status update (2026-11-23): Needs input (commit permission; the commits are listed for you to run).
 
-## T-059: Two B4 fixes, review CLAUDE.md in the last commit, fresh frontend compose check (2026-11-23)
+## T-159: Two B4 fixes, review CLAUDE.md in the last commit, fresh frontend compose check (2026-11-23)
 
 Prompt: "Two small B4 fixes (a normal commit on top): In playwright.config.ts, make the Edge channel optional with E2E_BROWSER_CHANNEL instead of hardcoding channel: "msedge". In login.spec.ts, change the alert locator to p[role="alert"]. CLAUDE.md is in this commit. Check git diff HEAD~1 -- CLAUDE.md. If it's intended, send it to Developer A as its own PR, and take it out of the task branches. If not, revert that file. Fresh frontend check. Run docker compose --profile frontend up -d --build once and open http://localhost:3000/login."
 
@@ -1731,7 +1731,7 @@ Status: Needs input
 - Summary: E2E_BROWSER_CHANNEL now optional in playwright.config.ts (documented in .env.local.example, README, filedescription); login.spec.ts uses p[role="alert"]; lint and typecheck clean. Fresh `docker compose --profile frontend up -d --build` succeeded: /login 200, /leads redirects to /login. CLAUDE.md diff reviewed (logging rule + Commands line); the separate PR and removal from this branch await approval.
 - Status update (2026-11-23): Needs input (CLAUDE.md handling).
 
-## T-060: Leave CLAUDE.md and USERPROMPT.md alone, no branch, no commit (2026-11-23, backfilled)
+## T-160: Leave CLAUDE.md and USERPROMPT.md alone, no branch, no commit (2026-11-23, backfilled)
 
 Prompt: "Leave CLAUDE.md and USERPROMPT.md as they are. Don't create any branch and don't commit anything."
 
@@ -1739,7 +1739,7 @@ Status: Completed
 - Summary: Acknowledged. Left both files untouched in that turn (so this entry was logged afterwards, at the user's request to resume logging); no branch created and nothing committed.
 - Status update (2026-11-23): Completed.
 
-## T-061: Resume logging prompts in USERPROMPT.md (2026-11-23)
+## T-161: Resume logging prompts in USERPROMPT.md (2026-11-23)
 
 Prompt: "Resume logging prompts in USERPROMPT.md as before. Don't create branches or commit anything."
 
@@ -1747,7 +1747,7 @@ Status: Completed
 - Summary: Logging resumed; the previous prompt was backfilled as T-060. No branch created and nothing committed.
 - Status update (2026-11-23): Completed.
 
-## T-062: Analyze the full project: is B5 done, and what remains for Developer B in M1 (2026-11-23)
+## T-162: Analyze the full project: is B5 done, and what remains for Developer B in M1 (2026-11-23)
 
 Prompt: "analyze full project and tell me B5 is done? and tell the remaining tasking of dev b in m1"
 
@@ -1756,7 +1756,7 @@ Status: Completed
 - Summary: B5 is functionally done and verified (scripts/check.sh passes, Makefile wrapper, compose profile verified fresh, docs updated) but lives in wip commits on m1/dev-b, not on m1/b-make-check or a PR. Remaining Dev B in M1: B6 to B11 (B6 unblocked: A5 is on origin/main), B12 (blocked on A8), plus finishing B4 once A8 lands.
 - Status update (2026-11-23): Completed (analysis only).
 
-## T-063: Why does B5 need its own branch, and what is in B6 and what does it depend on? (2026-11-23)
+## T-163: Why does B5 need its own branch, and what is in B6 and what does it depend on? (2026-11-23)
 
 Prompt: "y b5 needs its owm branch? and what do we have in b6 and on what it depends?"
 
@@ -1765,10 +1765,80 @@ Status: Completed
 - Summary: Explained that milestone/m1.md fixes one branch and one PR per task (B5 = m1/b-make-check) so PRs stay small and mergeable independently, and described B6 (content tables, migration 0009) and its dependency on G1 (A5 merged, already on origin/main, migrations 0001-0008 there), with the open embedding-dimension question.
 - Status update (2026-11-23): Completed (explanation only).
 
-## T-064: Do I need to pull A5 before starting B6? (2026-11-23)
+## T-164: Do I need to pull A5 before starting B6? (2026-11-23)
 
 Prompt: "basically i need to pull A5 before starting B6?"
 
 Status: Completed
 - Summary: Yes: A5 (migration 0008) is on origin/main, so B6 must start from it. Advised pulling/rebasing onto origin/main (not merging dev-a), after the wip commits are split or kept, and noted the conflict-prone files. Explanation only.
 - Status update (2026-11-23): Completed.
+
+## T-047: Implement A6 permission module per the approved plan (2026-11-24)
+
+Prompt: "Approved — proceed with implementation. 1. Item 1 (Capabilities): Option A. Define the full plan.md §4 capability table now so the behavioral matrix test covers the complete [AGREED] spec, and mark unbuilt capabilities as \"planned\" in the docs. 2. Item 2 (Audit of denials): Confirmed. Do not add audit events for 403s in A6. 3. Item 3 (OpenAPI mechanism): Confirmed. Include the OpenAPI customization for 401 and 403 responses. Start by logging the task in USERPROMPT.md and execute steps 1–8."
+
+Status: Needs input
+- Summary: Implemented A6 per the approved plan: core/permissions.py (full plan.md section 4 capability table, require_permission, public_route, owner-only check, OpenAPI 401/403), fixed 403 handler, existing routes declared, openapi.json regenerated, two test files, docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, m1.md, plan.md U21).
+- Status update (2026-11-24): Needs input. ruff is clean and the 23 non-database tests pass; the PostgreSQL-backed matrix tests could not run (Docker was off, no local PostgreSQL), so run bash scripts/check.sh before the PR.
+
+## T-048: Verify A6 in Docker: build the image, run ruff and all tests (2026-11-24)
+
+Prompt: "run pytest with docker first build the whole image first then run all tests"
+
+Status: Completed
+- Summary: Built the api image and ran ruff and the full pytest suite in Docker against PostgreSQL with pgvector: ruff clean, 445 passed, including the A6 role-matrix tests. This closes the verification gap noted under T-065.
+- Status update (2026-11-24): Completed.
+
+## T-049: Describe A7 and implement the user management API (2026-11-24)
+
+Prompt: "describe a7", followed by the user's decisions on the open points: "1. 422 contract: Document the actual custom response schema: loc, msg, and type. 2. Session deactivation: Revoke all active sessions immediately when an account is deactivated. 3. Admin safeguards: Prevent admins from deactivating themselves, demoting themselves, or deactivating the last active admin. 4. Password handling: Admin provides an initial password, which must be hashed using the existing Argon2id implementation. Never store plaintext passwords. 5. Dependencies and migrations: No new dependencies or database tables without your approval."
+
+Status: Completed
+- Summary: Described A7, then implemented it: core/user_services.py, /users routes (me, list, create, change role, deactivate, reactivate), new schemas, narrowed 422 documented in openapi.json, tests/test_users_api.py, matrix test updated, docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, m1.md). Verified in Docker: ruff clean, 468 tests pass.
+- Status update (2026-11-24): Completed. Changes are uncommitted in the working tree; PR pending review.
+
+## T-052: Implement A8 (CSRF, Origin check, CORS) with six approved decisions (2026-11-24)
+- Prompt: "Implement A8 using these six approved decisions: 1. CSRF token sha256(\"csrf:\" + raw_session_token) returned in login and /auth/me, kept in frontend memory, re-fetched after reload, constant-time compare. 2. Origin check: if present must equal settings.frontend_origin, if absent continue to CSRF; applies to login. 3. X-CSRF-Token required for POST/PUT/PATCH/DELETE, exempt only POST /auth/login, logout needs token, GET/HEAD/OPTIONS need none. 4. No audit for rejected CSRF. 5. CORS exactly frontend_origin, credentials, explicit methods/headers incl. X-CSRF-Token, no wildcards. 6. No new dependencies, tables or columns. Add tests, update docs and B12 contract in m1.md, regenerate openapi.json, run Ruff and full backend tests in Docker. No Git operations."
+- Status: Completed
+- Summary: Implemented A8: new app/core/csrf.py (session-derived token, Origin check, app-level verify_csrf, OpenAPI 403), CORSMiddleware in main.py, csrf_token on login and /auth/me (SessionUserResponse), tests/test_csrf.py plus a CsrfTestClient helper, openapi.json regenerated. Docs updated (m1.md contract for B12, ARCHITECTURE, FILE_STRUCTURE, filedescription). Verified in Docker: ruff clean, 499 tests pass. No Git operations.
+- Status update (2026-11-24): Completed.
+
+## T-053: Implement A9 (login throttling) with nine approved decisions (2026-11-24)
+- Prompt: "A9 decisions: 1. audit rows only (no new table). 2. 5 failed attempts per 15 min per account and 20 per 15 min per IP, configurable via config.py. 3. unknown emails can only be throttled by IP. 4. same 401 InvalidCredentialsError. 5. reject a correct password during a block. 6. reset per-account failures on success (count only auth.login_failed rows after the user's latest auth.login_succeeded), per-IP strictly rolling window. 7. keep request.client.host. 8. blocked attempts log LOGIN_THROTTLED and do not count. 9. use AuditAction.LOGIN_THROTTLED."
+- Status: Completed
+- Summary: Implemented A9: new app/core/login_throttle.py (limits dataclass, find_throttle_scope counting auth.login_failed audit rows), login() now rejects throttled attempts with the same 401 and audits auth.login_throttled, writes auth.login_succeeded on success, three LOGIN_* settings in config.py and .env.example, tests/test_login_throttle.py. Docs updated (m1.md, ARCHITECTURE, FILE_STRUCTURE, filedescription). Verified in Docker: ruff check clean, 515 tests pass. No Git operations.
+- Status update (2026-11-24): Completed. Open for review: auth.login_succeeded was added (it did not exist) and "unknown email" was implemented as address-only limiting.
+
+
+## T-054: Describe A10 (2026-11-24)
+- Prompt: "describe a10"
+- Status: Completed
+- Summary: Described A10 (worker sample job) from milestone/m1.md and app/worker.py.
+- Status update (2026-11-24): Completed.
+
+## T-055: A10 worker sample job: plan, then implement (2026-11-25)
+- Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
+- Decisions approved: pure echo task; idempotent service + queueing_lock; python -m app.core.tasks; in-memory test + manual Docker check; default retry/queue. Plan approved.
+- Status: Completed
+- Summary: Added run_sample_job (core/services.py), core/tasks.py (sample_job with queueing lock, python -m app.core.tasks), registered via import_paths in worker.py, tests/test_sample_job.py (5 tests, in-memory connector). Docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, README, m1.md). Verified in Docker: ruff check clean, 520 tests pass, real worker ran the job. No Git operations.
+- Status update (2026-11-25): Completed. Note: planning prompt could not be logged until plan mode ended, so one entry covers plan and implementation.
+
+## T-056: Describe A11 implementation (2026-11-25)
+- Prompt: "describe a11 implementation"
+- Status: Completed
+- Summary: Described A11 (factories and model tests) from m1.md and the existing tests; flagged the open factory-approach decision and overlap with model tests already written in A2-A5.
+- Status update (2026-11-25): Completed.
+
+## T-057: A11 plan, one decision at a time (prompt pasted with the A10 wording) (2026-11-25)
+- Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
+- Interpretation: A10 is already implemented (T-055), so this is read as the same planning request for A11 (the task just described in T-056).
+- Status: Needs input
+- Decisions: hand-written helpers; leave A2-A5 tests untouched and add only gap tests; conftest.py unchanged; scope limited to the five rule types plus a factory smoke test.
+- Summary: Collected four decisions for A11 and presented the draft plan for approval; no code changed.
+- Status update (2026-11-25): Needs input (plan approval).
+
+## T-058: Implement A11 (factories and model tests) (2026-11-25)
+- Prompt: "approved"
+- Status: Completed
+- Summary: Added tests/factories/{common,core,leads,imports,compliance}.py (hand-written helpers), tests/test_factories.py (smoke) and tests/test_schema_rule_gaps.py (34 FK and 7 CHECK cases the audit found uncovered). Docs updated (filedescription, FILE_STRUCTURE, m1.md). Verified in Docker: ruff check clean, 594 tests pass. No Git operations.
+- Status update (2026-11-25): Completed.

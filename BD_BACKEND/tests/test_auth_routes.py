@@ -14,6 +14,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from argon2 import PasswordHasher
+from csrf_client import CsrfTestClient
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, func, select
@@ -25,6 +26,7 @@ from app.config import Settings, get_settings
 from app.core import services
 from app.core.api import INVALID_CREDENTIALS_DETAIL
 from app.core.clock import reset_offset
+from app.core.csrf import csrf_token_for_session_token
 from app.core.models import User, UserRole, UserSession
 from app.core.passwords import hash_password, password_needs_rehash, verify_password
 from app.db import get_session
@@ -125,7 +127,7 @@ def use_settings(api_app: FastAPI) -> Callable[..., Settings]:
 @pytest.fixture
 def client(api_app: FastAPI) -> TestClient:
     """A plain-HTTP client for the real app."""
-    return TestClient(api_app)
+    return CsrfTestClient(api_app)
 
 
 @pytest.fixture
@@ -135,7 +137,7 @@ def make_client(api_app: FastAPI) -> Callable[..., TestClient]:
     def _make(*, https: bool = False) -> TestClient:
         """Build a client; httpx only sends Secure cookies back over https URLs."""
         base_url = "https://testserver" if https else "http://testserver"
-        return TestClient(api_app, base_url=base_url)
+        return CsrfTestClient(api_app, base_url=base_url)
 
     return _make
 
@@ -186,11 +188,16 @@ def _cookie_attributes(set_cookie: str) -> list[str]:
 
 
 def test_login_returns_user_without_secrets(user: User, client: TestClient) -> None:
-    """Valid login: 200 and a body of exactly id, email and role, with no hash anywhere."""
+    """Valid login: 200 and a body of exactly id, email, role and csrf_token, no hash anywhere."""
     response = _login(client)
 
     assert response.status_code == 200
-    assert response.json() == {"id": str(user.id), "email": "alice@example.com", "role": "rep"}
+    assert response.json() == {
+        "id": str(user.id),
+        "email": "alice@example.com",
+        "role": "rep",
+        "csrf_token": csrf_token_for_session_token(response.cookies[COOKIE_NAME]),
+    }
     assert "password_hash" not in response.text
     assert "argon2" not in response.text
 
@@ -242,12 +249,17 @@ def test_me_after_login_returns_same_user_and_401_without_cookie(
     user: User, client: TestClient, make_client: Callable[..., TestClient]
 ) -> None:
     """/auth/me returns the logged-in user; a client with no cookie gets 401."""
-    _login(client)
+    cookie_token = _login(client).cookies[COOKIE_NAME]
 
     response = client.get("/auth/me")
 
     assert response.status_code == 200
-    assert response.json() == {"id": str(user.id), "email": "alice@example.com", "role": "rep"}
+    assert response.json() == {
+        "id": str(user.id),
+        "email": "alice@example.com",
+        "role": "rep",
+        "csrf_token": csrf_token_for_session_token(cookie_token),
+    }
     assert make_client().get("/auth/me").status_code == 401
 
 
@@ -536,15 +548,14 @@ def test_logout_clears_a_secure_cookie_with_the_secure_flag(
 ) -> None:
     """With secure cookies on, the clearing Set-Cookie also carries Secure so browsers accept it."""
     use_settings(session_cookie_secure=True)
+    client = make_client(https=True)
+    # Logout needs a session cookie to derive its CSRF token from (any value will do).
+    client.cookies.set(COOKIE_NAME, "garbage")
 
-    response = make_client(https=True).post("/auth/logout")
+    response = client.post("/auth/logout")
 
     assert response.status_code == 204
     assert "secure" in _cookie_attributes(response.headers["set-cookie"])
-
-
-def _no_cookie(client: TestClient) -> None:
-    """Leave the client without a session cookie."""
 
 
 def _garbage_cookie(client: TestClient) -> None:
@@ -561,13 +572,16 @@ def _already_revoked_cookie(client: TestClient) -> None:
 
 @pytest.mark.parametrize(
     "arrange",
-    [_no_cookie, _garbage_cookie, _already_revoked_cookie],
-    ids=["no-cookie", "garbage-cookie", "already-revoked"],
+    [_garbage_cookie, _already_revoked_cookie],
+    ids=["garbage-cookie", "already-revoked"],
 )
 def test_logout_is_idempotent(
     user: User, client: TestClient, arrange: Callable[[TestClient], None]
 ) -> None:
-    """Logout without a cookie, with junk or with a revoked token still gives 204 and clears."""
+    """Logout with a junk or a revoked token (and its CSRF token) still gives 204 and clears.
+
+    Logout without any cookie is 403 since A8 (no token to derive); see test_csrf.py.
+    """
     arrange(client)
 
     response = client.post("/auth/logout")
