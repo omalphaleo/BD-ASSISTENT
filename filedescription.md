@@ -41,6 +41,7 @@ How to read: each file has a short **Purpose** (what it does and why it exists),
 | `docs/decisions/0001-2026-11-12-docker-in-scope-for-local-dev.md` | Decision record: Docker Compose is allowed for local development. |
 | `docs/decisions/0002-2026-11-19-a2-core-tables-decisions.md` | Decision record for A2 (M1, Developer A): admin-editable personal-domain and generic-prefix settings, test clock safety, and the split between Procrastinate, database idempotency and `JobLock`. |
 | `milestone/m1.md` | Detailed description of milestone M1 (setup and data model) and the two-developer split. |
+| `milestone/m2.md` | Detailed description of milestone M2 (import, validation, quarantine, deduplication); planned, not started. |
 
 ## 3. `BD_BACKEND/` configuration and packaging
 

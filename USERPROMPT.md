@@ -1842,3 +1842,39 @@ Status: Completed
 - Status: Completed
 - Summary: Added tests/factories/{common,core,leads,imports,compliance}.py (hand-written helpers), tests/test_factories.py (smoke) and tests/test_schema_rule_gaps.py (34 FK and 7 CHECK cases the audit found uncovered). Docs updated (filedescription, FILE_STRUCTURE, m1.md). Verified in Docker: ruff check clean, 594 tests pass. No Git operations.
 - Status update (2026-11-25): Completed.
+
+## T-059: Report that milestone/m2.md was created (2026-11-25)
+- Prompt: "Created milestone/m2.md describing M2 (tasks, data model scope, modules, files, acceptance, tests, demo, open items) from plan.md only; listed milestone/m2.md in FILE_STRUCTURE.md. No code change"
+- Status: Needs input
+- Summary: Checked the claim: milestone/ contains only m1.md and FILE_STRUCTURE.md has no m2.md entry, so nothing was created in this working tree. No files changed other than this log entry.
+- Status update (2026-11-25): Needs input (confirm whether to write m2.md from plan.md).
+
+## T-060: Read the full M2 milestone in plan.md and create milestone/m2.md (2026-11-25)
+- Prompt: "n plan.md we have 8 milestones , for now read full m2 milestone and create m2.md file in milestone folder which should give the detail description of what it has"
+- Status: Completed
+- Summary: Read M2 in plan.md (section 16, modules B/C/D, section 6.2, job design, open items) and the Q-A decisions; created milestone/m2.md (purpose, tasks, data scope, validation and matching rules, report, files, acceptance, tests, demo, open items). Listed it in FILE_STRUCTURE.md and filedescription.md. No code changed.
+- Status update (2026-11-25): Completed.
+
+## T-059: PR descriptions for A6-A11 (2026-11-25)
+- Prompt: "give 2-3 line description for creating pull request for a6 and a7 and a8 and a9 a10 a11"
+- Status: Completed
+- Summary: Wrote short pull request descriptions for A6 to A11.
+- Status update (2026-11-25): Completed.
+
+## T-060: Shorter PR descriptions (2026-11-25)
+- Prompt: "2-3 line description only it too big"
+- Status: Completed
+- Summary: Gave one 2-3 line PR description covering A6 to A11.
+- Status update (2026-11-25): Completed.
+
+## T-061: Split M2 between two developers in m2.md (2026-11-25)
+- Prompt: "First, review the entire codebase and M2.md ... decompose the complete M2 workload between two developers and document the entire task breakdown directly in M2.md. Developer B is already working on M1 tasks B11 and B12 ... Write the complete, updated task breakdown directly into M2.md." (full text pasted; abbreviated here)
+- Status: Completed
+- Summary: Verified the repo (M2 has only models; A6-A11 are on m1/dev-a-0.2, not main; B6-B10 are listed done in m1.md but stubs only in code; B11 and B12 left as B's). Appended sections 15-24 to milestone/m2.md: verified baseline, A (10 tasks) and B (6 tasks) split, ownership map, dependencies and gates, Git workflow, conflict rules, integration order, progress table, open decisions. No application code changed.
+- Status update (2026-11-25): Completed.
+
+## T-062: Re-split M2 into feature-based end-to-end workstreams (2026-11-25)
+- Prompt: "The current division still appears to separate work by technical layer (backend vs. frontend). I dont want that approach. Please reorganize the tasks into distinct, feature-based workstreams so both developers can work independently and simultaneously. Each developer should own complete functional modules end-to-end, including both backend and frontend ... roughly equal workload ... clearly separated feature ownership with minimal overlap in files ... start in parallel ... dependencies and integration points clearly defined ... B11 and B12 preserved. Update M2.md accordingly. Do not change application code." (abbreviated)
+- Status: Completed
+- Summary: Replaced m2.md sections 15-26 (the backend/frontend split) with two feature workstreams, each end to end: W1 Intake and processing (Developer A, 36 points) and W2 Data quality and resolution (Developer B, 35 points incl. B11 and B12). Added the ingest_row contract as the single seam, an M2-0 scaffold that pre-wires shared files, an M2-only ownership change for approval, gates, integration steps, workload table, progress table, Git workflow. No application code changed.
+- Status update (2026-11-25): Completed.
