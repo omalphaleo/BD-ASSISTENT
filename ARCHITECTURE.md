@@ -93,6 +93,7 @@ Full field lists are settled in M1; the three ER diagrams are in `docs/plan.md` 
 - **Leads side:** `Company` 1—n `Person`; `Person` 1—n `PersonEmail`, `PersonPhone`, `SocialProfile`, `Touch` (contact history, one row per touch on any channel), `LeadStatusFlag`, `LeadNote`, `LeadEvent`; `ImportFile` 1—n `RawRow`; `RawRow` 0..1 `QuarantineRecord`; `Person` n—n `DuplicateCandidate` pairs; `MergeRecord` points to a surviving person. Opt-outs are stored per email address.
 - **Campaign side:** `User` 1—n `Campaign`; `Campaign` 1—n `CampaignLead` 0..1 `EmailSequence` 1—3 `EmailDraft` 1—n `ValidationResult`; an approved `EmailDraft` 0..1 `OutreachMessage` 1—n `SendAttempt`; `MailThread` 1—n `OutreachMessage` and `InboundMessage`; `InboundMessage` 0..1 `ReplyClassification`, `BounceRecord`; `Mailbox` 1—n `OutreachMessage`, with one `DeltaCursor`.
 - **Content side:** `KnowledgeItem` 0..1 `KnowledgeEmbedding`; `IndustryProfile` n—n `KnowledgeItem`; `EmailStructure` 1—n `StructureSection`; voice, profiles and structures are versioned through `ConfigVersion`.
+- **Vector storage:** PostgreSQL's pgvector extension stores 768-dimensional knowledge embeddings; the backend uses the Python `pgvector` package for SQLAlchemy vector columns.
 - **Cross-cutting:** `AuditLog` (append-only), `Setting`, `ClockOffset`, `JobLock`, `ErasureRecord`, `ComplianceGateStatus`.
 - Lead data keeps the latest values only (D-008). All timestamps are UTC.
 
