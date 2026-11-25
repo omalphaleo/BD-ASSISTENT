@@ -20,6 +20,8 @@ Login and logout also live here. login() gives the same InvalidCredentialsError 
 similar timing for an unknown email, a wrong password and a disabled user, and records each
 failure in the audit log before raising. It also rejects attempts blocked by the failed-login
 limits (core.login_throttle) with that same error.
+
+run_sample_job() is the pure body of the worker sample job (A10); core.tasks wraps it.
 """
 
 import hashlib
@@ -366,3 +368,26 @@ def logout(db: Session, token: str | None) -> None:
     """
     if token:
         revoke_session(db, token)
+
+
+@dataclass(frozen=True)
+class SampleJobResult:
+    """Outcome of the worker sample job; equal inputs always give equal results."""
+
+    echoed_message: str
+
+
+def run_sample_job(message: str) -> SampleJobResult:
+    """Echo a message back; the pure, side-effect-free body of the worker sample job (A10).
+
+    Idempotent by design: the result depends only on ``message``. It writes nothing, reads no
+    clock and touches no tables, so a retry or a duplicate run changes nothing. Later task
+    services copy this shape: do the work here, keep the Procrastinate task a thin wrapper.
+
+    Args:
+        message: Free text to echo; never lead data or credentials.
+
+    Returns:
+        A SampleJobResult holding the same message.
+    """
+    return SampleJobResult(echoed_message=message)

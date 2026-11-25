@@ -34,7 +34,7 @@ Later: a Gemini API key (free tier for development on test data; paid before any
 
 1. Clone the repository.
 2. `cp .env.example .env` and fill in `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (compose refuses to start if any is empty).
-3. `docker compose up -d --build db api worker`. The API container applies Alembic migrations on start; the worker applies the Procrastinate schema and starts with no tasks.
+3. `docker compose up -d --build db api worker`. The API container applies Alembic migrations on start; the worker applies the Procrastinate schema and starts with one task, the sample job. Run it with `docker compose exec api python -m app.core.tasks`, then `docker compose logs worker` shows `sample_job done` and `ended with status: Success`. Running the command again while a job is still waiting prints "already waiting" (queueing lock).
 4. Check: `curl http://localhost:8000/health` returns `{"status":"ok","database":"ok"}` (503 if the database is down). API docs: `http://localhost:8000/docs`.
 5. PostgreSQL is published on `127.0.0.1:5432` only. Logs: `docker compose logs -f api worker`. Stop: `docker compose down` (add `-v` to delete the database volume).
 6. The `frontend` service is behind the `frontend` profile (`docker compose --profile frontend up --build`, then open `http://localhost:3000`). The compose-built frontend is verified: `/login` returns 200 and `/leads` redirects to `/login` when signed out.

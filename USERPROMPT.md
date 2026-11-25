@@ -1815,3 +1815,30 @@ Status: Completed
 - Status: Completed
 - Summary: Described A10 (worker sample job) from milestone/m1.md and app/worker.py.
 - Status update (2026-11-24): Completed.
+
+## T-055: A10 worker sample job: plan, then implement (2026-11-25)
+- Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
+- Decisions approved: pure echo task; idempotent service + queueing_lock; python -m app.core.tasks; in-memory test + manual Docker check; default retry/queue. Plan approved.
+- Status: Completed
+- Summary: Added run_sample_job (core/services.py), core/tasks.py (sample_job with queueing lock, python -m app.core.tasks), registered via import_paths in worker.py, tests/test_sample_job.py (5 tests, in-memory connector). Docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, README, m1.md). Verified in Docker: ruff check clean, 520 tests pass, real worker ran the job. No Git operations.
+- Status update (2026-11-25): Completed. Note: planning prompt could not be logged until plan mode ended, so one entry covers plan and implementation.
+
+## T-056: Describe A11 implementation (2026-11-25)
+- Prompt: "describe a11 implementation"
+- Status: Completed
+- Summary: Described A11 (factories and model tests) from m1.md and the existing tests; flagged the open factory-approach decision and overlap with model tests already written in A2-A5.
+- Status update (2026-11-25): Completed.
+
+## T-057: A11 plan, one decision at a time (prompt pasted with the A10 wording) (2026-11-25)
+- Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
+- Interpretation: A10 is already implemented (T-055), so this is read as the same planning request for A11 (the task just described in T-056).
+- Status: Needs input
+- Decisions: hand-written helpers; leave A2-A5 tests untouched and add only gap tests; conftest.py unchanged; scope limited to the five rule types plus a factory smoke test.
+- Summary: Collected four decisions for A11 and presented the draft plan for approval; no code changed.
+- Status update (2026-11-25): Needs input (plan approval).
+
+## T-058: Implement A11 (factories and model tests) (2026-11-25)
+- Prompt: "approved"
+- Status: Completed
+- Summary: Added tests/factories/{common,core,leads,imports,compliance}.py (hand-written helpers), tests/test_factories.py (smoke) and tests/test_schema_rule_gaps.py (34 FK and 7 CHECK cases the audit found uncovered). Docs updated (filedescription, FILE_STRUCTURE, m1.md). Verified in Docker: ruff check clean, 594 tests pass. No Git operations.
+- Status update (2026-11-25): Completed.

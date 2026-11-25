@@ -57,7 +57,7 @@ BD_BACKEND/
 │   ├── worker.py              # exists: Procrastinate app and task registration
 │   ├── export_openapi.py      # exists: writes/checks openapi.json
 │   ├── models.py              # exists: registry importing every module's models (frozen after A0)
-│   ├── core/                  # exists: api, clock, cookies, dependencies, errors, model_helpers, models, passwords, schemas, services; permissions planned
+│   ├── core/                  # exists: api, clock, cookies, dependencies, errors, model_helpers, models, passwords, schemas, services, tasks (sample job, A10); permissions planned
 │   ├── audit/                 # exists: models, services (append-only audit log)
 │   ├── imports/               # exists: models (6 tables: files, source profiles, mapping, raw rows, reports, changes); planned: services (upload, validation), api
 │   ├── leads/                 # exists: models (16 tables); planned: services (matching, merge), search, api
@@ -68,7 +68,7 @@ BD_BACKEND/
 │   ├── mail/                  # stub: Sender interface, MockSender, GraphSender, reply monitor, threading
 │   ├── notifications/         # stub: in-app and email notifications, SLA reminders, dashboard queries
 │   └── ai/                    # planned: provider adapter, tasks, payload builders, validators, retrieval, prompt loader
-└── tests/                     # exists: flat test_*.py files, conftest.py, factories/__init__.py (empty); per-module folders planned
+└── tests/                     # exists: flat test_*.py files, conftest.py, factories/ (`__init__`, `common`, `core`, `leads`, `imports`, `compliance` since A11; B's factories planned), test_factories.py, test_schema_rule_gaps.py, test_sample_job.py; per-module folders planned
 ```
 
 Each module folder holds `models.py`, `schemas.py`, `services.py`, `api.py` (router), and `tasks.py` if it has background jobs.

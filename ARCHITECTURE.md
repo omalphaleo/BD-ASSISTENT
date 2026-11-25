@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - **API process:** short requests only. Route handlers validate input (Pydantic v2), check permissions and call services.
-- **Worker process:** imports, drafting, scheduler tick (about every minute), mailbox polling (every 3 min, one lock per mailbox), SLA reminders (hourly), embeddings, stuck-message recovery. Tasks are thin wrappers over services.
+- **Worker process:** imports, drafting, scheduler tick (about every minute), mailbox polling (every 3 min, one lock per mailbox), SLA reminders (hourly), embeddings, stuck-message recovery. Tasks are thin wrappers over services. The only task built so far is the `core.sample_job` echo (`app/core/tasks.py`, M1 task A10): it proves the queue end to end and is the pattern to copy (idempotent service, thin task, queueing lock). Task modules are registered in `worker.py` through `import_paths`.
 - **Queue:** there is no direct service-to-worker call. Enqueueing is a database write (service to the PostgreSQL job table); the worker polls the same database and then calls services.
 - **Frontend:** screens and forms only; no business rules and no access decisions.
 
