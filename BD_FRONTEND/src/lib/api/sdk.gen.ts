@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { HealthHealthGetData, HealthHealthGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, LogoutAuthLogoutPostData, LogoutAuthLogoutPostResponses, MeAuthMeGetData, MeAuthMeGetResponses } from './types.gen';
+import type { ChangeUserRoleUsersUserIdPatchData, ChangeUserRoleUsersUserIdPatchErrors, ChangeUserRoleUsersUserIdPatchResponses, CreateUserUsersPostData, CreateUserUsersPostErrors, CreateUserUsersPostResponses, DeactivateUserUsersUserIdDeactivatePostData, DeactivateUserUsersUserIdDeactivatePostErrors, DeactivateUserUsersUserIdDeactivatePostResponses, HealthHealthGetData, HealthHealthGetResponses, ListUsersUsersGetData, ListUsersUsersGetErrors, ListUsersUsersGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, LogoutAuthLogoutPostData, LogoutAuthLogoutPostErrors, LogoutAuthLogoutPostResponses, MeAuthMeGetData, MeAuthMeGetErrors, MeAuthMeGetResponses, MyProfileUsersMeGetData, MyProfileUsersMeGetErrors, MyProfileUsersMeGetResponses, ReactivateUserUsersUserIdReactivatePostData, ReactivateUserUsersUserIdReactivatePostErrors, ReactivateUserUsersUserIdReactivatePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -21,7 +21,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 /**
  * Login
  *
- * Sign in with email and password; sets the session cookie.
+ * Sign in with email and password; sets the session cookie and returns the CSRF token.
  *
  * Raises:
  * HTTPException: 401 with one fixed body for any credential failure; no cookie is set.
@@ -40,14 +40,15 @@ export const loginAuthLoginPost = <ThrowOnError extends boolean = false>(options
  *
  * Sign out. Needs no authentication, so an expired session can still clear its cookie.
  */
-export const logoutAuthLogoutPost = <ThrowOnError extends boolean = false>(options?: Options<LogoutAuthLogoutPostData, ThrowOnError>): RequestResult<LogoutAuthLogoutPostResponses, unknown, ThrowOnError> => (options?.client ?? client).post<LogoutAuthLogoutPostResponses, unknown, ThrowOnError>({ url: '/auth/logout', ...options });
+export const logoutAuthLogoutPost = <ThrowOnError extends boolean = false>(options?: Options<LogoutAuthLogoutPostData, ThrowOnError>): RequestResult<LogoutAuthLogoutPostResponses, LogoutAuthLogoutPostErrors, ThrowOnError> => (options?.client ?? client).post<LogoutAuthLogoutPostResponses, LogoutAuthLogoutPostErrors, ThrowOnError>({ url: '/auth/logout', ...options });
 
 /**
  * Me
  *
- * Return the signed-in user; 401 if nobody is signed in.
+ * Return the signed-in user and the session's CSRF token (the frontend calls this after
+ * a page reload to get the token back); 401 if nobody is signed in.
  */
-export const meAuthMeGet = <ThrowOnError extends boolean = false>(options?: Options<MeAuthMeGetData, ThrowOnError>): RequestResult<MeAuthMeGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<MeAuthMeGetResponses, unknown, ThrowOnError>({ url: '/auth/me', ...options });
+export const meAuthMeGet = <ThrowOnError extends boolean = false>(options?: Options<MeAuthMeGetData, ThrowOnError>): RequestResult<MeAuthMeGetResponses, MeAuthMeGetErrors, ThrowOnError> => (options?.client ?? client).get<MeAuthMeGetResponses, MeAuthMeGetErrors, ThrowOnError>({ url: '/auth/me', ...options });
 
 /**
  * Health
@@ -55,3 +56,71 @@ export const meAuthMeGet = <ThrowOnError extends boolean = false>(options?: Opti
  * Liveness plus a database check. 503 when the database is unreachable.
  */
 export const healthHealthGet = <ThrowOnError extends boolean = false>(options?: Options<HealthHealthGetData, ThrowOnError>): RequestResult<HealthHealthGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<HealthHealthGetResponses, unknown, ThrowOnError>({ url: '/health', ...options });
+
+/**
+ * List Users
+ *
+ * List all users, ordered by email (admin only).
+ */
+export const listUsersUsersGet = <ThrowOnError extends boolean = false>(options?: Options<ListUsersUsersGetData, ThrowOnError>): RequestResult<ListUsersUsersGetResponses, ListUsersUsersGetErrors, ThrowOnError> => (options?.client ?? client).get<ListUsersUsersGetResponses, ListUsersUsersGetErrors, ThrowOnError>({ url: '/users', ...options });
+
+/**
+ * Create User
+ *
+ * Create a user with an initial password (admin only).
+ *
+ * Raises:
+ * HTTPException: 409 if the email is already registered.
+ */
+export const createUserUsersPost = <ThrowOnError extends boolean = false>(options: Options<CreateUserUsersPostData, ThrowOnError>): RequestResult<CreateUserUsersPostResponses, CreateUserUsersPostErrors, ThrowOnError> => (options.client ?? client).post<CreateUserUsersPostResponses, CreateUserUsersPostErrors, ThrowOnError>({
+    url: '/users',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * My Profile
+ *
+ * Return the signed-in user's own profile (every role may view itself).
+ */
+export const myProfileUsersMeGet = <ThrowOnError extends boolean = false>(options?: Options<MyProfileUsersMeGetData, ThrowOnError>): RequestResult<MyProfileUsersMeGetResponses, MyProfileUsersMeGetErrors, ThrowOnError> => (options?.client ?? client).get<MyProfileUsersMeGetResponses, MyProfileUsersMeGetErrors, ThrowOnError>({ url: '/users/me', ...options });
+
+/**
+ * Change User Role
+ *
+ * Change a user's role (admin only).
+ *
+ * Raises:
+ * HTTPException: 404 if the user does not exist; 409 if an admin safeguard applies.
+ */
+export const changeUserRoleUsersUserIdPatch = <ThrowOnError extends boolean = false>(options: Options<ChangeUserRoleUsersUserIdPatchData, ThrowOnError>): RequestResult<ChangeUserRoleUsersUserIdPatchResponses, ChangeUserRoleUsersUserIdPatchErrors, ThrowOnError> => (options.client ?? client).patch<ChangeUserRoleUsersUserIdPatchResponses, ChangeUserRoleUsersUserIdPatchErrors, ThrowOnError>({
+    url: '/users/{user_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Deactivate User
+ *
+ * Deactivate a user and end all their sessions (admin only).
+ *
+ * Raises:
+ * HTTPException: 404 if the user does not exist; 409 if an admin safeguard applies.
+ */
+export const deactivateUserUsersUserIdDeactivatePost = <ThrowOnError extends boolean = false>(options: Options<DeactivateUserUsersUserIdDeactivatePostData, ThrowOnError>): RequestResult<DeactivateUserUsersUserIdDeactivatePostResponses, DeactivateUserUsersUserIdDeactivatePostErrors, ThrowOnError> => (options.client ?? client).post<DeactivateUserUsersUserIdDeactivatePostResponses, DeactivateUserUsersUserIdDeactivatePostErrors, ThrowOnError>({ url: '/users/{user_id}/deactivate', ...options });
+
+/**
+ * Reactivate User
+ *
+ * Reactivate a deactivated user (admin only); they must sign in again.
+ *
+ * Raises:
+ * HTTPException: 404 if the user does not exist.
+ */
+export const reactivateUserUsersUserIdReactivatePost = <ThrowOnError extends boolean = false>(options: Options<ReactivateUserUsersUserIdReactivatePostData, ThrowOnError>): RequestResult<ReactivateUserUsersUserIdReactivatePostResponses, ReactivateUserUsersUserIdReactivatePostErrors, ThrowOnError> => (options.client ?? client).post<ReactivateUserUsersUserIdReactivatePostResponses, ReactivateUserUsersUserIdReactivatePostErrors, ThrowOnError>({ url: '/users/{user_id}/reactivate', ...options });

@@ -35,7 +35,7 @@ vi.mock("next/link", () => ({
 /** Renders the shell for a user, wrapped in the provider the real (app) layout supplies. */
 function renderShell(user: UserResponse) {
   return render(
-    <AuthProvider user={user}>
+    <AuthProvider user={user} csrfToken="test-csrf-token">
       <AppShell user={user}>
         <p>Page body</p>
       </AppShell>
