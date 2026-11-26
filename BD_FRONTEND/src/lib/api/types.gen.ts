@@ -14,6 +14,50 @@ export type ChangeRoleRequest = {
 };
 
 /**
+ * CreateIndustryMappingRequest
+ *
+ * Body of POST /reference-mappings/industries.
+ */
+export type CreateIndustryMappingRequest = {
+    /**
+     * Naics Sector
+     */
+    naics_sector?: string | null;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Standard Industry
+     */
+    standard_industry: string;
+};
+
+/**
+ * CreateStateMappingRequest
+ *
+ * Body of POST /reference-mappings/states.
+ */
+export type CreateStateMappingRequest = {
+    /**
+     * Abbreviation
+     */
+    abbreviation?: string | null;
+    /**
+     * Country
+     */
+    country: string;
+    /**
+     * Source Value
+     */
+    source_value: string;
+    /**
+     * Standard Name
+     */
+    standard_name: string;
+};
+
+/**
  * CreateUserRequest
  *
  * Body of POST /users: the new user's email, role and the admin-set initial password.
@@ -31,6 +75,108 @@ export type CreateUserRequest = {
 };
 
 /**
+ * DuplicateCandidateResponse
+ *
+ * A duplicate pair with both people and the pre-selected side per field.
+ */
+export type DuplicateCandidateResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Decided At
+     */
+    decided_at: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    person_a: PersonCardResponse;
+    person_b: PersonCardResponse;
+    /**
+     * Reason
+     */
+    reason: string;
+    status: DuplicateStatus;
+    /**
+     * Suggested
+     */
+    suggested: {
+        [key: string]: 'a' | 'b';
+    };
+};
+
+/**
+ * DuplicateFileResponse
+ *
+ * Body of the 409 warning for a file that was already uploaded (D-109).
+ *
+ * The client shows the earlier date and user and offers "cancel" or "import anyway"; the
+ * latter means uploading the same file again with allow_duplicate=true.
+ */
+export type DuplicateFileResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Detail
+     */
+    detail: string;
+    /**
+     * Earlier Import Id
+     */
+    earlier_import_id: string;
+    /**
+     * Earlier Uploaded At
+     */
+    earlier_uploaded_at: string;
+    /**
+     * Earlier Uploaded By
+     */
+    earlier_uploaded_by: string | null;
+};
+
+/**
+ * DuplicateListResponse
+ *
+ * One page of duplicate pairs.
+ */
+export type DuplicateListResponse = {
+    /**
+     * Items
+     */
+    items: Array<DuplicateCandidateResponse>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * DuplicateStatus
+ *
+ * Review state of a flagged duplicate pair (D-092).
+ */
+export type DuplicateStatus = 'open' | 'merged' | 'not_duplicate';
+
+/**
+ * DuplicateStatusFilter
+ *
+ * Which pairs the list shows.
+ */
+export type DuplicateStatusFilter = 'open' | 'not_duplicate';
+
+/**
  * ErrorResponse
  *
  * Body of a 401 or 403: one fixed message, nothing about the user, owner or capability.
@@ -40,6 +186,116 @@ export type ErrorResponse = {
      * Detail
      */
     detail: string;
+};
+
+/**
+ * FixQuarantineRequest
+ *
+ * Fields to change on an open record; a blank text value clears the field.
+ */
+export type FixQuarantineRequest = {
+    /**
+     * Values
+     */
+    values: {
+        [key: string]: string | number | number | boolean | null;
+    };
+};
+
+/**
+ * ImportFileResponse
+ *
+ * An import as shown in status calls (no storage key, no server path).
+ */
+export type ImportFileResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number | null;
+    status: ImportStatus;
+    /**
+     * Uploaded By
+     */
+    uploaded_by: string | null;
+    /**
+     * Worksheet
+     */
+    worksheet: string | null;
+};
+
+/**
+ * ImportStatus
+ *
+ * Lifecycle of an uploaded import file.
+ */
+export type ImportStatus = 'uploaded' | 'mapping' | 'processing' | 'completed' | 'failed';
+
+/**
+ * IndustryMappingListResponse
+ *
+ * One page of industry mappings.
+ */
+export type IndustryMappingListResponse = {
+    /**
+     * Items
+     */
+    items: Array<IndustryMappingResponse>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * IndustryMappingResponse
+ *
+ * One industry mapping row.
+ */
+export type IndustryMappingResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Naics Sector
+     */
+    naics_sector: string | null;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Standard Industry
+     */
+    standard_industry: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
 };
 
 /**
@@ -56,6 +312,203 @@ export type LoginRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * MergeDuplicateRequest
+ *
+ * Body of POST /duplicates/{id}/merge.
+ */
+export type MergeDuplicateRequest = {
+    /**
+     * Survivor Id
+     */
+    survivor_id: string;
+    /**
+     * Values
+     */
+    values?: {
+        [key: string]: string | null;
+    };
+};
+
+/**
+ * MergeDuplicateResponse
+ *
+ * What the merge did: the kept person, the absorbed one and the history record.
+ */
+export type MergeDuplicateResponse = {
+    /**
+     * Absorbed Person Id
+     */
+    absorbed_person_id: string;
+    /**
+     * Merge Record Id
+     */
+    merge_record_id: string;
+    /**
+     * Survivor Id
+     */
+    survivor_id: string;
+};
+
+/**
+ * PersonCardResponse
+ *
+ * One person of a pair: the mergeable fields as text, plus all addresses.
+ */
+export type PersonCardResponse = {
+    /**
+     * Company Name
+     */
+    company_name: string | null;
+    /**
+     * Emails
+     */
+    emails: Array<string>;
+    /**
+     * Fields
+     */
+    fields: {
+        [key: string]: string | null;
+    };
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Owner Id
+     */
+    owner_id: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * QuarantineListResponse
+ *
+ * A page of quarantined rows.
+ */
+export type QuarantineListResponse = {
+    /**
+     * Items
+     */
+    items: Array<QuarantineRecordResponse>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * QuarantineRecordResponse
+ *
+ * One quarantined row as shown on the quarantine screen.
+ */
+export type QuarantineRecordResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Filename
+     */
+    filename: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Import File Id
+     */
+    import_file_id: string | null;
+    /**
+     * Issues
+     */
+    issues: Array<string>;
+    /**
+     * Payload
+     */
+    payload: {
+        [key: string]: string | number | number | boolean | null;
+    };
+    /**
+     * Resolved At
+     */
+    resolved_at: string | null;
+    /**
+     * Resolved By
+     */
+    resolved_by: string | null;
+    /**
+     * Row Number
+     */
+    row_number: number | null;
+    status: QuarantineStatus;
+    /**
+     * Uploaded By
+     */
+    uploaded_by: string | null;
+};
+
+/**
+ * QuarantineStatus
+ *
+ * Lifecycle of a quarantined import row (D-068, D-107).
+ */
+export type QuarantineStatus = 'open' | 'released' | 'discarded';
+
+/**
+ * QuarantineStatusFilter
+ *
+ * Which records the list shows; "all" adds the released and discarded ones.
+ */
+export type QuarantineStatusFilter = 'open' | 'released' | 'discarded' | 'all';
+
+/**
+ * ReleaseQuarantineResponse
+ *
+ * The result of a release attempt.
+ */
+export type ReleaseQuarantineResponse = {
+    /**
+     * Outcome
+     */
+    outcome: string | null;
+    record: QuarantineRecordResponse;
+    /**
+     * Released
+     */
+    released: boolean;
+};
+
+/**
+ * RowIssue
+ *
+ * Why a row must be quarantined. The values are stored in QuarantineRecord.issues.
+ */
+export type RowIssue = 'no_work_email' | 'personal_email_only' | 'generic_email_only' | 'bad_email_format' | 'missing_first_name';
+
+/**
+ * SelectWorksheetRequest
+ *
+ * Body of POST /imports/{id}/worksheet.
+ */
+export type SelectWorksheetRequest = {
+    /**
+     * Worksheet
+     */
+    worksheet: string;
 };
 
 /**
@@ -80,6 +533,171 @@ export type SessionUserResponse = {
      */
     id: string;
     role: UserRole;
+};
+
+/**
+ * StateMappingListResponse
+ *
+ * One page of state mappings.
+ */
+export type StateMappingListResponse = {
+    /**
+     * Items
+     */
+    items: Array<StateMappingResponse>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * StateMappingResponse
+ *
+ * One state mapping row.
+ */
+export type StateMappingResponse = {
+    /**
+     * Abbreviation
+     */
+    abbreviation: string | null;
+    /**
+     * Country
+     */
+    country: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Source Value
+     */
+    source_value: string;
+    /**
+     * Standard Name
+     */
+    standard_name: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * UpdateIndustryMappingRequest
+ *
+ * Body of PATCH /reference-mappings/industries/{id}; send only what changes.
+ */
+export type UpdateIndustryMappingRequest = {
+    /**
+     * Naics Sector
+     */
+    naics_sector?: string | null;
+    /**
+     * Source Name
+     */
+    source_name?: string | null;
+    /**
+     * Standard Industry
+     */
+    standard_industry?: string | null;
+};
+
+/**
+ * UpdateStateMappingRequest
+ *
+ * Body of PATCH /reference-mappings/states/{id}; send only what changes.
+ */
+export type UpdateStateMappingRequest = {
+    /**
+     * Abbreviation
+     */
+    abbreviation?: string | null;
+    /**
+     * Country
+     */
+    country?: string | null;
+    /**
+     * Source Value
+     */
+    source_value?: string | null;
+    /**
+     * Standard Name
+     */
+    standard_name?: string | null;
+};
+
+/**
+ * UploadErrorResponse
+ *
+ * Body of a refused upload: a fixed message and a stable machine-readable code.
+ */
+export type UploadErrorResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Detail
+     */
+    detail: string;
+};
+
+/**
+ * UploadResponse
+ *
+ * The result of an upload: the import plus what the file contains.
+ *
+ * worksheets lists every sheet of an XLSX file (empty for CSV). When worksheet is null the
+ * file has several sheets and the user must pick one with POST /imports/{id}/worksheet.
+ * headers is set once a sheet is known (CSV, or a one-sheet XLSX), else null.
+ */
+export type UploadResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Headers
+     */
+    headers: Array<string> | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number | null;
+    status: ImportStatus;
+    /**
+     * Uploaded By
+     */
+    uploaded_by: string | null;
+    /**
+     * Worksheet
+     */
+    worksheet: string | null;
+    /**
+     * Worksheets
+     */
+    worksheets: Array<WorksheetResponse>;
 };
 
 /**
@@ -150,6 +768,26 @@ export type ValidationErrorResponse = {
      * Detail
      */
     detail: Array<ValidationErrorItem>;
+};
+
+/**
+ * WorksheetResponse
+ *
+ * One worksheet of an XLSX upload; selectable sheets can be chosen for the import.
+ */
+export type WorksheetResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Selectable
+     */
+    selectable: boolean;
 };
 
 export type LoginAuthLoginPostData = {
@@ -235,6 +873,183 @@ export type MeAuthMeGetResponses = {
 
 export type MeAuthMeGetResponse = MeAuthMeGetResponses[keyof MeAuthMeGetResponses];
 
+export type ListDuplicatesDuplicatesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: DuplicateStatusFilter;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/duplicates';
+};
+
+export type ListDuplicatesDuplicatesGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ListDuplicatesDuplicatesGetError = ListDuplicatesDuplicatesGetErrors[keyof ListDuplicatesDuplicatesGetErrors];
+
+export type ListDuplicatesDuplicatesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DuplicateListResponse;
+};
+
+export type ListDuplicatesDuplicatesGetResponse = ListDuplicatesDuplicatesGetResponses[keyof ListDuplicatesDuplicatesGetResponses];
+
+export type GetDuplicateDuplicatesCandidateIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: never;
+    url: '/duplicates/{candidate_id}';
+};
+
+export type GetDuplicateDuplicatesCandidateIdGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such pair.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetDuplicateDuplicatesCandidateIdGetError = GetDuplicateDuplicatesCandidateIdGetErrors[keyof GetDuplicateDuplicatesCandidateIdGetErrors];
+
+export type GetDuplicateDuplicatesCandidateIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DuplicateCandidateResponse;
+};
+
+export type GetDuplicateDuplicatesCandidateIdGetResponse = GetDuplicateDuplicatesCandidateIdGetResponses[keyof GetDuplicateDuplicatesCandidateIdGetResponses];
+
+export type MergeDuplicateDuplicatesCandidateIdMergePostData = {
+    body: MergeDuplicateRequest;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: never;
+    url: '/duplicates/{candidate_id}/merge';
+};
+
+export type MergeDuplicateDuplicatesCandidateIdMergePostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such pair.
+     */
+    404: unknown;
+    /**
+     * The pair was already decided.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type MergeDuplicateDuplicatesCandidateIdMergePostError = MergeDuplicateDuplicatesCandidateIdMergePostErrors[keyof MergeDuplicateDuplicatesCandidateIdMergePostErrors];
+
+export type MergeDuplicateDuplicatesCandidateIdMergePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: MergeDuplicateResponse;
+};
+
+export type MergeDuplicateDuplicatesCandidateIdMergePostResponse = MergeDuplicateDuplicatesCandidateIdMergePostResponses[keyof MergeDuplicateDuplicatesCandidateIdMergePostResponses];
+
+export type MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostData = {
+    body?: never;
+    path: {
+        /**
+         * Candidate Id
+         */
+        candidate_id: string;
+    };
+    query?: never;
+    url: '/duplicates/{candidate_id}/not-duplicate';
+};
+
+export type MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such pair.
+     */
+    404: unknown;
+    /**
+     * The pair was already decided.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostError = MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostErrors[keyof MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostErrors];
+
+export type MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: DuplicateCandidateResponse;
+};
+
+export type MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostResponse = MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostResponses[keyof MarkNotDuplicateDuplicatesCandidateIdNotDuplicatePostResponses];
+
 export type HealthHealthGetData = {
     body?: never;
     path?: never;
@@ -248,6 +1063,645 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type UploadImportFileImportsUploadPostData = {
+    body: {
+        allow_duplicate?: boolean;
+        file: Blob | File;
+    };
+    path?: never;
+    query?: never;
+    url: '/imports/upload';
+};
+
+export type UploadImportFileImportsUploadPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Same file uploaded before (D-109).
+     */
+    409: DuplicateFileResponse;
+    /**
+     * File larger than the limit.
+     */
+    413: UploadErrorResponse;
+    /**
+     * Not a CSV or XLSX file.
+     */
+    415: UploadErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type UploadImportFileImportsUploadPostError = UploadImportFileImportsUploadPostErrors[keyof UploadImportFileImportsUploadPostErrors];
+
+export type UploadImportFileImportsUploadPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: UploadResponse;
+};
+
+export type UploadImportFileImportsUploadPostResponse = UploadImportFileImportsUploadPostResponses[keyof UploadImportFileImportsUploadPostResponses];
+
+export type GetImportStatusImportsImportIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}';
+};
+
+export type GetImportStatusImportsImportIdGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetImportStatusImportsImportIdGetError = GetImportStatusImportsImportIdGetErrors[keyof GetImportStatusImportsImportIdGetErrors];
+
+export type GetImportStatusImportsImportIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportFileResponse;
+};
+
+export type GetImportStatusImportsImportIdGetResponse = GetImportStatusImportsImportIdGetResponses[keyof GetImportStatusImportsImportIdGetResponses];
+
+export type ChooseWorksheetImportsImportIdWorksheetPostData = {
+    body: SelectWorksheetRequest;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/worksheet';
+};
+
+export type ChooseWorksheetImportsImportIdWorksheetPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * Not the uploader, or already past mapping.
+     */
+    409: UploadErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ChooseWorksheetImportsImportIdWorksheetPostError = ChooseWorksheetImportsImportIdWorksheetPostErrors[keyof ChooseWorksheetImportsImportIdWorksheetPostErrors];
+
+export type ChooseWorksheetImportsImportIdWorksheetPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportFileResponse;
+};
+
+export type ChooseWorksheetImportsImportIdWorksheetPostResponse = ChooseWorksheetImportsImportIdWorksheetPostResponses[keyof ChooseWorksheetImportsImportIdWorksheetPostResponses];
+
+export type ListQuarantineQuarantineGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: QuarantineStatusFilter;
+        /**
+         * Issue
+         *
+         * Only rows with this reason code
+         */
+        issue?: RowIssue | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/quarantine';
+};
+
+export type ListQuarantineQuarantineGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ListQuarantineQuarantineGetError = ListQuarantineQuarantineGetErrors[keyof ListQuarantineQuarantineGetErrors];
+
+export type ListQuarantineQuarantineGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuarantineListResponse;
+};
+
+export type ListQuarantineQuarantineGetResponse = ListQuarantineQuarantineGetResponses[keyof ListQuarantineQuarantineGetResponses];
+
+export type GetQuarantineRecordQuarantineRecordIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Record Id
+         */
+        record_id: string;
+    };
+    query?: never;
+    url: '/quarantine/{record_id}';
+};
+
+export type GetQuarantineRecordQuarantineRecordIdGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such quarantine record.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetQuarantineRecordQuarantineRecordIdGetError = GetQuarantineRecordQuarantineRecordIdGetErrors[keyof GetQuarantineRecordQuarantineRecordIdGetErrors];
+
+export type GetQuarantineRecordQuarantineRecordIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuarantineRecordResponse;
+};
+
+export type GetQuarantineRecordQuarantineRecordIdGetResponse = GetQuarantineRecordQuarantineRecordIdGetResponses[keyof GetQuarantineRecordQuarantineRecordIdGetResponses];
+
+export type FixQuarantineRecordQuarantineRecordIdPatchData = {
+    body: FixQuarantineRequest;
+    path: {
+        /**
+         * Record Id
+         */
+        record_id: string;
+    };
+    query?: never;
+    url: '/quarantine/{record_id}';
+};
+
+export type FixQuarantineRecordQuarantineRecordIdPatchErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such quarantine record.
+     */
+    404: unknown;
+    /**
+     * Already released or discarded.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type FixQuarantineRecordQuarantineRecordIdPatchError = FixQuarantineRecordQuarantineRecordIdPatchErrors[keyof FixQuarantineRecordQuarantineRecordIdPatchErrors];
+
+export type FixQuarantineRecordQuarantineRecordIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuarantineRecordResponse;
+};
+
+export type FixQuarantineRecordQuarantineRecordIdPatchResponse = FixQuarantineRecordQuarantineRecordIdPatchResponses[keyof FixQuarantineRecordQuarantineRecordIdPatchResponses];
+
+export type DiscardQuarantineRecordQuarantineRecordIdDiscardPostData = {
+    body?: never;
+    path: {
+        /**
+         * Record Id
+         */
+        record_id: string;
+    };
+    query?: never;
+    url: '/quarantine/{record_id}/discard';
+};
+
+export type DiscardQuarantineRecordQuarantineRecordIdDiscardPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such quarantine record.
+     */
+    404: unknown;
+    /**
+     * Already released or discarded.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type DiscardQuarantineRecordQuarantineRecordIdDiscardPostError = DiscardQuarantineRecordQuarantineRecordIdDiscardPostErrors[keyof DiscardQuarantineRecordQuarantineRecordIdDiscardPostErrors];
+
+export type DiscardQuarantineRecordQuarantineRecordIdDiscardPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuarantineRecordResponse;
+};
+
+export type DiscardQuarantineRecordQuarantineRecordIdDiscardPostResponse = DiscardQuarantineRecordQuarantineRecordIdDiscardPostResponses[keyof DiscardQuarantineRecordQuarantineRecordIdDiscardPostResponses];
+
+export type ReleaseQuarantineRecordQuarantineRecordIdReleasePostData = {
+    body?: never;
+    path: {
+        /**
+         * Record Id
+         */
+        record_id: string;
+    };
+    query?: never;
+    url: '/quarantine/{record_id}/release';
+};
+
+export type ReleaseQuarantineRecordQuarantineRecordIdReleasePostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such quarantine record.
+     */
+    404: unknown;
+    /**
+     * Already released or discarded, or it has no source row.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+    /**
+     * Row is valid but ingest_row is not available yet.
+     */
+    503: unknown;
+};
+
+export type ReleaseQuarantineRecordQuarantineRecordIdReleasePostError = ReleaseQuarantineRecordQuarantineRecordIdReleasePostErrors[keyof ReleaseQuarantineRecordQuarantineRecordIdReleasePostErrors];
+
+export type ReleaseQuarantineRecordQuarantineRecordIdReleasePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReleaseQuarantineResponse;
+};
+
+export type ReleaseQuarantineRecordQuarantineRecordIdReleasePostResponse = ReleaseQuarantineRecordQuarantineRecordIdReleasePostResponses[keyof ReleaseQuarantineRecordQuarantineRecordIdReleasePostResponses];
+
+export type ListIndustryMappingsReferenceMappingsIndustriesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search
+         *
+         * Text inside the wording
+         */
+        search?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/reference-mappings/industries';
+};
+
+export type ListIndustryMappingsReferenceMappingsIndustriesGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ListIndustryMappingsReferenceMappingsIndustriesGetError = ListIndustryMappingsReferenceMappingsIndustriesGetErrors[keyof ListIndustryMappingsReferenceMappingsIndustriesGetErrors];
+
+export type ListIndustryMappingsReferenceMappingsIndustriesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: IndustryMappingListResponse;
+};
+
+export type ListIndustryMappingsReferenceMappingsIndustriesGetResponse = ListIndustryMappingsReferenceMappingsIndustriesGetResponses[keyof ListIndustryMappingsReferenceMappingsIndustriesGetResponses];
+
+export type CreateIndustryMappingReferenceMappingsIndustriesPostData = {
+    body: CreateIndustryMappingRequest;
+    path?: never;
+    query?: never;
+    url: '/reference-mappings/industries';
+};
+
+export type CreateIndustryMappingReferenceMappingsIndustriesPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such mapping.
+     */
+    404: unknown;
+    /**
+     * That wording already has a mapping.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type CreateIndustryMappingReferenceMappingsIndustriesPostError = CreateIndustryMappingReferenceMappingsIndustriesPostErrors[keyof CreateIndustryMappingReferenceMappingsIndustriesPostErrors];
+
+export type CreateIndustryMappingReferenceMappingsIndustriesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: IndustryMappingResponse;
+};
+
+export type CreateIndustryMappingReferenceMappingsIndustriesPostResponse = CreateIndustryMappingReferenceMappingsIndustriesPostResponses[keyof CreateIndustryMappingReferenceMappingsIndustriesPostResponses];
+
+export type UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchData = {
+    body: UpdateIndustryMappingRequest;
+    path: {
+        /**
+         * Mapping Id
+         */
+        mapping_id: string;
+    };
+    query?: never;
+    url: '/reference-mappings/industries/{mapping_id}';
+};
+
+export type UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such mapping.
+     */
+    404: unknown;
+    /**
+     * That wording already has a mapping.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchError = UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchErrors[keyof UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchErrors];
+
+export type UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: IndustryMappingResponse;
+};
+
+export type UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchResponse = UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchResponses[keyof UpdateIndustryMappingReferenceMappingsIndustriesMappingIdPatchResponses];
+
+export type ListStateMappingsReferenceMappingsStatesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search
+         *
+         * Text inside the wording
+         */
+        search?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/reference-mappings/states';
+};
+
+export type ListStateMappingsReferenceMappingsStatesGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ListStateMappingsReferenceMappingsStatesGetError = ListStateMappingsReferenceMappingsStatesGetErrors[keyof ListStateMappingsReferenceMappingsStatesGetErrors];
+
+export type ListStateMappingsReferenceMappingsStatesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: StateMappingListResponse;
+};
+
+export type ListStateMappingsReferenceMappingsStatesGetResponse = ListStateMappingsReferenceMappingsStatesGetResponses[keyof ListStateMappingsReferenceMappingsStatesGetResponses];
+
+export type CreateStateMappingReferenceMappingsStatesPostData = {
+    body: CreateStateMappingRequest;
+    path?: never;
+    query?: never;
+    url: '/reference-mappings/states';
+};
+
+export type CreateStateMappingReferenceMappingsStatesPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such mapping.
+     */
+    404: unknown;
+    /**
+     * That wording already has a mapping.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type CreateStateMappingReferenceMappingsStatesPostError = CreateStateMappingReferenceMappingsStatesPostErrors[keyof CreateStateMappingReferenceMappingsStatesPostErrors];
+
+export type CreateStateMappingReferenceMappingsStatesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: StateMappingResponse;
+};
+
+export type CreateStateMappingReferenceMappingsStatesPostResponse = CreateStateMappingReferenceMappingsStatesPostResponses[keyof CreateStateMappingReferenceMappingsStatesPostResponses];
+
+export type UpdateStateMappingReferenceMappingsStatesMappingIdPatchData = {
+    body: UpdateStateMappingRequest;
+    path: {
+        /**
+         * Mapping Id
+         */
+        mapping_id: string;
+    };
+    query?: never;
+    url: '/reference-mappings/states/{mapping_id}';
+};
+
+export type UpdateStateMappingReferenceMappingsStatesMappingIdPatchErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such mapping.
+     */
+    404: unknown;
+    /**
+     * That wording already has a mapping.
+     */
+    409: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type UpdateStateMappingReferenceMappingsStatesMappingIdPatchError = UpdateStateMappingReferenceMappingsStatesMappingIdPatchErrors[keyof UpdateStateMappingReferenceMappingsStatesMappingIdPatchErrors];
+
+export type UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: StateMappingResponse;
+};
+
+export type UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponse = UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponses[keyof UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponses];
 
 export type ListUsersUsersGetData = {
     body?: never;
