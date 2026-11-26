@@ -59,12 +59,14 @@ Tests need a reachable PostgreSQL with pgvector; they create and use a throwaway
 API contract: the frontend client is generated from the committed `BD_BACKEND/openapi.json`. After any endpoint or schema change, run `python -m app.export_openapi` from `BD_BACKEND/` (`--check` only verifies); a test fails while the file is stale.
 
 **Frontend tests** (from `BD_FRONTEND/`):
-- `npm test` runs the Vitest component tests in `tests/unit/` (login form, app shell, menu by role). The API client and router are faked, so no backend is needed.
+- `npm test` runs the Vitest tests in `tests/unit/` (login form, app shell, menu by role, CSRF handling). The API client, router and fetch are faked, so no backend is needed.
 - `npm run test:e2e` runs the Playwright login journey in `tests/e2e/` in Chromium. It needs the real stack, so it is not part of `make check`:
-  1. Start PostgreSQL, apply the migrations and start the API (see the setup sections above). The backend must allow the frontend origin (planned task A8); until then the browser login is blocked.
+  1. Start PostgreSQL, apply the migrations and start the API (see the setup sections above). The backend must allow the frontend origin: `FRONTEND_ORIGIN` has to equal the address in the browser bar exactly (for example `http://localhost:3000`, not `http://127.0.0.1:3000`).
   2. Create two fake test accounts in the test database, one `rep` and one `admin`, and set `E2E_REP_EMAIL`, `E2E_REP_PASSWORD`, `E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD` in `BD_FRONTEND/.env.local` (git-ignored) or in your shell. Never use real users or passwords.
   3. Once per machine, install the browser: `npx playwright install chromium`. If that download is blocked, set `E2E_BROWSER_CHANNEL=msedge` (or `chrome`) to use an installed browser instead.
   4. Run `npm run test:e2e`. Playwright starts `npm run dev` itself unless the frontend is already running on `http://localhost:3000` (override with `E2E_BASE_URL`).
+
+**CSRF in the client** (task B12): the backend refuses every `POST`, `PUT`, `PATCH` and `DELETE` that lacks the header `X-CSRF-Token`, except login. The token comes from `POST /auth/login` and `GET /auth/me` (the server layout loads it on every full page load), lives in memory only (`src/lib/csrf.ts`, never `localStorage` or a cookie) and is added by the API client wrapper `src/lib/api-client.ts`, never in the generated code. On a `403 CSRF check failed` the client refreshes the token once and retries once. Pages and components therefore call the generated functions as usual and never handle the header. After a backend schema change run `npm run generate:api` (`npm run check:api` fails when the generated client is stale).
 
 **All checks in one command** (from the repo root): `make check`, or `bash scripts/check.sh` where make is unavailable (it is the same script). It starts the database, rebuilds the backend image, then runs ruff and pytest in Docker and tsc, ESLint and Vitest in `BD_FRONTEND/` (run `npm ci` there first), stopping at the first failure. Playwright is not included.
 
