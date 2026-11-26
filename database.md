@@ -1,7 +1,7 @@
 <!--
 database.md: beginner-friendly reference for every database model in BD Assistant.
 Needed so a new developer can learn what each table stores without reading the code first.
-Verified against the SQLAlchemy models under BD_BACKEND/app on 2026-11-20 (migrations 0001-0008).
+Verified against the SQLAlchemy models under BD_BACKEND/app on 2026-11-20 (migrations 0001-0013).
 -->
 
 # BD Assistant database models
@@ -61,6 +61,31 @@ This file explains every database table ("model") that exists in the code today:
 | 30 | [ComplianceGateStatus](#30-compliancegatestatus) | `compliance_gate_status` | `app/compliance/models.py` |
 | 31 | [ComplianceChecklistItem](#31-compliancechecklistitem) | `compliance_checklist_items` | `app/compliance/models.py` |
 | 32 | [ErasureRecord](#32-erasurerecord) | `erasure_records` | `app/compliance/models.py` |
+| 33 | [VoiceSetting](#33-voicesetting) | `voice_settings` | `app/content/models.py` |
+| 34 | [SizeProfile](#34-sizeprofile) | `size_profiles` | `app/content/models.py` |
+| 35 | [IndustryProfile](#35-industryprofile) | `industry_profiles` | `app/content/models.py` |
+| 36 | [KnowledgeItem](#36-knowledgeitem) | `knowledge_items` | `app/content/models.py` |
+| 37 | [KnowledgeEmbedding](#37-knowledgeembedding) | `knowledge_embeddings` | `app/content/models.py` |
+| 38 | [IndustryProfileItem](#38-industryprofileitem) | `industry_profile_items` | `app/content/models.py` |
+| 39 | [EmailStructure](#39-emailstructure) | `email_structures` | `app/content/models.py` |
+| 40 | [StructureSection](#40-structuresection) | `structure_sections` | `app/content/models.py` |
+| 41 | [ConfigVersion](#41-configversion) | `config_versions` | `app/content/models.py` |
+| 42 | [Campaign](#42-campaign) | `campaigns` | `app/campaigns/models.py` |
+| 43 | [CampaignLead](#43-campaignlead) | `campaign_leads` | `app/campaigns/models.py` |
+| 44 | [EmailSequence](#44-emailsequence) | `email_sequences` | `app/campaigns/models.py` |
+| 45 | [EmailDraft](#45-emaildraft) | `email_drafts` | `app/campaigns/models.py` |
+| 46 | [ValidationResult](#46-validationresult) | `validation_results` | `app/campaigns/models.py` |
+| 47 | [Mailbox](#47-mailbox) | `mailboxes` | `app/outreach/models.py` |
+| 48 | [OutreachMessage](#48-outreachmessage) | `outreach_messages` | `app/outreach/models.py` |
+| 49 | [SendAttempt](#49-sendattempt) | `send_attempts` | `app/outreach/models.py` |
+| 50 | [MailThread](#50-mailthread) | `mail_threads` | `app/mail/models.py` |
+| 51 | [OutboxMessage](#51-outboxmessage) | `outbox_messages` | `app/mail/models.py` |
+| 52 | [InboundMessage](#52-inboundmessage) | `inbound_messages` | `app/mail/models.py` |
+| 53 | [DeltaCursor](#53-deltacursor) | `delta_cursors` | `app/mail/models.py` |
+| 54 | [ReplyClassification](#54-replyclassification) | `reply_classifications` | `app/mail/models.py` |
+| 55 | [BounceRecord](#55-bouncerecord) | `bounce_records` | `app/mail/models.py` |
+| 56 | [Notification](#56-notification) | `notifications` | `app/notifications/models.py` |
+| 57 | [SlaReminder](#57-slareminder) | `sla_reminders` | `app/notifications/models.py` |
 
 All paths above are relative to `BD_BACKEND/`. The registry `BD_BACKEND/app/models.py` imports every module's `models.py` so Alembic and the tests see the whole schema.
 
@@ -729,6 +754,505 @@ Added by migration 0008 (task A5). Tables only: the eligibility service, opt-out
 | `reason` | Text, required | Why the person was erased. |
 | `removed_counts` | JSONB, required, default `{}` | Area name to number of records removed, e.g. `{"raw_rows": 2}`. |
 
+## 33. VoiceSetting
+
+**Model Overview:** The one global writing voice the AI drafts in.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `VoiceSetting`, table `voice_settings`; migration 0009).
+
+**Purpose:** Holds the company description, the differentiator, the tone and the banned words every draft must respect (D-085). Only one row can exist: `singleton` is forced true and unique. Empty until M4 seeds the defaults (tone "clear, practical, peer-to-peer"). Example: banned words `["synergy", "guarantee"]`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `singleton` | Boolean, required, default `true`, CHECK true, unique | Makes a second voice row impossible. |
+| `company_description` | Text, required, default `''` | What Alphaleo is, in the admin's words. |
+| `differentiator` | Text, required, default `''` | What sets Alphaleo apart. |
+| `tone` | Text, required, default `''` | How the emails should sound. |
+| `banned_words` | Text array, required, default `{}` | Words the AI must never use. |
+| `updated_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Admin who last edited it. Indexed. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 34. SizeProfile
+
+**Model Overview:** Writing guidance for one company-size band.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `SizeProfile`, table `size_profiles`; migration 0009).
+
+**Purpose:** The AI combines the profile that matches a lead's employee count with the industry profile (D-085). One row per band, unique by `key`. Defaults are seeded by M4. Example: `mid_market`, 201 to 1,000 employees, tone "practical, ROI-focused".
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `key` | Text, required, unique, one of `smb`, `mid_market`, `enterprise` | Which band (CHECK, `SizeProfileKey`). |
+| `name` | Text (100), required | Display name, e.g. "Mid-market". |
+| `min_employees` | Integer, required, at least 0 | Lowest employee count the band covers. |
+| `max_employees` | Integer, optional, at least `min_employees` | Highest count covered; empty means "and above". |
+| `pain_points` | Text, required, default `''` | Typical problems of this band. |
+| `offerings` | Text, required, default `''` | Offering(s) to lead with (D-035). |
+| `tone` | Text, required, default `''` | Tone and formality. |
+| `avoid` | Text, required, default `''` | Things the AI should avoid. |
+| `example_phrases` | Text, required, default `''` | Optional phrases to imitate. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 35. IndustryProfile
+
+**Model Overview:** Writing guidance for one industry, or the General fallback.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `IndustryProfile`, table `industry_profiles`; migration 0009).
+
+**Purpose:** Industry counterpart of the size profile (D-085). One row per industry, unique by `key`; the knowledge items a profile may draw on are linked through `industry_profile_items`. Example: `healthcare`, pain points "patient data across disconnected systems".
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `key` | Text, required, unique, one of `manufacturing`, `real_estate`, `hospitality`, `healthcare`, `it_services`, `general` | Which industry (CHECK, `IndustryProfileKey`). |
+| `name` | Text (100), required | Display name. |
+| `pain_points`, `offerings`, `tone`, `avoid`, `example_phrases` | Text, required, default `''` | Same guidance fields as `size_profiles`. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 36. KnowledgeItem
+
+**Model Overview:** One knowledge-base entry the AI may be given.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `KnowledgeItem`, table `knowledge_items`; migration 0009).
+
+**Purpose:** The MVP holds solution descriptions of the four offerings; case studies follow once approved (D-088). Only `approved` items reach the AI. `content_hash` changes when the body changes, which is how a stale embedding is spotted. Example: type `solution`, title "Salesforce implementation", status `approved`, size tags `["smb", "mid_market"]`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `type` | Text, required, one of `solution`, `case_study` | Kind of item (CHECK, `KnowledgeItemType`). |
+| `title` | Text (255), required | Short title. |
+| `body` | Text, required | The text given to the AI. |
+| `status` | Text, required, default `draft`, one of `draft`, `approved`, `retired` | Lifecycle (CHECK, `KnowledgeItemStatus`). Approved needs `approved_at`; retired needs `retired_at`; draft and approved are never retired (CHECK). Indexed. |
+| `content_hash` | Text (64), required | SHA-256 of the body, set by the knowledge service. |
+| `size_tags` | Text array, required, default `{}` | Size bands the item suits. GIN index. |
+| `industry_tags` | Text array, required, default `{}` | Industries the item suits. GIN index. |
+| `created_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Author. Indexed. |
+| `approved_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Approver. Indexed. |
+| `approved_at` | DateTime (timezone), optional | When it was approved (kept after retirement as history). |
+| `retired_at` | DateTime (timezone), optional | When it was retired. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 37. KnowledgeEmbedding
+
+**Model Overview:** The pgvector vector for one knowledge item.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `KnowledgeEmbedding`, table `knowledge_embeddings`; migration 0009).
+
+**Purpose:** Lets drafting rank approved items by similarity. At most one per item. The model name, dimension and body hash stored with the vector make a model change or an edited item detectable, so the item is re-embedded. There is no vector index: exact search is enough at MVP volume. Example: 768 numbers from the configured embedding model for the "Salesforce implementation" item.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `knowledge_item_id` | UUID, required, unique, foreign key to `knowledge_items.id` (CASCADE) | The item this vector belongs to. |
+| `embedding` | `vector(768)`, required | The vector. A different length is rejected. |
+| `model_name` | Text (100), required | Embedding model that produced it. |
+| `dimension` | Integer, required, CHECK = 768 | Recorded vector size. |
+| `content_hash` | Text (64), required | Item body hash at embedding time; compared with `knowledge_items.content_hash`. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 38. IndustryProfileItem
+
+**Model Overview:** Link between an industry profile and a knowledge item it may draw on.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `IndustryProfileItem`, table `industry_profile_items`; migration 0009).
+
+**Purpose:** The many-to-many link from Q-CONTENT-08: which approved items an industry profile may use. Example: the "Healthcare" profile linked to "Data integration solution".
+
+| Field Name | Type | Description |
+|---|---|---|
+| `industry_profile_id` | UUID, part of primary key, foreign key to `industry_profiles.id` (CASCADE) | The profile. |
+| `knowledge_item_id` | UUID, part of primary key, foreign key to `knowledge_items.id` (CASCADE) | The item. Indexed. |
+
+## 39. EmailStructure
+
+**Model Overview:** The layout and word limits of one email in the sequence.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `EmailStructure`, table `email_structures`; migration 0009).
+
+**Purpose:** The hybrid structure of D-084: one per email step, made of ordered sections (see `structure_sections`). Admins edit it (D-112). Example: `first_email`, 80 to 120 words.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `step` | Text, required, unique, one of `first_email`, `follow_up_1`, `follow_up_2` | Which email (CHECK, `EmailStructureStep`). |
+| `name` | Text (100), required | Display name. |
+| `min_words` | Integer, optional, above 0 and at most `max_words` | Minimum length; empty for follow-ups. |
+| `max_words` | Integer, required, above 0 | Maximum length. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 40. StructureSection
+
+**Model Overview:** One section of an email structure.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `StructureSection`, table `structure_sections`; migration 0009).
+
+**Purpose:** Fixed sections (greeting, call to action, signature, footer) are inserted by the app; AI sections are written by the model from `content` as the instruction (D-084, D-112). `(structure_id, position)` is unique but deferred, so an admin can swap two positions in one transaction. Example: position 2, kind `ai`, name "Opening", max 300 characters.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `structure_id` | UUID, required, foreign key to `email_structures.id` (CASCADE) | Owning structure. |
+| `position` | Integer, required, at least 1 | Order in the email; unique per structure (deferred). |
+| `kind` | Text, required, one of `fixed`, `ai` | Who writes it (CHECK, `SectionKind`). |
+| `name` | Text (100), required | Section name, e.g. "Greeting". |
+| `content` | Text, required, default `''` | Exact text (fixed) or writing instruction (AI). |
+| `max_chars` | Integer, optional, above 0 | Character limit. |
+| `is_optional` | Boolean, required, default `false` | Left out when nothing approved fits (the proof point). |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 41. ConfigVersion
+
+**Model Overview:** A saved snapshot of a voice, profile or structure.
+
+**File Location:** `BD_BACKEND/app/content/models.py` (class `ConfigVersion`, table `config_versions`; migration 0009).
+
+**Purpose:** Written on every admin edit so history can be viewed and defaults restored (D-112). `config_id` has no foreign key because it points at one of four tables, chosen by `config_type`. Example: `voice`, version 3, snapshot `{"tone": "clear, practical, peer-to-peer"}`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `config_type` | Text, required, one of `voice`, `size_profile`, `industry_profile`, `email_structure` | Which table `config_id` refers to (CHECK, `ConfigType`). |
+| `config_id` | UUID, required | Id of the voice, profile or structure (no foreign key). |
+| `version_number` | Integer, required, at least 1 | 1 for the first snapshot, then +1 per edit. Unique with `config_type` and `config_id`. |
+| `snapshot` | JSONB, required | The configuration's values at that time. |
+| `created_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Admin who saved it. Indexed. |
+| `created_at` | DateTime (timezone), required | When it was saved (application clock). |
+
+# Campaigns module (`app/campaigns/models.py`)
+
+## 42. Campaign
+
+**Model Overview:** One outreach campaign created by a rep.
+
+**File Location:** `BD_BACKEND/app/campaigns/models.py` (class `Campaign`, table `campaigns`; migration 0010).
+
+**Purpose:** Holds who owns the campaign, which mailbox sends it, a snapshot of the sequence timing and the rep's target end date. Example: "Q1 manufacturing outreach", owner a rep, status `draft`, follow-ups on business days 3 and 7 (D-082).
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `name` | Text (255), required | Campaign name. |
+| `owner_id` | UUID, required, foreign key to `users.id` (RESTRICT) | The rep who owns it; only the owner edits it. Indexed. |
+| `mailbox_id` | UUID, optional, foreign key to `mailboxes.id` (SET NULL) | The sending mailbox (D-002, D-013); the foreign key was added by migration 0011. Indexed. |
+| `sequence_config` | JSONB, required | Snapshot of the sequence timing at creation (D-082), so later admin changes do not alter a running campaign. |
+| `target_completion_date` | Date, optional | The rep's wanted end date; the completion estimate warns when it cannot be met (D-083). |
+| `status` | Text, required, default `draft`, one of `draft`, `generating`, `awaiting_review`, `approved`, `running`, `paused`, `completed`, `cancelled` | Lifecycle (CHECK, `CampaignStatus`). The value list is an assumption; pausing needs an explicit resume (D-015). Indexed. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 43. CampaignLead
+
+**Model Overview:** A lead selected for a campaign, with its eligibility result.
+
+**File Location:** `BD_BACKEND/app/campaigns/models.py` (class `CampaignLead`, table `campaign_leads`; migration 0010).
+
+**Purpose:** Records who was picked and whether they may be contacted, so the builder can show counts such as "14 excluded (opted out)" (D-067). Example: Jane Doe, `excluded`, reason `opted_out`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `campaign_id` | UUID, required, foreign key to `campaigns.id` (CASCADE) | The campaign. Unique with `person_id`. |
+| `person_id` | UUID, required, foreign key to `people.id` (CASCADE) | The lead; erase-person removes this row (D-099). Indexed. |
+| `eligibility_result` | Text, required, one of `eligible`, `excluded` | Result when the campaign was created (CHECK, `EligibilityResult`). |
+| `exclusion_reason` | Text (64), optional, lowercase letters, digits and underscores | Why excluded, e.g. `opted_out` (D-065, D-066). Required when excluded and empty when eligible (CHECK). A format rule rather than a value list because the eligibility service is not built yet. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 44. EmailSequence
+
+**Model Overview:** The three-email sequence drafted for one campaign lead.
+
+**File Location:** `BD_BACKEND/app/campaigns/models.py` (class `EmailSequence`, table `email_sequences`; migration 0010).
+
+**Purpose:** All three emails of a lead are drafted at campaign start and reviewed together (D-090); this row is the unit the rep approves or rejects. Example: status `needs_attention` after validation failed twice (Q-CONTENT-09).
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `campaign_lead_id` | UUID, required, unique, foreign key to `campaign_leads.id` (CASCADE) | The lead; at most one sequence each. |
+| `status` | Text, required, default `generating`, one of `generating`, `ready`, `needs_attention`, `approved`, `rejected` | Review state (CHECK, `SequenceStatus`). Indexed. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 45. EmailDraft
+
+**Model Overview:** One email (first email or a follow-up) of a sequence.
+
+**File Location:** `BD_BACKEND/app/campaigns/models.py` (class `EmailDraft`, table `email_drafts`; migration 0010).
+
+**Purpose:** Stores what the AI wrote per section, the assembled subject and body, the overall check outcome and the rep's edits. Reps edit only the AI-written parts (Q-CONTENT-11). The final HTML with footer is built at send time, not stored. Example: `follow_up_1`, `ai_sections` `{"opening": "Hello Jane"}`, status `warning`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `sequence_id` | UUID, required, foreign key to `email_sequences.id` (CASCADE) | The sequence. Unique with `step`. |
+| `step` | Text, required, one of `first_email`, `follow_up_1`, `follow_up_2` | Which email (CHECK, reuses `EmailStructureStep` from content). |
+| `ai_sections` | JSONB, required, default `{}` | AI-written text keyed by section name. |
+| `subject` | Text (255), optional | Assembled subject; empty until drafted. |
+| `body` | Text, optional | Assembled email text; empty until drafted. |
+| `validation_status` | Text, required, default `pending`, one of `pending`, `passed`, `warning`, `failed` | Overall check outcome (CHECK, `DraftValidationStatus`). |
+| `edit_history` | JSONB, required, default `[]` | The rep's edits; empty until the first edit. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 46. ValidationResult
+
+**Model Overview:** The outcome of one automatic check on one draft.
+
+**File Location:** `BD_BACKEND/app/campaigns/models.py` (class `ValidationResult`, table `validation_results`; migration 0010).
+
+**Purpose:** Shows the rep which of the nine checks passed, warned or failed (Q-CONTENT-09). One current row per check; a re-check after an edit updates it. Example: `length_limits`, `warning`, "Subject is 64 characters".
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `draft_id` | UUID, required, foreign key to `email_drafts.id` (CASCADE) | The draft. Unique with `check_id`. |
+| `check_id` | Text, required, one of `required_sections`, `length_limits`, `no_placeholders`, `lead_identity`, `supported_claims`, `offerings_and_banned_phrases`, `no_links_or_attachments`, `formatting`, `opt_out_and_eligibility` | Which of the nine checks (CHECK, `ValidatorCheck`). |
+| `status` | Text, required, one of `passed`, `warning`, `failed` | Result (CHECK, `CheckStatus`). |
+| `message` | Text, required, default empty | Explanation of a warning or failure. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+# Outreach module (`app/outreach/models.py`)
+
+## 47. Mailbox
+
+**Model Overview:** A Microsoft 365 mailbox the app sends from.
+
+**File Location:** `BD_BACKEND/app/outreach/models.py` (class `Mailbox`, table `mailboxes`; migration 0011).
+
+**Purpose:** The sending identity. The admin picks it per campaign, defaulting to the rep's own (D-002, D-013). Daily and hourly send counts are derived from `outreach_messages`, not stored here. Identifiers only: no credentials. Example: `jane.rep@alphaleo.example`, owned by Jane.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `address` | Text (320), required, unique, must equal its lowercase form | The mailbox address (CHECK keeps letter case from dodging uniqueness). |
+| `display_name` | Text (255), optional | Name shown as the sender. |
+| `owner_id` | UUID, optional, foreign key to `users.id` (SET NULL) | The rep whose own mailbox it is; empty for a shared mailbox. Indexed. |
+| `is_active` | Boolean, required, default true | Inactive mailboxes get no new sends but keep their history. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 48. OutreachMessage
+
+**Model Overview:** One email in the send queue, waiting, being sent, or already sent.
+
+**File Location:** `BD_BACKEND/app/outreach/models.py` (class `OutreachMessage`, table `outreach_messages`; migration 0011).
+
+**Purpose:** The only outgoing queue. M5's scheduler claims due rows with `FOR UPDATE SKIP LOCKED`; the unique idempotency key stops a duplicate send. Several CHECKs keep the status in step with its columns. Example: a `scheduled` follow-up for Jane, planned for business day 3, scheduled for 10:15 her time.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `draft_id` | UUID, required, unique, foreign key to `email_drafts.id` (CASCADE) | The approved draft this sends; one message per draft. |
+| `campaign_id` | UUID, required, foreign key to `campaigns.id` (CASCADE) | The campaign. Indexed. |
+| `person_id` | UUID, required, foreign key to `people.id` (CASCADE) | The recipient; erase-person removes the row (D-099). Indexed. |
+| `person_email_id` | UUID, required, foreign key to `person_emails.id` (CASCADE) | The exact address used. Indexed. |
+| `mailbox_id` | UUID, required, foreign key to `mailboxes.id` (RESTRICT) | The sending mailbox; one with messages is deactivated, not deleted. Indexed with `scheduled_for`. |
+| `thread_id` | UUID, optional, foreign key to `mail_threads.id` (SET NULL) | The mail thread (foreign key added by migration 0012). Indexed. |
+| `status` | Text, required, default `planned`, one of `planned`, `scheduled`, `held`, `sending`, `sent`, `deferred`, `failed`, `cancelled` | Queue state (CHECK, `OutreachMessageStatus`). The value list is an assumption. |
+| `planned_for` | DateTime (timezone), required | When the plan says it should go out (business-day spacing, D-082). |
+| `scheduled_for` | DateTime (timezone), optional | The concrete slot after caps and the sending window (D-083). Required when status is `scheduled`, `sending` or `sent`. Partial index on scheduled rows for the due lookup. |
+| `sent_at` | DateTime (timezone), optional | When it was sent; required when status is `sent`. |
+| `defer_reason` | Text (64), optional, lowercase letters, digits and underscores | Why a send was pushed back; required when status is `deferred`. |
+| `attempts` | Integer, required, default 0, at least 0 | Tries so far; above 0 when status is `failed`. |
+| `next_retry_at` | DateTime (timezone), optional | Next retry (30 min, 4 h, 20 h, D-097). |
+| `idempotency_key` | Text (128), required, unique | One key per message so a retry never sends twice. |
+| `claimed_by` | Text (100), optional | Worker holding the row; set together with `claimed_at`. |
+| `claimed_at` | DateTime (timezone), optional | When it was claimed; required when status is `sending`. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 49. SendAttempt
+
+**Model Overview:** One try to send a message.
+
+**File Location:** `BD_BACKEND/app/outreach/models.py` (class `SendAttempt`, table `send_attempts`; migration 0011).
+
+**Purpose:** Keeps the history behind the retry schedule (D-097). No message text or recipient data is stored. Example: attempt 2 of a message, error class `throttled`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `message_id` | UUID, required, foreign key to `outreach_messages.id` (CASCADE) | The message. Unique with `attempt_number`. |
+| `attempt_number` | Integer, required, at least 1 | 1 for the first try, then +1. |
+| `error_class` | Text (100), optional | Short failure class; empty on success. |
+| `started_at` | DateTime (timezone), required | When the try began (application clock). |
+| `finished_at` | DateTime (timezone), optional | When it ended; never before `started_at`. |
+
+# Mail module (`app/mail/models.py`)
+
+## 50. MailThread
+
+**Model Overview:** One conversation with a lead: the sent emails and the replies that match them.
+
+**File Location:** `BD_BACKEND/app/mail/models.py` (class `MailThread`, table `mail_threads`; migration 0012).
+
+**Purpose:** Groups outgoing messages and replies so a reply can be matched by conversation id, `In-Reply-To`/`References` headers or the custom match header (reply matching rule 13). Example: Jane's first email and her answer.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `person_id` | UUID, required, foreign key to `people.id` (CASCADE) | The lead; erase-person removes the thread (D-099). Indexed. |
+| `campaign_id` | UUID, required, foreign key to `campaigns.id` (CASCADE) | The campaign. Indexed. |
+| `mailbox_id` | UUID, required, foreign key to `mailboxes.id` (RESTRICT) | The mailbox the thread lives in. |
+| `conversation_id` | Text (255), optional | Microsoft's conversation id; empty until Graph reports it and always empty in mock mode. Unique per mailbox (empty values never clash). |
+| `internet_message_ids` | JSONB, required, default `[]` | The Message-ID values of the thread, used with the reply headers. |
+| `match_token` | Text (64), required, unique | Value of the custom header on every sent email; the last-resort match. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 51. OutboxMessage
+
+**Model Overview:** The mock sender's stored copy of an email.
+
+**File Location:** `BD_BACKEND/app/mail/models.py` (class `OutboxMessage`, table `outbox_messages`; migration 0012).
+
+**Purpose:** Lets the Outbox viewer show exactly what would have been sent while only the mock sender is active. Example: the HTML and text of Jane's first email with its unsubscribe header.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `outreach_message_id` | UUID, required, unique, foreign key to `outreach_messages.id` (CASCADE) | The queue row; one copy each. |
+| `to_address` | Text (320), required | Recipient address. |
+| `subject` | Text (255), required | Subject line. |
+| `body_html` | Text, required | Final HTML. |
+| `body_text` | Text, required | Final plain text. |
+| `headers` | JSONB, required, default `{}` | Headers the real send would carry (custom match header, unsubscribe mailto). |
+| `internet_message_id` | Text (255), required, unique | The generated Message-ID, so a simulated reply can point at it. |
+| `created_at` | DateTime (timezone), required | When it was created (application clock). |
+
+## 52. InboundMessage
+
+**Model Overview:** A received email that matched a thread.
+
+**File Location:** `BD_BACKEND/app/mail/models.py` (class `InboundMessage`, table `inbound_messages`; migration 0012).
+
+**Purpose:** Stores matched replies only; unmatched mail is dropped without storing its body. An unsubscribe email outside any thread (D-080) opts the sender out directly and stores no row. Replies are answered in Outlook (D-105). Example: Jane's "Sounds interesting".
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `thread_id` | UUID, required, foreign key to `mail_threads.id` (CASCADE) | The matched thread. Indexed. |
+| `mailbox_id` | UUID, required, foreign key to `mailboxes.id` (RESTRICT) | The mailbox it arrived in. Unique with `internet_message_id`; indexed with `received_at`. |
+| `internet_message_id` | Text (255), required | The sender's Message-ID; polling the same mail twice stores it once. |
+| `in_reply_to` | Text (255), optional | The `In-Reply-To` header. |
+| `received_at` | DateTime (timezone), required | When it arrived. |
+| `from_address` | Text (320), required | Sender address. |
+| `subject` | Text, required, default empty | Subject. |
+| `body_text` | Text, required, default empty | Body shown on the reply screen. |
+| `is_simulated` | Boolean, required, default false | True for a reply made with the mock "Simulate reply" screen. |
+| `created_at` | DateTime (timezone), required | When it was created (application clock). |
+
+## 53. DeltaCursor
+
+**Model Overview:** The Microsoft Graph delta token of one mailbox.
+
+**File Location:** `BD_BACKEND/app/mail/models.py` (class `DeltaCursor`, table `delta_cursors`; migration 0012).
+
+**Purpose:** Each poll reads only new mail; an expired or reset token triggers a safe full resync limited to the app's threads. Example: mailbox X, token `abc...`.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `mailbox_id` | UUID, required, unique, foreign key to `mailboxes.id` (CASCADE) | The mailbox; one cursor each. |
+| `delta_token` | Text, optional | Empty before the first poll. |
+| `last_full_sync_at` | DateTime (timezone), optional | When the last full resync ran. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 54. ReplyClassification
+
+**Model Overview:** The category of one reply and whether a rep has handled it.
+
+**File Location:** `BD_BACKEND/app/mail/models.py` (class `ReplyClassification`, table `reply_classifications`; migration 0012).
+
+**Purpose:** Records the six agreed categories (D-030) plus `unclear` (confidence below the threshold) and `unclassified` (AI unavailable), both handled safely (D-094). Keyword rules run before the AI; a rep can relabel. Example: `interested`, method `ai`, confidence 0.91.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `inbound_message_id` | UUID, required, unique, foreign key to `inbound_messages.id` (CASCADE) | The reply. |
+| `category` | Text, required, one of `interested`, `not_now`, `not_interested`, `out_of_office`, `wrong_person`, `unsubscribe`, `unclear`, `unclassified` | The category (CHECK, `ReplyCategory`). Out-of-office does not stop the sequence (D-093). |
+| `method` | Text, required, one of `rule`, `ai`, `manual` | How it was decided (CHECK, `ClassificationMethod`). |
+| `confidence` | Number (3, 2), optional, between 0 and 1 | Empty for rule and manual results. |
+| `model_name` | Text (100), optional | The AI model used. |
+| `handled_at` | DateTime (timezone), optional | When a rep marked it handled (D-105). |
+| `handled_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Who handled it; only with `handled_at` (CHECK). Indexed. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
+## 55. BounceRecord
+
+**Model Overview:** A bounce notice matched to the email that bounced.
+
+**File Location:** `BD_BACKEND/app/mail/models.py` (class `BounceRecord`, table `bounce_records`; migration 0012).
+
+**Purpose:** A permanent bounce marks the address invalid at once; a temporary one is retried once the next business day (D-096). Example: `permanent` bounce for an unknown address.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `inbound_message_id` | UUID, required, unique, foreign key to `inbound_messages.id` (CASCADE) | The bounce notice. |
+| `outreach_message_id` | UUID, optional, foreign key to `outreach_messages.id` (SET NULL) | The email that bounced. Indexed. |
+| `person_email_id` | UUID, optional, foreign key to `person_emails.id` (SET NULL) | The address that bounced. Indexed. |
+| `kind` | Text, required, one of `permanent`, `temporary` | Bounce type (CHECK, `BounceKind`). |
+| `created_at` | DateTime (timezone), required | When it was created (application clock). |
+
+# Notifications module (`app/notifications/models.py`)
+
+## 56. Notification
+
+**Model Overview:** One in-app alert for one user.
+
+**File Location:** `BD_BACKEND/app/notifications/models.py` (class `Notification`, table `notifications`; migration 0013).
+
+**Purpose:** The bell: failed send, new reply, draft needs attention, SLA reminder. Alerts go to the sending rep and, if different, the lead owner (D-095), in-app and by email. Example: "Jane Doe replied", unread.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `user_id` | UUID, required, foreign key to `users.id` (CASCADE) | Who the alert is for. |
+| `type` | Text, required, one of `failed_send`, `new_reply`, `draft_needs_attention`, `sla_reminder` | Alert kind (CHECK, `NotificationType`). The list is an assumption. |
+| `title` | Text (255), required | What the bell shows. |
+| `link` | Text (512), optional | Where the bell takes the user. |
+| `campaign_id` | UUID, optional, foreign key to `campaigns.id` (SET NULL) | What the alert is about. Indexed. |
+| `outreach_message_id` | UUID, optional, foreign key to `outreach_messages.id` (SET NULL) | The queue row (failed send). Indexed. |
+| `inbound_message_id` | UUID, optional, foreign key to `inbound_messages.id` (SET NULL) | The reply. Indexed. |
+| `read_at` | DateTime (timezone), optional | Empty while unread; never before `created_at`. Partial index on unread rows per user. |
+| `emailed_at` | DateTime (timezone), optional | When the email copy was sent (D-017, D-095). |
+| `created_at` | DateTime (timezone), required | When it was created (application clock). |
+
+## 57. SlaReminder
+
+**Model Overview:** The follow-up deadline of one reply and its hourly reminders.
+
+**File Location:** `BD_BACKEND/app/notifications/models.py` (class `SlaReminder`, table `sla_reminders`; migration 0013).
+
+**Purpose:** Same-business-day follow-up with hourly reminders until handled (D-032). How a late-day or weekend reply sets `due_at` is `[UNRESOLVED]` and lives in the M6 service. Example: due 17:00 today, reminded 2 times.
+
+| Field Name | Type | Description |
+|---|---|---|
+| `id` | UUID (primary key) | Unique id. |
+| `inbound_message_id` | UUID, required, unique, foreign key to `inbound_messages.id` (CASCADE) | The reply; one reminder record each. |
+| `user_id` | UUID, required, foreign key to `users.id` (CASCADE) | The rep being reminded. Indexed. |
+| `due_at` | DateTime (timezone), required | The follow-up deadline. Partial index on open reminders. |
+| `last_reminded_at` | DateTime (timezone), optional | Last reminder; set exactly when `reminder_count` is above 0 (CHECK). |
+| `reminder_count` | Integer, required, default 0, at least 0 | Reminders sent so far. |
+| `handled_at` | DateTime (timezone), optional | Set when the rep marks the reply handled; reminders then stop. |
+| `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
+| `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
+
 ---
 
 # Not built yet (no models to document)
@@ -738,7 +1262,7 @@ These are not built yet. Most module packages exist only as header-only stubs in
 | Module | Planned tables (from the code comments and `CLAUDE.local.md`) |
 |---|---|
 | `app/compliance/` | `EligibilitySnapshot` (optional; skipped in task A5, planned for M3). The other four compliance tables are built, see section 29 onward. |
-| `app/content/`, `app/campaigns/`, `app/outreach/`, `app/mail/`, `app/notifications/` | Owned by Developer B; tables not created yet |
+| (none) | Every module's M1 tables are now built: `content` (33 to 41), `campaigns` (42 to 46), `outreach` (47 to 49), `mail` (50 to 55) and `notifications` (56 to 57). |
 
 When any of these are added, add their sections here in the same task.
 
