@@ -85,6 +85,26 @@ EXPECTED_REAL_ROUTES = {
     ("POST", "/imports/upload"): "import_leads",
     ("GET", "/imports/{import_id}"): "import_leads",
     ("POST", "/imports/{import_id}/worksheet"): "import_leads",
+    # M2-B2: quarantine endpoints. Any BD user may list, fix and release (D-107); discard is
+    # further limited to the importer, a manager or an admin inside leads.quarantine
+    # (tests/test_leads_quarantine.py), which this role matrix does not model.
+    ("GET", "/quarantine"): "fix_quarantine",
+    ("GET", "/quarantine/{record_id}"): "fix_quarantine",
+    ("PATCH", "/quarantine/{record_id}"): "fix_quarantine",
+    ("POST", "/quarantine/{record_id}/release"): "fix_quarantine",
+    ("POST", "/quarantine/{record_id}/discard"): "discard_quarantine",
+    # M2-B5: duplicate review (manager and admin only, D-108).
+    ("GET", "/duplicates"): "review_duplicates",
+    ("GET", "/duplicates/{candidate_id}"): "review_duplicates",
+    ("POST", "/duplicates/{candidate_id}/merge"): "review_duplicates",
+    ("POST", "/duplicates/{candidate_id}/not-duplicate"): "review_duplicates",
+    # M2-B6: industry and state mappings (admin only, D-104).
+    ("GET", "/reference-mappings/industries"): "manage_source_profiles",
+    ("POST", "/reference-mappings/industries"): "manage_source_profiles",
+    ("PATCH", "/reference-mappings/industries/{mapping_id}"): "manage_source_profiles",
+    ("GET", "/reference-mappings/states"): "manage_source_profiles",
+    ("POST", "/reference-mappings/states"): "manage_source_profiles",
+    ("PATCH", "/reference-mappings/states/{mapping_id}"): "manage_source_profiles",
 }
 
 
