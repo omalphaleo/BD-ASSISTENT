@@ -10,11 +10,11 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
-import { meAuthMeGet, type UserResponse } from "./api-client";
+import { meAuthMeGet, type SessionUserResponse } from "./api-client";
 
 /** Outcome of the session check; "unavailable" means the backend could not answer. */
 export type SessionState =
-  | { status: "signed-in"; user: UserResponse }
+  | { status: "signed-in"; user: SessionUserResponse }
   | { status: "signed-out" }
   | { status: "unavailable" };
 
@@ -38,7 +38,7 @@ function readServerApiBaseUrl(): string {
 }
 
 /**
- * Looks up the current user with the request's session cookie.
+ * Looks up the current user (and the session's CSRF token) with the request's session cookie.
  *
  * Returns "signed-out" on a 401 or when there is no cookie at all, and "unavailable" for any
  * other failure (backend down, 5xx), so callers can show an error instead of redirecting in a loop.

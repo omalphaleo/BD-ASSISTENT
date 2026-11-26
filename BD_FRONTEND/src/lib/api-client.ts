@@ -1,13 +1,17 @@
 /**
- * Runtime setup and public entry point for the generated API client (task B2).
+ * Runtime setup and public entry point for the generated API client (tasks B2, B3, B12).
  *
  * Needed because the generated code in `src/lib/api/` must never be hand-edited, yet every call
- * needs the backend base URL and the session cookie. Pages import the API functions and types
- * from here, so this is also the single place where B12 adds the CSRF header.
+ * needs the backend base URL, the session cookie and (B12) the CSRF token. Pages import the API
+ * functions and types from here, so this is the single place where the CSRF header is added; the
+ * logic itself lives in `lib/csrf.ts`.
  * Also redirects the browser to /login when a call (other than login itself) returns 401 (B3).
  * Holds no business rules; the server decides everything.
  */
 import { client } from "./api/client.gen";
+import { meAuthMeGet } from "./api/sdk.gen";
+import type { SessionUserResponse } from "./api/types.gen";
+import { createCsrfFetch } from "./csrf";
 
 /**
  * Reads the backend base URL from the public environment.
@@ -33,12 +37,23 @@ client.setConfig({
 const LOGIN_PATH = "/auth/login";
 const LOGIN_PAGE = "/login";
 
-// Browser only: the server-side session check (auth-server.ts) handles its own 401 and the shared
-// server client must not carry browser behaviour. A 401 on any call means the session is gone
-// (for example expired mid-use), so send the user to the login page with a full page load, which
-// also re-runs the server layout. The login call itself is excluded: there a 401 means a wrong
-// password, and the form must show its own message instead of reloading.
+// Browser only: the server-side session check (auth-server.ts) handles its own 401 and only
+// reads (GET /auth/me), so the shared server client must carry no browser behaviour.
 if (typeof window !== "undefined") {
+  // Adds `X-CSRF-Token` to every POST, PUT, PATCH and DELETE except login, and on a CSRF failure
+  // refreshes the token from GET /auth/me and retries once (contract: milestone/m1.md section 16).
+  // Without `.bind`, calling fetch through a variable throws "Illegal invocation" in browsers.
+  client.setConfig({
+    fetch: createCsrfFetch(window.fetch.bind(window), async () => {
+      const result = await meAuthMeGet();
+      return result.data?.csrf_token ?? null;
+    }),
+  });
+
+  // A 401 on any call means the session is gone (for example expired mid-use), so send the user
+  // to the login page with a full page load, which also re-runs the server layout. The login call
+  // itself is excluded: there a 401 means a wrong password, and the form must show its own
+  // message instead of reloading.
   client.interceptors.response.use((response, request) => {
     const isLoginCall = new URL(request.url).pathname.endsWith(LOGIN_PATH);
     if (response.status === 401 && !isLoginCall && window.location.pathname !== LOGIN_PAGE) {
@@ -51,6 +66,9 @@ if (typeof window !== "undefined") {
   });
 }
 
+/** The signed-in user as pages see it: the server's answer without the CSRF token. */
+export type UserResponse = Omit<SessionUserResponse, "csrf_token">;
+
 // Re-exported so pages depend on this module, and a backend schema change that breaks a
 // signature or type fails `npm run typecheck` here first.
 export {
@@ -59,5 +77,11 @@ export {
   logoutAuthLogoutPost,
   meAuthMeGet,
 } from "./api/sdk.gen";
-export type { HttpValidationError, LoginRequest, UserResponse, UserRole } from "./api/types.gen";
+export type {
+  ErrorResponse,
+  LoginRequest,
+  SessionUserResponse,
+  UserRole,
+  ValidationErrorResponse,
+} from "./api/types.gen";
 export { client as apiClient };

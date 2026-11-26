@@ -1,3 +1,5 @@
+# Backend package metadata and runtime/dev dependencies.
+# Docker and local Python environments install this package so the API, worker, and Alembic share the same stack.
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
@@ -22,6 +24,7 @@ dependencies = [
     "python-multipart~=0.0.20",
     "openpyxl~=3.1",
     "defusedxml~=0.7",
+    "pgvector~=0.5",
 ]
 
 [project.optional-dependencies]

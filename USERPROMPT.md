@@ -1772,73 +1772,98 @@ Prompt: "basically i need to pull A5 before starting B6?"
 Status: Completed
 - Summary: Yes: A5 (migration 0008) is on origin/main, so B6 must start from it. Advised pulling/rebasing onto origin/main (not merging dev-a), after the wip commits are split or kept, and noted the conflict-prone files. Explanation only.
 - Status update (2026-11-23): Completed.
+Here is the consolidated version with both sections merged, duplicate task entries removed, and the original formatting preserved.
 
-## T-047: Implement A6 permission module per the approved plan (2026-11-24)
+**## T-047: Implement A6 permission module per the approved plan (2026-11-24)**
 
-Prompt: "Approved — proceed with implementation. 1. Item 1 (Capabilities): Option A. Define the full plan.md §4 capability table now so the behavioral matrix test covers the complete [AGREED] spec, and mark unbuilt capabilities as \"planned\" in the docs. 2. Item 2 (Audit of denials): Confirmed. Do not add audit events for 403s in A6. 3. Item 3 (OpenAPI mechanism): Confirmed. Include the OpenAPI customization for 401 and 403 responses. Start by logging the task in USERPROMPT.md and execute steps 1–8."
+Prompt: "Approved — proceed with implementation. 1. Item 1 (Capabilities): Option A. Define the full plan.md §4 capability table now so the behavioral matrix test covers the complete [AGREED] spec, and mark unbuilt capabilities as "planned" in the docs. 2. Item 2 (Audit of denials): Confirmed. Do not add audit events for 403s in A6. 3. Item 3 (OpenAPI mechanism): Confirmed. Include the OpenAPI customization for 401 and 403 responses. Start by logging the task in USERPROMPT.md and execute steps 1–8."
 
-Status: Needs input
-- Summary: Implemented A6 per the approved plan: core/permissions.py (full plan.md section 4 capability table, require_permission, public_route, owner-only check, OpenAPI 401/403), fixed 403 handler, existing routes declared, openapi.json regenerated, two test files, docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, m1.md, plan.md U21).
-- Status update (2026-11-24): Needs input. ruff is clean and the 23 non-database tests pass; the PostgreSQL-backed matrix tests could not run (Docker was off, no local PostgreSQL), so run bash scripts/check.sh before the PR.
+Status: Completed
 
-## T-048: Verify A6 in Docker: build the image, run ruff and all tests (2026-11-24)
+- Summary: Implemented A6 per the approved plan: `core/permissions.py` (full plan.md section 4 capability table, `require_permission`, `public_route`, owner-only check, OpenAPI 401/403), fixed 403 handler, existing routes declared, `openapi.json` regenerated, two test files, docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, m1.md, plan.md U21).
+- Status update (2026-11-24): Initially pending PostgreSQL verification; subsequently verified in Docker under T-048.
+
+**## T-048: Verify A6 in Docker: build the image, run ruff and all tests (2026-11-24)**
 
 Prompt: "run pytest with docker first build the whole image first then run all tests"
 
 Status: Completed
-- Summary: Built the api image and ran ruff and the full pytest suite in Docker against PostgreSQL with pgvector: ruff clean, 445 passed, including the A6 role-matrix tests. This closes the verification gap noted under T-065.
+
+- Summary: Built the API image and ran Ruff and the full pytest suite in Docker against PostgreSQL with pgvector: Ruff clean, 445 passed, including the A6 role-matrix tests. This closes the verification gap noted under T-047.
 - Status update (2026-11-24): Completed.
 
-## T-049: Describe A7 and implement the user management API (2026-11-24)
+**## T-049: Describe A7 and implement the user management API (2026-11-24)**
 
-Prompt: "describe a7", followed by the user's decisions on the open points: "1. 422 contract: Document the actual custom response schema: loc, msg, and type. 2. Session deactivation: Revoke all active sessions immediately when an account is deactivated. 3. Admin safeguards: Prevent admins from deactivating themselves, demoting themselves, or deactivating the last active admin. 4. Password handling: Admin provides an initial password, which must be hashed using the existing Argon2id implementation. Never store plaintext passwords. 5. Dependencies and migrations: No new dependencies or database tables without your approval."
+Prompt: "describe a7", followed by the user's decisions on the open points:
+
+1. 422 contract: Document the actual custom response schema: `loc`, `msg`, and `type`.
+2. Session deactivation: Revoke all active sessions immediately when an account is deactivated.
+3. Admin safeguards: Prevent admins from deactivating themselves, demoting themselves, or deactivating the last active admin.
+4. Password handling: Admin provides an initial password, which must be hashed using the existing Argon2id implementation. Never store plaintext passwords.
+5. Dependencies and migrations: No new dependencies or database tables without approval.
 
 Status: Completed
-- Summary: Described A7, then implemented it: core/user_services.py, /users routes (me, list, create, change role, deactivate, reactivate), new schemas, narrowed 422 documented in openapi.json, tests/test_users_api.py, matrix test updated, docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, m1.md). Verified in Docker: ruff clean, 468 tests pass.
+
+- Summary: Described A7, then implemented it: `core/user_services.py`, `/users` routes (me, list, create, change role, deactivate, reactivate), new schemas, narrowed 422 documented in `openapi.json`, `tests/test_users_api.py`, matrix test updated, docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, m1.md).
+- Verified in Docker: Ruff clean, 468 tests pass.
 - Status update (2026-11-24): Completed. Changes are uncommitted in the working tree; PR pending review.
 
-## T-052: Implement A8 (CSRF, Origin check, CORS) with six approved decisions (2026-11-24)
-- Prompt: "Implement A8 using these six approved decisions: 1. CSRF token sha256(\"csrf:\" + raw_session_token) returned in login and /auth/me, kept in frontend memory, re-fetched after reload, constant-time compare. 2. Origin check: if present must equal settings.frontend_origin, if absent continue to CSRF; applies to login. 3. X-CSRF-Token required for POST/PUT/PATCH/DELETE, exempt only POST /auth/login, logout needs token, GET/HEAD/OPTIONS need none. 4. No audit for rejected CSRF. 5. CORS exactly frontend_origin, credentials, explicit methods/headers incl. X-CSRF-Token, no wildcards. 6. No new dependencies, tables or columns. Add tests, update docs and B12 contract in m1.md, regenerate openapi.json, run Ruff and full backend tests in Docker. No Git operations."
-- Status: Completed
-- Summary: Implemented A8: new app/core/csrf.py (session-derived token, Origin check, app-level verify_csrf, OpenAPI 403), CORSMiddleware in main.py, csrf_token on login and /auth/me (SessionUserResponse), tests/test_csrf.py plus a CsrfTestClient helper, openapi.json regenerated. Docs updated (m1.md contract for B12, ARCHITECTURE, FILE_STRUCTURE, filedescription). Verified in Docker: ruff clean, 499 tests pass. No Git operations.
+**## T-052: Implement A8 (CSRF, Origin check, CORS) with six approved decisions (2026-11-24)**
+
+Prompt: "Implement A8 using these six approved decisions: 1. CSRF token sha256("csrf:" + raw_session_token) returned in login and /auth/me, kept in frontend memory, re-fetched after reload, constant-time compare. 2. Origin check: if present must equal settings.frontend_origin, if absent continue to CSRF; applies to login. 3. X-CSRF-Token required for POST/PUT/PATCH/DELETE, exempt only POST /auth/login, logout needs token, GET/HEAD/OPTIONS need none. 4. No audit for rejected CSRF. 5. CORS exactly frontend_origin, credentials, explicit methods/headers incl. X-CSRF-Token, no wildcards. 6. No new dependencies, tables or columns. Add tests, update docs and B12 contract in m1.md, regenerate openapi.json, run Ruff and full backend tests in Docker. No Git operations."
+
+Status: Completed
+
+- Summary: Implemented A8: new `app/core/csrf.py` (session-derived token, Origin check, app-level `verify_csrf`, OpenAPI 403), CORSMiddleware in `main.py`, `csrf_token` on login and `/auth/me` (`SessionUserResponse`), `tests/test_csrf.py` plus a `CsrfTestClient` helper, `openapi.json` regenerated. Docs updated (m1.md contract for B12, ARCHITECTURE, FILE_STRUCTURE, filedescription).
+- Verified in Docker: Ruff clean, 499 tests pass. No Git operations.
 - Status update (2026-11-24): Completed.
 
-## T-053: Implement A9 (login throttling) with nine approved decisions (2026-11-24)
-- Prompt: "A9 decisions: 1. audit rows only (no new table). 2. 5 failed attempts per 15 min per account and 20 per 15 min per IP, configurable via config.py. 3. unknown emails can only be throttled by IP. 4. same 401 InvalidCredentialsError. 5. reject a correct password during a block. 6. reset per-account failures on success (count only auth.login_failed rows after the user's latest auth.login_succeeded), per-IP strictly rolling window. 7. keep request.client.host. 8. blocked attempts log LOGIN_THROTTLED and do not count. 9. use AuditAction.LOGIN_THROTTLED."
-- Status: Completed
-- Summary: Implemented A9: new app/core/login_throttle.py (limits dataclass, find_throttle_scope counting auth.login_failed audit rows), login() now rejects throttled attempts with the same 401 and audits auth.login_throttled, writes auth.login_succeeded on success, three LOGIN_* settings in config.py and .env.example, tests/test_login_throttle.py. Docs updated (m1.md, ARCHITECTURE, FILE_STRUCTURE, filedescription). Verified in Docker: ruff check clean, 515 tests pass. No Git operations.
-- Status update (2026-11-24): Completed. Open for review: auth.login_succeeded was added (it did not exist) and "unknown email" was implemented as address-only limiting.
+**## T-053: Implement A9 (login throttling) with nine approved decisions (2026-11-24)**
 
+Prompt: "A9 decisions: 1. audit rows only (no new table). 2. 5 failed attempts per 15 min per account and 20 per 15 min per IP, configurable via config.py. 3. unknown emails can only be throttled by IP. 4. same 401 InvalidCredentialsError. 5. reject a correct password during a block. 6. reset per-account failures on success (count only auth.login_failed rows after the user's latest auth.login_succeeded), per-IP strictly rolling window. 7. keep request.client.host. 8. blocked attempts log LOGIN_THROTTLED and do not count. 9. use AuditAction.LOGIN_THROTTLED."
 
-## T-054: Describe A10 (2026-11-24)
-- Prompt: "describe a10"
-- Status: Completed
-- Summary: Described A10 (worker sample job) from milestone/m1.md and app/worker.py.
+Status: Completed
+
+- Summary: Implemented A9: new `app/core/login_throttle.py` (limits dataclass, `find_throttle_scope` counting `auth.login_failed` audit rows), `login()` now rejects throttled attempts with the same 401 and audits `auth.login_throttled`, writes `auth.login_succeeded` on success, three LOGIN\_\* settings in `config.py` and `.env.example`, `tests/test_login_throttle.py`. Docs updated (m1.md, ARCHITECTURE, FILE_STRUCTURE, filedescription).
+- Verified in Docker: Ruff clean, 515 tests pass. No Git operations.
+- Status update (2026-11-24): Completed. Open for review: `auth.login_succeeded` was added (it did not exist) and "unknown email" was implemented as address-only limiting.
+
+**## T-054: Describe A10 (2026-11-24)**
+
+Prompt: "describe a10"
+
+Status: Completed
+
+- Summary: Described A10 (worker sample job) from `milestone/m1.md` and `app/worker.py`.
 - Status update (2026-11-24): Completed.
 
-## T-055: A10 worker sample job: plan, then implement (2026-11-25)
-- Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
-- Decisions approved: pure echo task; idempotent service + queueing_lock; python -m app.core.tasks; in-memory test + manual Docker check; default retry/queue. Plan approved.
-- Status: Completed
-- Summary: Added run_sample_job (core/services.py), core/tasks.py (sample_job with queueing lock, python -m app.core.tasks), registered via import_paths in worker.py, tests/test_sample_job.py (5 tests, in-memory connector). Docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, README, m1.md). Verified in Docker: ruff check clean, 520 tests pass, real worker ran the job. No Git operations.
-- Status update (2026-11-25): Completed. Note: planning prompt could not be logged until plan mode ended, so one entry covers plan and implementation.
+**## T-055: A10 worker sample job: plan, then implement (2026-11-25)**
 
-## T-056: Describe A11 implementation (2026-11-25)
-- Prompt: "describe a11 implementation"
-- Status: Completed
+Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
+
+Decisions approved: Pure echo task; idempotent service + `queueing_lock`; `python -m app.core.tasks`; in-memory test + manual Docker check; default retry/queue. Plan approved.
+
+Status: Completed
+
+- Summary: Added `run_sample_job` (`core/services.py`), `core/tasks.py` (`sample_job` with queueing lock, `python -m app.core.tasks`), registered via `import_paths` in `worker.py`, `tests/test_sample_job.py` (5 tests, in-memory connector). Docs updated (filedescription, FILE_STRUCTURE, ARCHITECTURE, README, m1.md).
+- Verified in Docker: Ruff clean, 520 tests pass, real worker ran the job. No Git operations.
+- Status update (2026-11-25): Completed. Planning prompt could not be logged until plan mode ended, so one entry covers plan and implementation.
+
+**## T-056: Describe A11 implementation (2026-11-25)**
+
+Prompt: "describe a11 implementation"
+
+Status: Completed
+
 - Summary: Described A11 (factories and model tests) from m1.md and the existing tests; flagged the open factory-approach decision and overlap with model tests already written in A2-A5.
 - Status update (2026-11-25): Completed.
 
-## T-057: A11 plan, one decision at a time (prompt pasted with the A10 wording) (2026-11-25)
-- Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
-- Interpretation: A10 is already implemented (T-055), so this is read as the same planning request for A11 (the task just described in T-056).
-- Status: Needs input
-- Decisions: hand-written helpers; leave A2-A5 tests untouched and add only gap tests; conftest.py unchanged; scope limited to the five rule types plus a factory smoke test.
-- Summary: Collected four decisions for A11 and presented the draft plan for approval; no code changed.
-- Status update (2026-11-25): Needs input (plan approval).
+**## T-057: A11 plan, one decision at a time (prompt pasted with the A10 wording) (2026-11-25)**
 
-## T-058: Implement A11 (factories and model tests) (2026-11-25)
-- Prompt: "approved"
+Prompt: "a detailed implementation plan for A10 based on the existing project documentation, architecture, and approved decisions. Before implementation: 1. Review the relevant documentation and understand the A10 requirements. 2. Break down the implementation into clear tasks and logical steps. 3. Identify any unresolved requirements, ambiguities, or technical decisions. 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any suggestions or potential improvements that need my approval. Important: 1. Do not make assumptions about unclear requirements. 2. Do not make implementation changes yet. 3. Present unresolved questions one at a time so I can make decisions. 4. Wait for my approval before finalizing the implementation plan. The goal is to finalize a clear, agreed-upon A10 implementation plan before starting development."
+
+- Interpretation: A10 is already implemented (T-055), so this was read as the same planning request for A11 (the task just described in T-056).
+- Decisions: Hand-written helpers; leave A2-A5 tests untouched and add only gap tests; `conftest.py` unchanged; scope limited to the five rule types plus a factory smoke test.
 - Status: Completed
 - Summary: Added tests/factories/{common,core,leads,imports,compliance}.py (hand-written helpers), tests/test_factories.py (smoke) and tests/test_schema_rule_gaps.py (34 FK and 7 CHECK cases the audit found uncovered). Docs updated (filedescription, FILE_STRUCTURE, m1.md). Verified in Docker: ruff check clean, 594 tests pass. No Git operations.
 - Status update (2026-11-25): Completed.
@@ -1855,31 +1880,31 @@ Status: Completed
 - Summary: Read M2 in plan.md (section 16, modules B/C/D, section 6.2, job design, open items) and the Q-A decisions; created milestone/m2.md (purpose, tasks, data scope, validation and matching rules, report, files, acceptance, tests, demo, open items). Listed it in FILE_STRUCTURE.md and filedescription.md. No code changed.
 - Status update (2026-11-25): Completed.
 
-## T-059: PR descriptions for A6-A11 (2026-11-25)
+## T-159: PR descriptions for A6-A11 (2026-11-25)
 - Prompt: "give 2-3 line description for creating pull request for a6 and a7 and a8 and a9 a10 a11"
 - Status: Completed
 - Summary: Wrote short pull request descriptions for A6 to A11.
 - Status update (2026-11-25): Completed.
 
-## T-060: Shorter PR descriptions (2026-11-25)
+## T-160: Shorter PR descriptions (2026-11-25)
 - Prompt: "2-3 line description only it too big"
 - Status: Completed
 - Summary: Gave one 2-3 line PR description covering A6 to A11.
 - Status update (2026-11-25): Completed.
 
-## T-061: Split M2 between two developers in m2.md (2026-11-25)
+## T-161: Split M2 between two developers in m2.md (2026-11-25)
 - Prompt: "First, review the entire codebase and M2.md ... decompose the complete M2 workload between two developers and document the entire task breakdown directly in M2.md. Developer B is already working on M1 tasks B11 and B12 ... Write the complete, updated task breakdown directly into M2.md." (full text pasted; abbreviated here)
 - Status: Completed
 - Summary: Verified the repo (M2 has only models; A6-A11 are on m1/dev-a-0.2, not main; B6-B10 are listed done in m1.md but stubs only in code; B11 and B12 left as B's). Appended sections 15-24 to milestone/m2.md: verified baseline, A (10 tasks) and B (6 tasks) split, ownership map, dependencies and gates, Git workflow, conflict rules, integration order, progress table, open decisions. No application code changed.
 - Status update (2026-11-25): Completed.
 
-## T-062: Re-split M2 into feature-based end-to-end workstreams (2026-11-25)
+## T-162: Re-split M2 into feature-based end-to-end workstreams (2026-11-25)
 - Prompt: "The current division still appears to separate work by technical layer (backend vs. frontend). I dont want that approach. Please reorganize the tasks into distinct, feature-based workstreams so both developers can work independently and simultaneously. Each developer should own complete functional modules end-to-end, including both backend and frontend ... roughly equal workload ... clearly separated feature ownership with minimal overlap in files ... start in parallel ... dependencies and integration points clearly defined ... B11 and B12 preserved. Update M2.md accordingly. Do not change application code." (abbreviated)
 - Status: Completed
 - Summary: Replaced m2.md sections 15-26 (the backend/frontend split) with two feature workstreams, each end to end: W1 Intake and processing (Developer A, 36 points) and W2 Data quality and resolution (Developer B, 35 points incl. B11 and B12). Added the ingest_row contract as the single seam, an M2-0 scaffold that pre-wires shared files, an M2-only ownership change for approval, gates, integration steps, workload table, progress table, Git workflow. No application code changed.
 - Status update (2026-11-25): Completed.
 
-## T-063: Plain-language task guide and Claude Code settings suggestions in m2.md (2026-11-25)
+## T-163: Plain-language task guide and Claude Code settings suggestions in m2.md (2026-11-25)
 - Prompt: "For documenting tasks A0-A5 and B1-B6, refer to M1.md as the reference for how task descriptions should be structured ... 4-5 line description ... beginner-friendly. Also document the recommended Claude Code configurations at both the user level and project level ... suggestions, not mandatory ... permissions, approval settings, safeguards ... reduce overlapping file modifications and conflicts ... clearly distinguish suggested configurations from enforced project rules." (abbreviated)
 - Interpretation: "A0-A5" read as M2-0 and M2-A1 to M2-A5, "B1-B6" as M2-B1 to M2-B6 (the M2 task IDs in m2.md section 19).
 - Status: Completed
@@ -1935,3 +1960,145 @@ Status: Completed
 - Status: Completed
 - Summary: Implemented the M2-A1 backend: migration 0014 (storage_key, size_bytes), deps python-multipart, openpyxl and defusedxml, upload settings, FileStorage and LocalDiskStorage, CSV and XLSX parsers with ZIP safety, streaming multipart reader with the 20 MB cap, duplicate check and import-anyway, worksheet selection, access rules, three /imports endpoints, regenerated openapi.json, and tests (713 backend tests pass, ruff clean). Docs updated; compose volume, Dockerfile directory and 0009 re-point are handed to B in m2.md section 31.
 - Status update (2026-11-26): Completed (backend). Frontend checks and generated client still need npm ci; upload page waits for B12.
+- Summary: Collected four decisions for A11 and presented the draft plan for approval; no code changed.
+- Status update (2026-11-25): Plan approval was pending at this stage; subsequently approved under T-058.
+
+**## T-058: Implement A11 (factories and model tests) (2026-11-25)**
+
+Prompt: "approved"
+
+Status: Completed
+
+- Summary: Added `tests/factories/{common,core,leads,imports,compliance}.py` (hand-written helpers), `tests/test_factories.py` (smoke) and `tests/test_schema_rule_gaps.py` (34 FK and 7 CHECK cases the audit found uncovered). Docs updated (filedescription, FILE_STRUCTURE, m1.md).
+- Verified in Docker: `ruff check` clean, 594 tests pass. No Git operations.
+
+---
+
+**## T-065: B6 dependency analysis, plan and implementation (content tables, migration 0009) (2026-11-23)**
+
+Prompt: "Can you proceed with the B6 implementation plan? Before starting, analyze the entire project and identify all of B6's dependencies. Verify whether all the necessary components, configurations, APIs, and prerequisites are already in place. If anything is missing, clearly list what needs to be completed or fixed before B6 can proceed. Then prepare the implementation plan in the chat based on the current state of the project."
+
+Follow-up prompts: "First, provide a detailed plan for B6. Explain what B6 includes, what needs to be implemented, how each component will work, and why each step is necessary. Also, outline the implementation steps, dependencies, and expected outcome. Do not start implementing anything yet—first, I want to review and understand the complete plan."; "From G1, which files are you planning to extract information from, and what specific information will you be taking from them? Will you be storing the extracted information in the database as metadata? If so, what metadata fields will you store, and how will they be structured?"; "So, what exactly are you taking from A5? For B6, are you only creating the required database tables, or will you also be extracting data from A5, processing it, and storing it in those tables? I want to understand exactly what B6 will handle and how it will use A5's output."; "dont create any md file, go ahead with implemenation of b6".
+
+Decisions given by the user: Vector dimension 768; add the `pgvector` package.
+
+Status: Completed
+
+- Summary: Analysed B6 dependencies (G1 met; `pgvector` package and A's `pyproject.toml` ownership open), then implemented it: nine content models in `app/content/models.py` (eight listed plus the `industry_profile_items` link), migration `0009` (vector(768), no seed rows), four test files, and docs (`database.md`, `filedescription.md`, `FILE_STRUCTURE.md`, `m1.md`).
+- Verified in Docker with `pgvector` installed in the throwaway container: Ruff clean, 372 tests pass.
+- Status update (2026-11-23): Initially pending because `pgvector~=0.4` could not be added to `pyproject.toml` (permission denied, owned by A) and `ARCHITECTURE.md` could not be edited. This was subsequently addressed under T-067.
+
+**## T-066: Is B6 completed, and plan and implement B7 campaigns tables (2026-11-24)**
+
+Prompt: "Is B6 completed? If so, what should I work on in B7? Please analyze the project thoroughly and provide a detailed plan for B7 in the chat, including its dependencies, what needs to be implemented, which files or components are involved, what needs to be done, and why each step is necessary. Also explain how B7 connects with the previous tasks and what is required before starting."; "provide plan in the chat for b7"; "ok proceed"
+
+Status: Completed
+
+- Summary: Answered that B6 was built but uncommitted (and `pgvector` still missing from `pyproject.toml`), gave the B7 plan in chat, then implemented B7: five models in `app/campaigns/models.py`, migration `0010`, two test files, and docs (`database.md` sections 42-46, `filedescription.md`, `FILE_STRUCTURE.md`, `m1.md`).
+- Status update (2026-11-24): Initially pending because Ruff and pytest could not run (Docker Desktop was not running and starting it was denied). Subsequently verified under T-067 and the B7 follow-up.
+
+**## T-067: Run database migrations in the current Docker volume (2026-11-24)**
+
+Prompt: "run all the migrations in current docker volume of alphaleo_bd"
+
+Status: Completed
+
+- Summary: Added the pgvector Python dependency, rebuilt the backend image, and applied migrations 0005-0010 to `alphaleo_bd` on `bd-assistent_pgdata`.
+- Verified: The database is at revision 0010; the pgvector extension and content/campaign tables are present.
+- Follow-up: Started the rebuilt API; `/health` returned `status=ok` and `database=ok`.
+
+Follow-up (2026-11-24): "now analyze and do the remaining work of B7". Ran the B7 checks in Docker: `ruff check` clean, `ruff format` applied to the migration and the models test, full pytest 405 passed; updated the B7 line in `milestone/m1.md`. Remaining: commit/PR, A's follow-ups, confirmation of assumptions.
+
+**## T-101: Create CLAUDE.local.md (Developer A role, T-1xx IDs) and git-ignore it (2026-11-24)**
+
+Prompt: "Create a `CLAUDE.local.md` file and add it to `.gitignore`. Include the following instructions: 1. Keep `M1.md` updated as we progress through the project, documenting completed tasks, pending work, and important changes. 2. In user prompts, refer to my role as `T-1`, not `T-0`. 3. My assigned role is Developer A. 4. Add the basic project-specific instructions and guidelines in `CLAUDE.local.md`. Make sure these rules are followed throughout the development process."
+
+Status: Completed
+
+- Summary: Created `CLAUDE.local.md` (Developer A role, `T-1xx` log IDs, keep `milestone/m1.md` current, short project guidelines) and added it to `.gitignore`; confirmed it is ignored by Git.
+- Status update (2026-11-24): Work completed. The earlier B6-B8 work was Developer B work, which conflicts with the newly stated Developer A role; B8 had not started at that point.
+
+**## T-102: Analyze whether B3, B4 and B5 are done and not updated in m1.md (2026-11-24)**
+
+Prompt: "analyze the project does b3, b4 and b5 are not done? not updated in m1.md"
+
+Status: Completed
+
+- Summary: B3, B4 and B5 are done and already merged to `main` (PR #2); only `m1.md` was stale. Updated their status lines and the summary table (13 completed, 0 in progress, 11 pending).
+- Open item: The Playwright journey needs A8 (CORS/CSRF).
+- Status update (2026-11-24): Completed.
+
+**## T-103: Start B8 outreach tables (2026-11-24)**
+
+Prompt: "start with b8" (earlier approvals: use my proposals for the B8 decisions; stay on m1/dev-b; do not commit)
+
+Status: Completed
+
+- Summary: Implemented B8: `Mailbox`, `OutreachMessage` and `SendAttempt` in `app/outreach/models.py`, migration `0011` (also adds the foreign key on `campaigns.mailbox_id`, so `app/campaigns/models.py` changed), two test files, and docs (`database.md` sections 47-49, `filedescription.md`, `FILE_STRUCTURE.md`, `m1.md`).
+- Verified in Docker after rebuilding the image: `ruff check` and `ruff format --check` clean, full pytest 436 passed.
+- Status update (2026-11-24): Nothing committed (the user commits); A must declare the foreign keys on `touches`/`lead_events.outreach_message_id`; the role in `CLAUDE.local.md` is Developer A but B8 is Developer B work.
+
+**## T-104: Detailed plan for B9 and B10 (2026-11-24)**
+
+Prompt: "Provide a detailed plan for B9 and B10, explaining what needs to be implemented, the steps involved, dependencies, and the expected outcomes of each task."
+
+Status: Completed
+
+- Summary: Gave the B9 (mail tables, 0012) and B10 (notifications tables, 0013) plans in chat: tables, columns, constraints, decisions needed, steps, dependencies and outcomes. No files changed besides this log.
+- Status update (2026-11-24): Completed (planning only).
+
+**## T-105: Implement B9 mail tables and B10 notifications tables (2026-11-24)**
+
+Prompt: "implement both b9 and b10" (earlier: use my proposals for the open decisions; stay on m1/dev-b; do not commit)
+
+Status: Completed
+
+- Summary: Implemented B9 (`app/mail/models.py`: six tables; migration `0012`, which also adds the foreign key `outreach_messages.thread_id`) and B10 (`app/notifications/models.py`: `Notification`, `SlaReminder`; migration `0013`), four test files, and docs (`database.md` sections 50-57, `filedescription.md`, `FILE_STRUCTURE.md`, `m1.md`).
+- Verified in Docker: `ruff check` and `ruff format --check` clean, full pytest 490 passed.
+- Status update (2026-11-25): Nothing committed (the user commits); assumptions to confirm (reply categories, notification types); A must declare the foreign keys on `touches`/`lead_events` (`campaign_id`, `outreach_message_id`).
+
+**## T-106: Analyze m1.md: merge after B12 or before B12? (2026-11-25)**
+
+Prompt: "analyzee m1.md and tell should i merge after b12 or before b12?"
+
+Status: Completed
+
+- Summary: Read m1.md (gates, task dependencies, rules 4 and 7) and advised merging B6 to B10 before B11 and B12, because B11 waits for A11 and B12 waits for A8.
+- Status update (2026-11-25): Completed (advice only, no files changed besides this log).
+
+---
+
+**Note:** Task statuses above reflect the latest known updates in the supplied history. "Completed" means the described implementation or verification work was completed; it does not imply that all changes were committed or merged. Items explicitly marked as pending follow-ups remain open.
+
+Add a concise current-status summaryReconcile task numbering and chronology
+
+## T-107: Can I start B11 and B12? Check dependencies, CORS, CSRF, auth, permissions (2026-11-25)
+Prompt: "Analyze the entire project and confirm whether I can start working on B11 and B12. Check all the necessary dependencies and prerequisites, including whether the earlier tasks are completed and merged, and whether CORS, CSRF, authentication, permissions, and other required configurations are in place. Identify anything that is still pending or blocking B11 and B12, and explain whether I can safely proceed with both."
+
+Status: Completed
+- Summary: Checked origin/main and m1/dev-b. A6 to A11 are merged to main (PR #3: CSRF, CORS, permissions, factories, throttling); B6 to B10 are on origin/m1/dev-b but not merged to main. Full backend suite on the current branch: ruff clean, 762 tests pass. The frontend generated client is stale against the new `openapi.json` (no CSRF token handling yet), which is B12's job. Both B11 and B12 can start on m1/dev-b.
+- Side effect: running `npm run check:api` regenerated the files under `BD_FRONTEND/src/lib/api/` in the working tree (the script generates, then compares). Restoring them with `git checkout` was denied, so they stay modified; restore with `git checkout -- BD_FRONTEND/src/lib/api` or keep them for B12.
+- Status update (2026-11-25): Completed (analysis only).
+
+## T-108: Implement B11 factories and model tests for B's tables (2026-11-25)
+Prompt: "Let's start with B11. First, explain what it is, what needs to be done, and why, in simple terms. Explain it in chat before implementation." then "Start with b11" (hand-written helpers like A11; stay on m1/dev-b; do not commit)
+
+Status: Needs input
+- Summary: Implemented B11: five factory files in `tests/factories/` (content, campaigns, outreach, mail, notifications; hand-written like A11), `test_b_factories.py` (smoke tests) and `test_b_schema_gaps.py` (every foreign key's ON DELETE rule checked against the model, plus missing cascade and SET NULL cases), and docs (`filedescription.md`, `FILE_STRUCTURE.md`, `m1.md`). Verified in Docker: `ruff check` and `ruff format --check` clean, full pytest 852 passed (90 new).
+- Status update (2026-11-25): Needs input: nothing committed (the user commits); B12 is the only task left; the regenerated files under `BD_FRONTEND/src/lib/api/` from the earlier `check:api` run are still modified in the working tree.
+
+## T-109: Implement B12 CSRF in the client (2026-11-25)
+Prompt: "start with b12" (stay on m1/dev-b; do not commit)
+
+Status: Needs input
+- Summary: Implemented B12: new `src/lib/csrf.ts` (in-memory token; fetch that adds `X-CSRF-Token` to POST/PUT/PATCH/DELETE except login and refreshes once and retries once on `403 CSRF check failed`), `src/lib/api-client.ts` installs it in the browser, `AuthProvider`/layout/`LoginForm`/`LogoutButton` store and clear the token, regenerated API client kept (A8 `openapi.json`), tests (`csrf.test.ts`, `auth-and-logout.test.tsx`, updated `LoginForm`/`AppShell` tests, new e2e case) and docs (`filedescription.md`, `FILE_STRUCTURE.md`, README, `m1.md`).
+- Verified: `bash scripts/check.sh` passes (ruff, backend pytest, tsc, ESLint, Vitest 39 tests); `npm run check:api` up to date; `npm run build` clean.
+- Not verified: the Playwright journey (needs the running stack, two test accounts, a browser); reading `.env.local` was denied, so the e2e accounts were not checked.
+- Status update (2026-11-25): Needs input: run `npm run test:e2e`; nothing committed (the user commits).
+
+## T-110: One-off script to create local admin and rep users from .env.local (2026-11-25)
+Prompt: "Create one admin and one rep user in my local dev database using the app's own password hashing and the User model (no plain SQL, no hand-made hashes). Emails and passwords come from BD_FRONTEND/.env.local (E2E_ADMIN_* and E2E_REP_*). Write it as a one-off script, uncommitted. Show me the script first, and do not edit app/core. Don't commit anything."
+
+Status: Needs input
+- Summary: Wrote the one-off `BD_BACKEND/create_dummy_user.py` (git-ignored by an existing rule) and showed it for review; it uses `hash_password`, the `User` model and `get_engine`, reads `E2E_ADMIN_*` and `E2E_REP_*` from the env file given as its argument, skips existing emails and never prints passwords. Not run yet; `app/core` untouched; nothing committed.
+- Status update (2026-11-25): Needs input: approval to run it (it needs the `.env.local` file visible inside the api container).

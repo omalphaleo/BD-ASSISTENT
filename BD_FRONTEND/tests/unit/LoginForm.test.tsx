@@ -10,6 +10,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import LoginForm from "@/components/LoginForm";
+import { clearCsrfToken, getCsrfToken } from "@/lib/csrf";
 
 // Stand-ins, created with vi.hoisted so the vi.mock factories below can use them:
 // loginMock replaces the generated login call, replaceMock/refreshMock replace the router.
@@ -38,6 +39,7 @@ async function submitFakeCredentials() {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  clearCsrfToken(); // the token store is module state, so reset it between tests
 });
 
 describe("LoginForm", () => {
@@ -51,7 +53,7 @@ describe("LoginForm", () => {
 
   it("successful login: sends the credentials, then replace('/leads') before refresh()", async () => {
     loginMock.mockResolvedValue({
-      data: { id: "1", email: FAKE_EMAIL, role: "rep" },
+      data: { id: "1", email: FAKE_EMAIL, role: "rep", csrf_token: "token-from-login" },
       response: { status: 200 },
     });
 
@@ -65,6 +67,39 @@ describe("LoginForm", () => {
     // replace first, so Back cannot return to the login form; then refresh the server layout.
     expect(replaceMock.mock.invocationCallOrder[0]).toBeLessThan(
       refreshMock.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("successful login: remembers the CSRF token from the answer (in memory only)", async () => {
+    loginMock.mockResolvedValue({
+      data: { id: "1", email: FAKE_EMAIL, role: "rep", csrf_token: "token-from-login" },
+      response: { status: 200 },
+    });
+
+    await submitFakeCredentials();
+
+    await waitFor(() => expect(getCsrfToken()).toBe("token-from-login"));
+    expect(window.localStorage.getItem("token-from-login")).toBeNull();
+    expect(document.cookie).not.toContain("token-from-login");
+  });
+
+  it("failed login: keeps no CSRF token", async () => {
+    loginMock.mockResolvedValue({ error: {}, response: { status: 401 } });
+
+    await submitFakeCredentials();
+
+    await screen.findByRole("alert");
+    expect(getCsrfToken()).toBeNull();
+  });
+
+  it("403 (origin or CSRF rejection): shows the general 'request was rejected' message", async () => {
+    loginMock.mockResolvedValue({ error: { detail: "CSRF check failed" }, response: { status: 403 } });
+
+    await submitFakeCredentials();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe(
+      "The request was rejected. Open the app at its configured address and try again.",
     );
   });
 
