@@ -20,6 +20,17 @@ DEFAULT_LOGIN_MAX_FAILURES_PER_ACCOUNT = 5
 DEFAULT_LOGIN_MAX_FAILURES_PER_IP = 20
 DEFAULT_LOGIN_THROTTLE_WINDOW_MINUTES = 15
 
+# Import upload limits (M2-A1). The 20 MB and 50,000-row limits are D-110; the ZIP limits are
+# the values approved on 2026-11-26 and guard against decompression bombs in XLSX files.
+BYTES_PER_MEGABYTE = 1024 * 1024
+DEFAULT_UPLOAD_DIR = "/srv/uploads"
+DEFAULT_UPLOAD_MAX_BYTES = 20 * BYTES_PER_MEGABYTE
+DEFAULT_UPLOAD_MAX_ROWS = 50_000
+DEFAULT_XLSX_MAX_ENTRIES = 1_000
+DEFAULT_XLSX_MAX_MEMBER_BYTES = 100 * BYTES_PER_MEGABYTE
+DEFAULT_XLSX_MAX_TOTAL_BYTES = 200 * BYTES_PER_MEGABYTE
+DEFAULT_XLSX_MAX_COMPRESSION_RATIO = 100
+
 
 class Settings(BaseSettings):
     """All runtime settings; field names map to upper-case environment variables.
@@ -48,9 +59,18 @@ class Settings(BaseSettings):
         default=DEFAULT_LOGIN_MAX_FAILURES_PER_ACCOUNT, gt=0
     )
     login_max_failures_per_ip: int = Field(default=DEFAULT_LOGIN_MAX_FAILURES_PER_IP, gt=0)
-    login_throttle_window_minutes: int = Field(
-        default=DEFAULT_LOGIN_THROTTLE_WINDOW_MINUTES, gt=0
-    )
+    login_throttle_window_minutes: int = Field(default=DEFAULT_LOGIN_THROTTLE_WINDOW_MINUTES, gt=0)
+
+    # Import uploads (env: UPLOAD_DIR, UPLOAD_MAX_BYTES, UPLOAD_MAX_ROWS, XLSX_MAX_ENTRIES,
+    # XLSX_MAX_MEMBER_BYTES, XLSX_MAX_TOTAL_BYTES, XLSX_MAX_COMPRESSION_RATIO). The directory
+    # must be the same persistent volume in the api and worker containers.
+    upload_dir: str = Field(default=DEFAULT_UPLOAD_DIR, min_length=1)
+    upload_max_bytes: int = Field(default=DEFAULT_UPLOAD_MAX_BYTES, gt=0)
+    upload_max_rows: int = Field(default=DEFAULT_UPLOAD_MAX_ROWS, gt=0)
+    xlsx_max_entries: int = Field(default=DEFAULT_XLSX_MAX_ENTRIES, gt=0)
+    xlsx_max_member_bytes: int = Field(default=DEFAULT_XLSX_MAX_MEMBER_BYTES, gt=0)
+    xlsx_max_total_bytes: int = Field(default=DEFAULT_XLSX_MAX_TOTAL_BYTES, gt=0)
+    xlsx_max_compression_ratio: int = Field(default=DEFAULT_XLSX_MAX_COMPRESSION_RATIO, gt=0)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

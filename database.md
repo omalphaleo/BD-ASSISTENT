@@ -557,7 +557,7 @@ These six tables back the Excel/CSV/Apollo import (M2). No service reads or writ
 
 **File Location:** `BD_BACKEND/app/imports/models.py` (class `ImportFile`, table `import_files`; enum `ImportStatus`).
 
-**Purpose:** Tracks each upload and where it is in the import. Only the file's SHA-256 is stored, not the bytes. `sha256` is intentionally not unique: re-uploading the same content shows a warning and the user may import anyway (D-109). The 50,000-row and 20 MB limits (D-110) are checked by the import service, not the database. Example: `apollo-nov.csv`, status `processing`, 1,200 rows.
+**Purpose:** Tracks each upload and where it is in the import. The file's bytes are not kept in PostgreSQL: they live in the file storage under `storage_key`, and the row keeps the SHA-256 and size. `sha256` is intentionally not unique: re-uploading the same content shows a warning and the user may import anyway (D-109). The 50,000-row and 20 MB limits (D-110) are checked by the import service, not the database. Example: `apollo-nov.csv`, status `processing`, 1,200 rows.
 
 | Field Name | Type | Description |
 |---|---|---|
@@ -570,6 +570,8 @@ These six tables back the Excel/CSV/Apollo import (M2). No service reads or writ
 | `worksheet` | String(255), optional | Sheet name for XLSX (one sheet per import, D-110); empty for CSV. |
 | `status` | Text with CHECK (`uploaded`, `mapping`, `processing`, `completed`, `failed`), required, default `uploaded` | Lifecycle stage (`mapping` = headers being confirmed, D-049). |
 | `row_count` | Integer, required, default `0` | Number of data rows; 0 or more. |
+| `storage_key` | Text (max 512), optional, unique | Where the uploaded file's bytes are kept in the file storage (a server-generated key such as `3f2a…e9.csv`, never a user-supplied path). NULL for rows created before migration `0014`. Added by migration `0014` (M2-A1). |
+| `size_bytes` | BigInteger, optional | Size of the stored file in bytes; 0 or more (`ck_import_files_size_bytes_nonnegative`). NULL together with `storage_key`. Added by migration `0014`. |
 | `created_at` | DateTime (timezone), required | From `TimestampMixin`. |
 | `updated_at` | DateTime (timezone), required | From `TimestampMixin`. |
 
@@ -639,14 +641,14 @@ These six tables back the Excel/CSV/Apollo import (M2). No service reads or writ
 
 **File Location:** `BD_BACKEND/app/imports/models.py` (class `ImportChange`, table `import_changes`).
 
-**Purpose:** A transient summary so the report can show old and new values (D-050). It is not a permanent per-lead history (D-008). Because it holds personal values it is deleted with the person. No cleanup job exists yet; the retention period is still unresolved. Example: for Dana, `{"title": {"old": "Director", "new": "VP Sales"}}`. One row per (report, person).
+**Purpose:** A transient summary so the report can show old and new values (D-050). It is not a permanent per-lead history (D-008). Because it holds personal values it is deleted with the person. No cleanup job exists yet; the retention period is still unresolved. Example: for Dana, `[{"field": "title", "old": "Director", "new": "VP Sales"}]`. One row per (report, person).
 
 | Field Name | Type | Description |
 |---|---|---|
 | `id` | UUID (primary key) | Unique id. |
 | `import_report_id` | UUID, required, foreign key to `import_reports.id` (CASCADE) | The report this change belongs to. Unique together with `person_id`. |
 | `person_id` | UUID, required, foreign key to `people.id` (CASCADE) | The lead that was updated. Indexed. |
-| `changes` | JSONB, required | Field name to `{"old": ..., "new": ...}`. |
+| `changes` | JSONB, required | A list of `{"field": ..., "old": ..., "new": ...}` objects (`leads.contracts.FieldChange`; shape agreed in M2-0, comment-only change, no migration). |
 | `created_at` | DateTime (timezone), required | When the change was recorded. |
 
 ---

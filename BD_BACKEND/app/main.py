@@ -12,6 +12,11 @@ from app.core.api import router as core_router
 from app.core.csrf import CSRF_HEADER_NAME, install_csrf_openapi, verify_csrf
 from app.core.errors import install_validation_error_openapi, register_error_handlers
 from app.core.permissions import install_permission_openapi
+from app.imports.api import router as imports_router
+from app.imports.profiles_api import router as source_profiles_router
+from app.leads.duplicates_api import router as duplicates_router
+from app.leads.mappings_api import router as reference_mappings_router
+from app.leads.quarantine_api import router as quarantine_router
 
 # Methods and headers the frontend may use cross-origin; listed explicitly, never "*" (A8-5).
 CORS_ALLOWED_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]
@@ -34,6 +39,13 @@ app.add_middleware(
 # does), so validation errors go through our own handler.
 register_error_handlers(app)
 app.include_router(core_router)
+# M2 routers are mounted empty here once (M2-0) so no feature task edits main.py again; each
+# one gains its endpoints in the task that owns it.
+app.include_router(imports_router)
+app.include_router(source_profiles_router)
+app.include_router(quarantine_router)
+app.include_router(duplicates_router)
+app.include_router(reference_mappings_router)
 # Adds the 401/403 responses of permission-guarded routes to the OpenAPI schema; runs after
 # the routers are mounted because it reads each route's declared guard.
 install_permission_openapi(app)

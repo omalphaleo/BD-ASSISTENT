@@ -25,6 +25,24 @@ class AuditAction(StrEnum):
     USER_DISABLED = "user.disabled"
     USER_ENABLED = "user.enabled"
     ADMIN_SEEDED = "user.admin_seeded"
+    # M2 W1: imports (m2.md section 17; added once in M2-0 so the enum is not edited again).
+    IMPORT_FILE_UPLOADED = "import.file_uploaded"
+    IMPORT_DUPLICATE_FILE_OVERRIDDEN = "import.duplicate_file_overridden"  # D-109
+    IMPORT_MAPPING_CHANGED = "import.mapping_changed"
+    IMPORT_STARTED = "import.started"
+    IMPORT_FINISHED = "import.finished"
+    IMPORT_FAILED = "import.failed"
+    IMPORT_OWNER_ASSIGNED = "import.owner_assigned"  # D-075
+    IMPORT_REPORT_DOWNLOADED = "import.report_downloaded"  # D-111
+    SOURCE_PROFILE_CREATED = "source_profile.created"
+    SOURCE_PROFILE_UPDATED = "source_profile.updated"
+    # M2 W2: data quality and resolution.
+    QUARANTINE_FIXED = "quarantine.fixed"
+    QUARANTINE_RELEASED = "quarantine.released"
+    QUARANTINE_DISCARDED = "quarantine.discarded"
+    DUPLICATE_MERGED = "duplicate.merged"
+    DUPLICATE_MARKED_DISTINCT = "duplicate.marked_distinct"  # "not a duplicate"
+    REFERENCE_MAPPING_CHANGED = "mapping.reference_changed"  # industry and state, D-076
 
 
 # Lower-case names that must never appear as a summary key: secrets do not belong in a

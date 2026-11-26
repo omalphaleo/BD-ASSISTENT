@@ -9,9 +9,41 @@ import { describe, expect, it } from "vitest";
 import type { UserRole } from "@/lib/api-client";
 import { NAV_ITEMS } from "@/lib/nav-items";
 
-const COMMON_LABELS = ["Leads", "Campaigns", "Review", "Outbox", "My profile"];
-// Menu order matters: Admin and Users sit before "My profile", which is always last.
-const ADMIN_LABELS = ["Leads", "Campaigns", "Review", "Outbox", "Admin", "Users", "My profile"];
+const COMMON_LABELS = [
+  "Leads",
+  "Import",
+  "Quarantine",
+  "Campaigns",
+  "Review",
+  "Outbox",
+  "My profile",
+];
+// Managers also review duplicates (REVIEW_DUPLICATES: manager and admin).
+const MANAGER_LABELS = [
+  "Leads",
+  "Import",
+  "Quarantine",
+  "Duplicates",
+  "Campaigns",
+  "Review",
+  "Outbox",
+  "My profile",
+];
+// Menu order matters: Admin screens and Users sit before "My profile", which is always last.
+const ADMIN_LABELS = [
+  "Leads",
+  "Import",
+  "Quarantine",
+  "Duplicates",
+  "Campaigns",
+  "Review",
+  "Outbox",
+  "Admin",
+  "Source profiles",
+  "Mappings",
+  "Users",
+  "My profile",
+];
 
 /** Labels the menu would show for a role, using the same filter as `NavBar`. */
 function labelsFor(role: UserRole): string[] {
@@ -23,11 +55,11 @@ describe("NAV_ITEMS", () => {
     expect(labelsFor("rep")).toEqual(COMMON_LABELS);
   });
 
-  it("manager: sees the common links and no Admin or Users link", () => {
-    expect(labelsFor("manager")).toEqual(COMMON_LABELS);
+  it("manager: sees the common links plus Duplicates, and no Admin or Users link", () => {
+    expect(labelsFor("manager")).toEqual(MANAGER_LABELS);
   });
 
-  it("admin: sees the common links plus Admin and Users", () => {
+  it("admin: sees every link, including the Admin screens and Users", () => {
     expect(labelsFor("admin")).toEqual(ADMIN_LABELS);
   });
 });

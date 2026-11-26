@@ -2,7 +2,7 @@
 
 Needed so the PostgreSQL-backed job queue has an app object to run; the `worker` service
 in docker-compose.yml applies the queue schema and then starts this app. Task modules are
-listed in import_paths (currently app.core.tasks).
+listed in import_paths (currently app.core.tasks and the still empty app.imports.tasks).
 
 Start with:        procrastinate --app=app.worker.app worker
 Apply queue schema: procrastinate --app=app.worker.app schema --apply
@@ -18,5 +18,5 @@ from app.config import get_settings
 # used instead of importing them here because tasks modules import `app` from this file.
 app = procrastinate.App(
     connector=procrastinate.PsycopgConnector(conninfo=get_settings().psycopg_conninfo),
-    import_paths=["app.core.tasks"],
+    import_paths=["app.core.tasks", "app.imports.tasks"],
 )

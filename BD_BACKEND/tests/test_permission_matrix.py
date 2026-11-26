@@ -80,6 +80,11 @@ EXPECTED_REAL_ROUTES = {
     ("PATCH", "/users/{user_id}"): "manage_users",
     ("POST", "/users/{user_id}/deactivate"): "manage_users",
     ("POST", "/users/{user_id}/reactivate"): "manage_users",
+    # M2-A1: import endpoints. Whose imports a user may see is an object-level rule in
+    # imports.access (tests/test_import_upload.py), not part of this role matrix.
+    ("POST", "/imports/upload"): "import_leads",
+    ("GET", "/imports/{import_id}"): "import_leads",
+    ("POST", "/imports/{import_id}/worksheet"): "import_leads",
 }
 
 

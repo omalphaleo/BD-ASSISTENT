@@ -1904,3 +1904,34 @@ Status: Completed
 ## T-066: Align CLAUDE.local.md and Claude settings files with m2.md (2026-11-25)
 - Prompt: "understand m2.md and do changes in claude.local.md and setting.local.json and setting.json according to requirement which written in m2.md"
 - Status: In progress
+
+## T-067: Implement M2-0 on m2/dev-a (2026-11-25)
+- Prompt: "I will work directly on m2/dev-a without creating a separate m2/a-0-scaffold branch. I have parked BD_BACKEND/app/core/tasks.py, excluded .claude/settings.json, and committed milestone/m2.md and USERPROMPT.md on m2/dev-a. Start M2-0 on m2/dev-a."
+- Status: Completed
+- Summary: Implemented M2-0 per the 8 agreed decisions: leads/contracts.py, imports/wiring.py, empty tasks and 5 routers mounted in main.py, 16 audit actions in audit/services.py, worker import path, 5 nav entries and shells, ImportChange comment fix, two new test files and updated nav test, docs (ARCHITECTURE, filedescription, FILE_STRUCTURE, database, m2.md). Backend ruff and 625 pytest pass; frontend checks not run (node_modules missing).
+- Status update (2026-11-25): Completed (frontend tsc, ESLint and Vitest still to run after npm ci).
+
+## T-068: Fix settings.local.json and CLAUDE.local.md per m2.md (2026-11-25)
+- Prompt: "first fix setting.local.json according m2.md and also fix claude.local.md"
+- Status: Completed
+- Summary: Rewrote .claude/settings.local.json to the m2.md section 28.2 Developer A fence minus the six M2-0-only W2 entries (quarantine_api, duplicates_api, mappings_api, three W2 shell folders; re-add after M2-0), keeping the 0009-0013 migration fences. Updated CLAUDE.local.md: section 16 approved, profiles_api.py, AuditAction path (audit/services.py), M2-0 decisions, temporary fence note, status snapshot.
+- Status update (2026-11-25): Completed.
+
+## T-069: Describe M2-A1, backend only (2026-11-26)
+- Prompt: "now desribe m2-a1 and right now we only do backend part of m2-a1 because still we did not get the b11-b12 of m1"
+- Status: Needs input
+- Summary: Described M2-A1 (backend part only) from m2.md, D-109, D-110, plan.md and the existing code; listed 7 open decisions (file-byte storage, openpyxl and python-multipart dependencies, duplicate "import anyway" flow, CSV rules, status visibility) to settle one at a time before any code.
+- Status update (2026-11-26): Needs input.
+
+## T-070: M2-A1 decisions: storage, dependencies, duplicates, CSV, visibility, XLSX safety, limits (2026-11-26)
+- Prompt: pasted decision list: File Storage (persistent server directory shared by API and worker, storage_key in PostgreSQL, replaceable service abstraction); Dependencies (add python-multipart and openpyxl with ~= pins, update lockfile); Duplicate Files (SHA-256 before permanent storage, warning, import anyway requires re-upload, hashes non-unique); CSV Rules (UTF-8, UTF-8 BOM, Windows-1252; comma and semicolon; reject ambiguous; count only non-empty data rows toward 50,000); Status Visibility (uploader own, managers within authorized scope, admins all, backend enforced, download separate); XLSX Safety (read_only, data_only, ZIP checks, reject encrypted or malformed, never extract); Upload Limits (20 MB chunked, 50,000 rows during parsing, clear 4xx, no contents or paths). (abbreviated)
+- Status: Completed
+- Summary: Accepted the decisions as the M2-A1 baseline and checked them against the repo; found 5 follow-up items (storage_key needs a migration, upload volume needs docker-compose.yml which is B's, no lockfile exists, manager scope undefined, worksheet flow and CSV ambiguity rule need definition). Asking them one at a time; no code written.
+- Answers: migration 0014 for storage_key (B must re-point 0009); I write the compose/Dockerfile volume diff, B applies it; pins openpyxl~=3.1, python-multipart~=0.0.20, defusedxml~=0.7, no lockfile; managers see all imports; upload lists sheets and POST /imports/{id}/worksheet picks; strict CSV rule, single-column rejected.
+- Status update (2026-11-26): Needs input (final plan and ZIP thresholds awaiting approval).
+
+## T-071: Implement M2-A1 backend (2026-11-26)
+- Prompt: "approved this plan" (the consolidated M2-A1 backend plan: storage service, parsers, upload and duplicate check, three /imports endpoints, migration 0014, deps openpyxl, python-multipart, defusedxml, ZIP limits 1,000 entries / 100 MB member / 200 MB total / 100:1 ratio)
+- Status: Completed
+- Summary: Implemented the M2-A1 backend: migration 0014 (storage_key, size_bytes), deps python-multipart, openpyxl and defusedxml, upload settings, FileStorage and LocalDiskStorage, CSV and XLSX parsers with ZIP safety, streaming multipart reader with the 20 MB cap, duplicate check and import-anyway, worksheet selection, access rules, three /imports endpoints, regenerated openapi.json, and tests (713 backend tests pass, ruff clean). Docs updated; compose volume, Dockerfile directory and 0009 re-point are handed to B in m2.md section 31.
+- Status update (2026-11-26): Completed (backend). Frontend checks and generated client still need npm ci; upload page waits for B12.

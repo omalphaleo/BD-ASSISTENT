@@ -43,6 +43,49 @@
         "title": "CreateUserRequest",
         "type": "object"
       },
+      "DuplicateFileResponse": {
+        "description": "Body of the 409 warning for a file that was already uploaded (D-109).\n\nThe client shows the earlier date and user and offers \"cancel\" or \"import anyway\"; the\nlatter means uploading the same file again with allow_duplicate=true.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "earlier_import_id": {
+            "format": "uuid",
+            "title": "Earlier Import Id",
+            "type": "string"
+          },
+          "earlier_uploaded_at": {
+            "format": "date-time",
+            "title": "Earlier Uploaded At",
+            "type": "string"
+          },
+          "earlier_uploaded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earlier Uploaded By"
+          }
+        },
+        "required": [
+          "detail",
+          "code",
+          "earlier_import_id",
+          "earlier_uploaded_at",
+          "earlier_uploaded_by"
+        ],
+        "title": "DuplicateFileResponse",
+        "type": "object"
+      },
       "ErrorResponse": {
         "additionalProperties": false,
         "description": "Body of a 401 or 403: one fixed message, nothing about the user, owner or capability.",
@@ -57,6 +100,90 @@
         ],
         "title": "ErrorResponse",
         "type": "object"
+      },
+      "ImportFileResponse": {
+        "description": "An import as shown in status calls (no storage key, no server path).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "uploaded_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded By"
+          },
+          "worksheet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worksheet"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "status",
+          "worksheet",
+          "row_count",
+          "size_bytes",
+          "uploaded_by",
+          "created_at"
+        ],
+        "title": "ImportFileResponse",
+        "type": "object"
+      },
+      "ImportStatus": {
+        "description": "Lifecycle of an uploaded import file.",
+        "enum": [
+          "uploaded",
+          "mapping",
+          "processing",
+          "completed",
+          "failed"
+        ],
+        "title": "ImportStatus",
+        "type": "string"
       },
       "LoginRequest": {
         "additionalProperties": false,
@@ -80,6 +207,23 @@
           "password"
         ],
         "title": "LoginRequest",
+        "type": "object"
+      },
+      "SelectWorksheetRequest": {
+        "additionalProperties": false,
+        "description": "Body of POST /imports/{id}/worksheet.",
+        "properties": {
+          "worksheet": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Worksheet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "worksheet"
+        ],
+        "title": "SelectWorksheetRequest",
         "type": "object"
       },
       "SessionUserResponse": {
@@ -110,6 +254,120 @@
           "csrf_token"
         ],
         "title": "SessionUserResponse",
+        "type": "object"
+      },
+      "UploadErrorResponse": {
+        "description": "Body of a refused upload: a fixed message and a stable machine-readable code.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "code"
+        ],
+        "title": "UploadErrorResponse",
+        "type": "object"
+      },
+      "UploadResponse": {
+        "description": "The result of an upload: the import plus what the file contains.\n\nworksheets lists every sheet of an XLSX file (empty for CSV). When worksheet is null the\nfile has several sheets and the user must pick one with POST /imports/{id}/worksheet.\nheaders is set once a sheet is known (CSV, or a one-sheet XLSX), else null.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "headers": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headers"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "uploaded_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded By"
+          },
+          "worksheet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worksheet"
+          },
+          "worksheets": {
+            "items": {
+              "$ref": "#/components/schemas/WorksheetResponse"
+            },
+            "title": "Worksheets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "status",
+          "worksheet",
+          "row_count",
+          "size_bytes",
+          "uploaded_by",
+          "created_at",
+          "worksheets",
+          "headers"
+        ],
+        "title": "UploadResponse",
         "type": "object"
       },
       "UserDetailResponse": {
@@ -215,6 +473,30 @@
           "detail"
         ],
         "title": "ValidationErrorResponse",
+        "type": "object"
+      },
+      "WorksheetResponse": {
+        "description": "One worksheet of an XLSX upload; selectable sheets can be chosen for the import.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "selectable": {
+            "title": "Selectable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "row_count",
+          "selectable"
+        ],
+        "title": "WorksheetResponse",
         "type": "object"
       }
     }
@@ -361,6 +643,265 @@
         "summary": "Health",
         "tags": [
           "core"
+        ]
+      }
+    },
+    "/imports/upload": {
+      "post": {
+        "description": "Upload a CSV or XLSX file (multipart: 'file' and optional 'allow_duplicate').\n\nA file identical to an earlier upload gets a 409 warning with the earlier date and user;\nre-upload with allow_duplicate=true to import it anyway (D-109). Nothing is stored for a\nrefused upload. A multi-sheet XLSX returns its worksheets and needs\nPOST /imports/{id}/worksheet before the import can continue.",
+        "operationId": "upload_import_file_imports_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "allow_duplicate": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "file": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateFileResponse"
+                }
+              }
+            },
+            "description": "Same file uploaded before (D-109)."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadErrorResponse"
+                }
+              }
+            },
+            "description": "File larger than the limit."
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadErrorResponse"
+                }
+              }
+            },
+            "description": "Not a CSV or XLSX file."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Upload Import File",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}": {
+      "get": {
+        "description": "Return an import's state. Reps see their own imports; managers and admins see all.",
+        "operationId": "get_import_status_imports__import_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportFileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Get Import Status",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/worksheet": {
+      "post": {
+        "description": "Choose the worksheet to import from a multi-sheet XLSX (only the uploader may).",
+        "operationId": "choose_worksheet_imports__import_id__worksheet_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectWorksheetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportFileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadErrorResponse"
+                }
+              }
+            },
+            "description": "Not the uploader, or already past mapping."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Choose Worksheet",
+        "tags": [
+          "imports"
         ]
       }
     },

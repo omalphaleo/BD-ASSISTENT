@@ -13,6 +13,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -84,7 +85,10 @@ class SourceProfile(TimestampMixin, Base):
 
 
 class ImportFile(TimestampMixin, Base):
-    """One uploaded CSV or XLSX file. The file bytes are not stored, only its SHA-256.
+    """One uploaded CSV or XLSX file: metadata here, the bytes in the file storage (M2-A1).
+
+    The bytes live outside PostgreSQL, in the storage service under storage_key; the row keeps
+    the SHA-256, size and key. Migration 0014 added storage_key and size_bytes.
 
     sha256 is deliberately not unique: re-uploading identical content shows a warning and
     the user may import anyway (D-109). The 50,000-row and 20 MB limits (D-110) are checked
@@ -122,11 +126,21 @@ class ImportFile(TimestampMixin, Base):
     row_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )
+    # Where the stored file lives, as a key the storage service understands (never a path from
+    # the user). NULL for rows created before migration 0014.
+    storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Size of the stored file in bytes; NULL together with storage_key.
+    size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     __table_args__ = (
         in_check("status", ImportStatus, "ck_import_files_status_valid"),
         CheckConstraint(f"sha256 ~ '{SHA256_HEX_PATTERN}'", name="ck_import_files_sha256_hex"),
         CheckConstraint("row_count >= 0", name="ck_import_files_row_count_nonnegative"),
+        CheckConstraint(
+            "size_bytes IS NULL OR size_bytes >= 0", name="ck_import_files_size_bytes_nonnegative"
+        ),
+        # Two files can never share one stored object; PostgreSQL allows many NULLs.
+        UniqueConstraint("storage_key", name="uq_import_files_storage_key"),
         # Duplicate-file lookup (D-109).
         Index("ix_import_files_sha256", "sha256"),
         Index("ix_import_files_source_profile_id", "source_profile_id"),
@@ -286,7 +300,7 @@ class ImportChange(Base):
         ForeignKey("people.id", ondelete="CASCADE", name="fk_import_changes_person_id_people"),
         nullable=False,
     )
-    # Field name to {"old": ..., "new": ...}.
+    # List of {"field": ..., "old": ..., "new": ...} objects (leads.contracts.FieldChange).
     changes: Mapped[object] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=now
