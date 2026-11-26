@@ -56,6 +56,8 @@ Tests need a reachable PostgreSQL with pgvector; they create and use a throwaway
 - Native: from `BD_BACKEND/` with the virtualenv active and `DATABASE_URL` set, run `pytest` and `ruff check .`
 - Single test: `pytest tests/test_health.py::test_health_ok`
 
+Reference data: after migrating, run `python -m app.leads.seed_reference_data` (in Docker: `docker compose exec api python -m app.leads.seed_reference_data`) once per environment to load the starter industry and US-state mappings. It is safe to run again.
+
 API contract: the frontend client is generated from the committed `BD_BACKEND/openapi.json`. After any endpoint or schema change, run `python -m app.export_openapi` from `BD_BACKEND/` (`--check` only verifies); a test fails while the file is stale.
 
 **Frontend tests** (from `BD_FRONTEND/`):
