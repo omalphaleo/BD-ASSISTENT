@@ -4,12 +4,15 @@
  * Logout button in the shell header (task B3).
  *
  * Needed so a user can end the session: it calls the generated `logoutAuthLogoutPost`, which
- * clears the session cookie, then returns to the login page. Holds no rules of its own.
+ * clears the session cookie, then returns to the login page. The logout call is state-changing, so
+ * the API client sends the CSRF token with it (task B12); once it succeeds the token is forgotten
+ * because it dies with the session. Holds no rules of its own.
  */
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { logoutAuthLogoutPost } from "@/lib/api-client";
+import { clearCsrfToken } from "@/lib/csrf";
 
 const LOGIN_PATH = "/login";
 
@@ -23,6 +26,7 @@ export default function LogoutButton() {
     const result = await logoutAuthLogoutPost();
 
     if (result.response?.ok) {
+      clearCsrfToken();
       // refresh drops cached signed-in data so nothing stale stays on screen.
       router.replace(LOGIN_PATH);
       router.refresh();

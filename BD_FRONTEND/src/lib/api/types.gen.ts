@@ -5,13 +5,41 @@ export type ClientOptions = {
 };
 
 /**
- * HTTPValidationError
+ * ChangeRoleRequest
+ *
+ * Body of PATCH /users/{id}: the user's new role.
  */
-export type HttpValidationError = {
+export type ChangeRoleRequest = {
+    role: UserRole;
+};
+
+/**
+ * CreateUserRequest
+ *
+ * Body of POST /users: the new user's email, role and the admin-set initial password.
+ */
+export type CreateUserRequest = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+    role: UserRole;
+};
+
+/**
+ * ErrorResponse
+ *
+ * Body of a 401 or 403: one fixed message, nothing about the user, owner or capability.
+ */
+export type ErrorResponse = {
     /**
      * Detail
      */
-    detail?: Array<ValidationError>;
+    detail: string;
 };
 
 /**
@@ -31,11 +59,18 @@ export type LoginRequest = {
 };
 
 /**
- * UserResponse
+ * SessionUserResponse
  *
- * The signed-in user as returned by the API: no password hash, no timestamps.
+ * The signed-in user plus the CSRF token of the current session (login and /auth/me).
+ *
+ * The frontend keeps the token in memory and sends it as X-CSRF-Token on every POST, PUT,
+ * PATCH and DELETE except login (A8).
  */
-export type UserResponse = {
+export type SessionUserResponse = {
+    /**
+     * Csrf Token
+     */
+    csrf_token: string;
     /**
      * Email
      */
@@ -48,6 +83,37 @@ export type UserResponse = {
 };
 
 /**
+ * UserDetailResponse
+ *
+ * A user as shown on the admin user list and "my profile": adds status and timestamps.
+ *
+ * Never includes the password hash.
+ */
+export type UserDetailResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    role: UserRole;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * UserRole
  *
  * Roles a user can hold; the lowercase value is what PostgreSQL stores.
@@ -55,31 +121,35 @@ export type UserResponse = {
 export type UserRole = 'rep' | 'manager' | 'admin';
 
 /**
- * ValidationError
+ * ValidationErrorItem
+ *
+ * One rejected field in a 422: where it was, why, and the error type; never the value.
  */
-export type ValidationError = {
+export type ValidationErrorItem = {
     /**
-     * Context
-     */
-    ctx?: {
-        [key: string]: unknown;
-    };
-    /**
-     * Input
-     */
-    input?: unknown;
-    /**
-     * Location
+     * Loc
      */
     loc: Array<string | number>;
     /**
-     * Message
+     * Msg
      */
     msg: string;
     /**
-     * Error Type
+     * Type
      */
     type: string;
+};
+
+/**
+ * ValidationErrorResponse
+ *
+ * Body of a 422, exactly as core.errors.validation_error_handler returns it.
+ */
+export type ValidationErrorResponse = {
+    /**
+     * Detail
+     */
+    detail: Array<ValidationErrorItem>;
 };
 
 export type LoginAuthLoginPostData = {
@@ -91,9 +161,13 @@ export type LoginAuthLoginPostData = {
 
 export type LoginAuthLoginPostErrors = {
     /**
-     * Validation Error
+     * CSRF check failed
      */
-    422: HttpValidationError;
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
 };
 
 export type LoginAuthLoginPostError = LoginAuthLoginPostErrors[keyof LoginAuthLoginPostErrors];
@@ -102,7 +176,7 @@ export type LoginAuthLoginPostResponses = {
     /**
      * Successful Response
      */
-    200: UserResponse;
+    200: SessionUserResponse;
 };
 
 export type LoginAuthLoginPostResponse = LoginAuthLoginPostResponses[keyof LoginAuthLoginPostResponses];
@@ -113,6 +187,15 @@ export type LogoutAuthLogoutPostData = {
     query?: never;
     url: '/auth/logout';
 };
+
+export type LogoutAuthLogoutPostErrors = {
+    /**
+     * CSRF check failed
+     */
+    403: ErrorResponse;
+};
+
+export type LogoutAuthLogoutPostError = LogoutAuthLogoutPostErrors[keyof LogoutAuthLogoutPostErrors];
 
 export type LogoutAuthLogoutPostResponses = {
     /**
@@ -130,11 +213,24 @@ export type MeAuthMeGetData = {
     url: '/auth/me';
 };
 
+export type MeAuthMeGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type MeAuthMeGetError = MeAuthMeGetErrors[keyof MeAuthMeGetErrors];
+
 export type MeAuthMeGetResponses = {
     /**
      * Successful Response
      */
-    200: UserResponse;
+    200: SessionUserResponse;
 };
 
 export type MeAuthMeGetResponse = MeAuthMeGetResponses[keyof MeAuthMeGetResponses];
@@ -152,3 +248,210 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type ListUsersUsersGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/users';
+};
+
+export type ListUsersUsersGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type ListUsersUsersGetError = ListUsersUsersGetErrors[keyof ListUsersUsersGetErrors];
+
+export type ListUsersUsersGetResponses = {
+    /**
+     * Response List Users Users Get
+     *
+     * Successful Response
+     */
+    200: Array<UserDetailResponse>;
+};
+
+export type ListUsersUsersGetResponse = ListUsersUsersGetResponses[keyof ListUsersUsersGetResponses];
+
+export type CreateUserUsersPostData = {
+    body: CreateUserRequest;
+    path?: never;
+    query?: never;
+    url: '/users';
+};
+
+export type CreateUserUsersPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type CreateUserUsersPostError = CreateUserUsersPostErrors[keyof CreateUserUsersPostErrors];
+
+export type CreateUserUsersPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: UserDetailResponse;
+};
+
+export type CreateUserUsersPostResponse = CreateUserUsersPostResponses[keyof CreateUserUsersPostResponses];
+
+export type MyProfileUsersMeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/users/me';
+};
+
+export type MyProfileUsersMeGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type MyProfileUsersMeGetError = MyProfileUsersMeGetErrors[keyof MyProfileUsersMeGetErrors];
+
+export type MyProfileUsersMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserDetailResponse;
+};
+
+export type MyProfileUsersMeGetResponse = MyProfileUsersMeGetResponses[keyof MyProfileUsersMeGetResponses];
+
+export type ChangeUserRoleUsersUserIdPatchData = {
+    body: ChangeRoleRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}';
+};
+
+export type ChangeUserRoleUsersUserIdPatchErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ChangeUserRoleUsersUserIdPatchError = ChangeUserRoleUsersUserIdPatchErrors[keyof ChangeUserRoleUsersUserIdPatchErrors];
+
+export type ChangeUserRoleUsersUserIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserDetailResponse;
+};
+
+export type ChangeUserRoleUsersUserIdPatchResponse = ChangeUserRoleUsersUserIdPatchResponses[keyof ChangeUserRoleUsersUserIdPatchResponses];
+
+export type DeactivateUserUsersUserIdDeactivatePostData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}/deactivate';
+};
+
+export type DeactivateUserUsersUserIdDeactivatePostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type DeactivateUserUsersUserIdDeactivatePostError = DeactivateUserUsersUserIdDeactivatePostErrors[keyof DeactivateUserUsersUserIdDeactivatePostErrors];
+
+export type DeactivateUserUsersUserIdDeactivatePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserDetailResponse;
+};
+
+export type DeactivateUserUsersUserIdDeactivatePostResponse = DeactivateUserUsersUserIdDeactivatePostResponses[keyof DeactivateUserUsersUserIdDeactivatePostResponses];
+
+export type ReactivateUserUsersUserIdReactivatePostData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}/reactivate';
+};
+
+export type ReactivateUserUsersUserIdReactivatePostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ReactivateUserUsersUserIdReactivatePostError = ReactivateUserUsersUserIdReactivatePostErrors[keyof ReactivateUserUsersUserIdReactivatePostErrors];
+
+export type ReactivateUserUsersUserIdReactivatePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserDetailResponse;
+};
+
+export type ReactivateUserUsersUserIdReactivatePostResponse = ReactivateUserUsersUserIdReactivatePostResponses[keyof ReactivateUserUsersUserIdReactivatePostResponses];

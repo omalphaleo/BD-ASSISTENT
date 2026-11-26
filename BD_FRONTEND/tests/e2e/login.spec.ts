@@ -4,6 +4,8 @@
  * Needed as the one end-to-end check that login, the role-dependent menu and logout work
  * together against the running backend. It needs the API, the database and two existing test
  * accounts (E2E_REP_*, E2E_ADMIN_*), and the backend must allow the frontend origin (task A8).
+ * Since task B12 it also proves the two sides agree on CSRF: the UI's logout works only because
+ * the API client sends `X-CSRF-Token`, and a raw call without it is refused.
  */
 import { expect, test } from "@playwright/test";
 
@@ -51,5 +53,27 @@ test.describe("login journey", () => {
 
     await page.goto("/leads");
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test("CSRF: a state-changing call without the token is refused and the session survives", async ({
+    page,
+  }) => {
+    await submitLoginForm(page, readCredentials("rep"));
+    await expect(page).toHaveURL(/\/leads$/);
+
+    // A raw browser call: the right origin and the session cookie, but no X-CSRF-Token header,
+    // which is what a forged cross-site request would look like.
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+    const outcome = await page.evaluate(async (url) => {
+      const response = await fetch(`${url}/auth/logout`, { method: "POST", credentials: "include" });
+      return { status: response.status, body: await response.json() };
+    }, apiBaseUrl);
+
+    expect(outcome.status).toBe(403);
+    expect(outcome.body).toEqual({ detail: "CSRF check failed" });
+
+    // Refused means not executed: the user is still signed in.
+    await page.goto("/leads");
+    await expect(page).toHaveURL(/\/leads$/);
   });
 });

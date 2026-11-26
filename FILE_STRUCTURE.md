@@ -68,12 +68,12 @@ BD_BACKEND/
 │   ├── mail/                  # exists: models (6 tables: mail threads, outbox copies, inbound replies, delta cursors, reply classifications, bounces); planned: Sender interface, MockSender, GraphSender, reply monitor, threading
 │   ├── notifications/         # exists: models (2 tables: notifications, SLA reminders); planned: in-app and email notifications, SLA reminders, dashboard queries
 │   └── ai/                    # planned: provider adapter, tasks, payload builders, validators, retrieval, prompt loader
-└── tests/                     # exists: flat test_*.py files, conftest.py, factories/ (`__init__`, `common`, `core`, `leads`, `imports`, `compliance` since A11; B's factories planned), test_factories.py, test_schema_rule_gaps.py, test_sample_job.py; per-module folders planned
+└── tests/                     # exists: flat test_*.py files, conftest.py, factories/ (`__init__`, `common`, `core`, `leads`, `imports`, `compliance` since A11; `content`, `campaigns`, `outreach`, `mail`, `notifications` since B11), test_factories.py, test_b_factories.py, test_b_schema_gaps.py, test_schema_rule_gaps.py, test_sample_job.py; per-module folders planned
 ```
 
 Each module folder holds `models.py`, `schemas.py`, `services.py`, `api.py` (router), and `tasks.py` if it has background jobs.
 
-## BD_FRONTEND (skeleton since B1, generated API client since B2, layout, login and empty shells since B3, tests since B4)
+## BD_FRONTEND (skeleton since B1, generated API client since B2, layout, login and empty shells since B3, tests since B4, CSRF in the client since B12)
 
 ```
 BD_FRONTEND/
@@ -94,12 +94,13 @@ BD_FRONTEND/
 │   ├── components/            # shared UI: AppShell, NavBar, LoginForm, LogoutButton, PlaceholderPage; later tables, filter chips, email preview
 │   └── lib/
 │       ├── api/               # typed client generated from the FastAPI OpenAPI schema; never hand-edited
-│       ├── api-client.ts      # hand-written setup (base URL, cookies, 401 redirect); pages import the API from here
+│       ├── api-client.ts      # hand-written setup (base URL, cookies, CSRF fetch, 401 redirect); pages import the API from here
+│       ├── csrf.ts            # in-memory CSRF token and the fetch that sends X-CSRF-Token (B12)
 │       ├── auth-server.ts     # server-only session lookup (cookie forwarded per request)
 │       ├── auth-context.tsx   # AuthProvider and useCurrentUser() for client components
 │       └── nav-items.ts       # menu entries and the roles that see them (cosmetic)
 └── tests/
-    ├── unit/                  # Vitest component tests (LoginForm, AppShell, nav-items); run by npm test
+    ├── unit/                  # Vitest tests (LoginForm, AppShell, nav-items, csrf, auth-and-logout); run by npm test
     └── e2e/                   # Playwright journeys (login.spec.ts, helpers.ts); run by npm run test:e2e
 ```
 

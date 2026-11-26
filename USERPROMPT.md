@@ -1976,3 +1976,34 @@ Status: Completed
 **Note:** Task statuses above reflect the latest known updates in the supplied history. "Completed" means the described implementation or verification work was completed; it does not imply that all changes were committed or merged. Items explicitly marked as pending follow-ups remain open.
 
 Add a concise current-status summaryReconcile task numbering and chronology
+
+## T-107: Can I start B11 and B12? Check dependencies, CORS, CSRF, auth, permissions (2026-11-25)
+Prompt: "Analyze the entire project and confirm whether I can start working on B11 and B12. Check all the necessary dependencies and prerequisites, including whether the earlier tasks are completed and merged, and whether CORS, CSRF, authentication, permissions, and other required configurations are in place. Identify anything that is still pending or blocking B11 and B12, and explain whether I can safely proceed with both."
+
+Status: Completed
+- Summary: Checked origin/main and m1/dev-b. A6 to A11 are merged to main (PR #3: CSRF, CORS, permissions, factories, throttling); B6 to B10 are on origin/m1/dev-b but not merged to main. Full backend suite on the current branch: ruff clean, 762 tests pass. The frontend generated client is stale against the new `openapi.json` (no CSRF token handling yet), which is B12's job. Both B11 and B12 can start on m1/dev-b.
+- Side effect: running `npm run check:api` regenerated the files under `BD_FRONTEND/src/lib/api/` in the working tree (the script generates, then compares). Restoring them with `git checkout` was denied, so they stay modified; restore with `git checkout -- BD_FRONTEND/src/lib/api` or keep them for B12.
+- Status update (2026-11-25): Completed (analysis only).
+
+## T-108: Implement B11 factories and model tests for B's tables (2026-11-25)
+Prompt: "Let's start with B11. First, explain what it is, what needs to be done, and why, in simple terms. Explain it in chat before implementation." then "Start with b11" (hand-written helpers like A11; stay on m1/dev-b; do not commit)
+
+Status: Needs input
+- Summary: Implemented B11: five factory files in `tests/factories/` (content, campaigns, outreach, mail, notifications; hand-written like A11), `test_b_factories.py` (smoke tests) and `test_b_schema_gaps.py` (every foreign key's ON DELETE rule checked against the model, plus missing cascade and SET NULL cases), and docs (`filedescription.md`, `FILE_STRUCTURE.md`, `m1.md`). Verified in Docker: `ruff check` and `ruff format --check` clean, full pytest 852 passed (90 new).
+- Status update (2026-11-25): Needs input: nothing committed (the user commits); B12 is the only task left; the regenerated files under `BD_FRONTEND/src/lib/api/` from the earlier `check:api` run are still modified in the working tree.
+
+## T-109: Implement B12 CSRF in the client (2026-11-25)
+Prompt: "start with b12" (stay on m1/dev-b; do not commit)
+
+Status: Needs input
+- Summary: Implemented B12: new `src/lib/csrf.ts` (in-memory token; fetch that adds `X-CSRF-Token` to POST/PUT/PATCH/DELETE except login and refreshes once and retries once on `403 CSRF check failed`), `src/lib/api-client.ts` installs it in the browser, `AuthProvider`/layout/`LoginForm`/`LogoutButton` store and clear the token, regenerated API client kept (A8 `openapi.json`), tests (`csrf.test.ts`, `auth-and-logout.test.tsx`, updated `LoginForm`/`AppShell` tests, new e2e case) and docs (`filedescription.md`, `FILE_STRUCTURE.md`, README, `m1.md`).
+- Verified: `bash scripts/check.sh` passes (ruff, backend pytest, tsc, ESLint, Vitest 39 tests); `npm run check:api` up to date; `npm run build` clean.
+- Not verified: the Playwright journey (needs the running stack, two test accounts, a browser); reading `.env.local` was denied, so the e2e accounts were not checked.
+- Status update (2026-11-25): Needs input: run `npm run test:e2e`; nothing committed (the user commits).
+
+## T-110: One-off script to create local admin and rep users from .env.local (2026-11-25)
+Prompt: "Create one admin and one rep user in my local dev database using the app's own password hashing and the User model (no plain SQL, no hand-made hashes). Emails and passwords come from BD_FRONTEND/.env.local (E2E_ADMIN_* and E2E_REP_*). Write it as a one-off script, uncommitted. Show me the script first, and do not edit app/core. Don't commit anything."
+
+Status: Needs input
+- Summary: Wrote the one-off `BD_BACKEND/create_dummy_user.py` (git-ignored by an existing rule) and showed it for review; it uses `hash_password`, the `User` model and `get_engine`, reads `E2E_ADMIN_*` and `E2E_REP_*` from the env file given as its argument, skips existing emails and never prints passwords. Not run yet; `app/core` untouched; nothing committed.
+- Status update (2026-11-25): Needs input: approval to run it (it needs the `.env.local` file visible inside the api container).

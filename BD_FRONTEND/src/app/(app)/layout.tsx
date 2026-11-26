@@ -6,6 +6,8 @@
  * /login before anything renders. A layout does not re-run on client-side navigation, so the
  * check runs on a full page load and on `router.refresh()`; a session that expires in between is
  * caught by the 401 handling in `lib/api-client.ts`. The server still enforces access on every API call.
+ * The same `/auth/me` answer carries the session's CSRF token (task B12), which goes to the
+ * browser only through `AuthProvider`.
  */
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -31,9 +33,12 @@ export default async function AppLayout({ children }: Readonly<{ children: React
     );
   }
 
+  // The token is split off so only AuthProvider ever sees it; the shell gets the plain user.
+  const { csrf_token: csrfToken, ...user } = session.user;
+
   return (
-    <AuthProvider user={session.user}>
-      <AppShell user={session.user}>{children}</AppShell>
+    <AuthProvider user={user} csrfToken={csrfToken}>
+      <AppShell user={user}>{children}</AppShell>
     </AuthProvider>
   );
 }
