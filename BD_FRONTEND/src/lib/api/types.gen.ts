@@ -31,6 +31,37 @@ export type CreateUserRequest = {
 };
 
 /**
+ * DuplicateFileResponse
+ *
+ * Body of the 409 warning for a file that was already uploaded (D-109).
+ *
+ * The client shows the earlier date and user and offers "cancel" or "import anyway"; the
+ * latter means uploading the same file again with allow_duplicate=true.
+ */
+export type DuplicateFileResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Detail
+     */
+    detail: string;
+    /**
+     * Earlier Import Id
+     */
+    earlier_import_id: string;
+    /**
+     * Earlier Uploaded At
+     */
+    earlier_uploaded_at: string;
+    /**
+     * Earlier Uploaded By
+     */
+    earlier_uploaded_by: string | null;
+};
+
+/**
  * ErrorResponse
  *
  * Body of a 401 or 403: one fixed message, nothing about the user, owner or capability.
@@ -41,6 +72,50 @@ export type ErrorResponse = {
      */
     detail: string;
 };
+
+/**
+ * ImportFileResponse
+ *
+ * An import as shown in status calls (no storage key, no server path).
+ */
+export type ImportFileResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number | null;
+    status: ImportStatus;
+    /**
+     * Uploaded By
+     */
+    uploaded_by: string | null;
+    /**
+     * Worksheet
+     */
+    worksheet: string | null;
+};
+
+/**
+ * ImportStatus
+ *
+ * Lifecycle of an uploaded import file.
+ */
+export type ImportStatus = 'uploaded' | 'mapping' | 'processing' | 'completed' | 'failed';
 
 /**
  * LoginRequest
@@ -56,6 +131,18 @@ export type LoginRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * SelectWorksheetRequest
+ *
+ * Body of POST /imports/{id}/worksheet.
+ */
+export type SelectWorksheetRequest = {
+    /**
+     * Worksheet
+     */
+    worksheet: string;
 };
 
 /**
@@ -80,6 +167,71 @@ export type SessionUserResponse = {
      */
     id: string;
     role: UserRole;
+};
+
+/**
+ * UploadErrorResponse
+ *
+ * Body of a refused upload: a fixed message and a stable machine-readable code.
+ */
+export type UploadErrorResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Detail
+     */
+    detail: string;
+};
+
+/**
+ * UploadResponse
+ *
+ * The result of an upload: the import plus what the file contains.
+ *
+ * worksheets lists every sheet of an XLSX file (empty for CSV). When worksheet is null the
+ * file has several sheets and the user must pick one with POST /imports/{id}/worksheet.
+ * headers is set once a sheet is known (CSV, or a one-sheet XLSX), else null.
+ */
+export type UploadResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Headers
+     */
+    headers: Array<string> | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number | null;
+    status: ImportStatus;
+    /**
+     * Uploaded By
+     */
+    uploaded_by: string | null;
+    /**
+     * Worksheet
+     */
+    worksheet: string | null;
+    /**
+     * Worksheets
+     */
+    worksheets: Array<WorksheetResponse>;
 };
 
 /**
@@ -150,6 +302,26 @@ export type ValidationErrorResponse = {
      * Detail
      */
     detail: Array<ValidationErrorItem>;
+};
+
+/**
+ * WorksheetResponse
+ *
+ * One worksheet of an XLSX upload; selectable sheets can be chosen for the import.
+ */
+export type WorksheetResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Selectable
+     */
+    selectable: boolean;
 };
 
 export type LoginAuthLoginPostData = {
@@ -248,6 +420,142 @@ export type HealthHealthGetResponses = {
      */
     200: unknown;
 };
+
+export type UploadImportFileImportsUploadPostData = {
+    body: {
+        allow_duplicate?: boolean;
+        file: Blob | File;
+    };
+    path?: never;
+    query?: never;
+    url: '/imports/upload';
+};
+
+export type UploadImportFileImportsUploadPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Same file uploaded before (D-109).
+     */
+    409: DuplicateFileResponse;
+    /**
+     * File larger than the limit.
+     */
+    413: UploadErrorResponse;
+    /**
+     * Not a CSV or XLSX file.
+     */
+    415: UploadErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type UploadImportFileImportsUploadPostError = UploadImportFileImportsUploadPostErrors[keyof UploadImportFileImportsUploadPostErrors];
+
+export type UploadImportFileImportsUploadPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: UploadResponse;
+};
+
+export type UploadImportFileImportsUploadPostResponse = UploadImportFileImportsUploadPostResponses[keyof UploadImportFileImportsUploadPostResponses];
+
+export type GetImportStatusImportsImportIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}';
+};
+
+export type GetImportStatusImportsImportIdGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetImportStatusImportsImportIdGetError = GetImportStatusImportsImportIdGetErrors[keyof GetImportStatusImportsImportIdGetErrors];
+
+export type GetImportStatusImportsImportIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportFileResponse;
+};
+
+export type GetImportStatusImportsImportIdGetResponse = GetImportStatusImportsImportIdGetResponses[keyof GetImportStatusImportsImportIdGetResponses];
+
+export type ChooseWorksheetImportsImportIdWorksheetPostData = {
+    body: SelectWorksheetRequest;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/worksheet';
+};
+
+export type ChooseWorksheetImportsImportIdWorksheetPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * Not the uploader, or already past mapping.
+     */
+    409: UploadErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ChooseWorksheetImportsImportIdWorksheetPostError = ChooseWorksheetImportsImportIdWorksheetPostErrors[keyof ChooseWorksheetImportsImportIdWorksheetPostErrors];
+
+export type ChooseWorksheetImportsImportIdWorksheetPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportFileResponse;
+};
+
+export type ChooseWorksheetImportsImportIdWorksheetPostResponse = ChooseWorksheetImportsImportIdWorksheetPostResponses[keyof ChooseWorksheetImportsImportIdWorksheetPostResponses];
 
 export type ListUsersUsersGetData = {
     body?: never;

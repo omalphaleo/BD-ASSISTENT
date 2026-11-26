@@ -29,6 +29,9 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       APP_ENV: development
       SESSION_COOKIE_SECURE: "false" # local compose runs over plain HTTP, so Secure cookies would never be sent
+      UPLOAD_DIR: /srv/uploads # import files (M2-A1); the same volume is mounted in the worker
+    volumes:
+      - uploads:/srv/uploads # persistent import files, shared with the worker
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000" # start the API server
     ports:
       - "127.0.0.1:8000:8000"
@@ -42,6 +45,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       APP_ENV: development
+      UPLOAD_DIR: /srv/uploads # same directory as the api, so the worker can read uploaded files
+    volumes:
+      - uploads:/srv/uploads # shared with the api
     command: >
       sh -c "procrastinate --app=app.worker.app schema --apply || echo 'Procrastinate schema already applied, continuing';
              procrastinate --app=app.worker.app worker"
@@ -68,3 +74,4 @@ services:
 
 volumes:
   pgdata:
+  uploads: # uploaded import files, shared by api and worker (M2-A1)

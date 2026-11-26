@@ -2102,3 +2102,77 @@ Prompt: "Create one admin and one rep user in my local dev database using the ap
 Status: Needs input
 - Summary: Wrote the one-off `BD_BACKEND/create_dummy_user.py` (git-ignored by an existing rule) and showed it for review; it uses `hash_password`, the `User` model and `get_engine`, reads `E2E_ADMIN_*` and `E2E_REP_*` from the env file given as its argument, skips existing emails and never prints passwords. Not run yet; `app/core` untouched; nothing committed.
 - Status update (2026-11-25): Needs input: approval to run it (it needs the `.env.local` file visible inside the api container).
+
+## T-111: Check merged M1 B11 and B12 and plan remaining M2-A1 (2026-11-26)
+- Prompt: "merge m1- b11 and b12 implementation check it and give detail plan for remaining task of m2-a1 and dont take any assumption if you have any doubt ask me to resolve it first"
+- Status: In progress
+
+## T-112: Add step 9 (run the whole stack in Docker) to the M2-A1 plan (2026-11-26)
+- Prompt: "also add step 9 to run whole app to check is it working or not backend frontend db whole in docker"
+- Status: Completed
+- Summary: Added step 9 to the remaining M2-A1 plan (full-stack Docker verification). No code changed; waiting for the go-ahead to start step 1.
+- Status update (2026-11-26): Completed.
+
+## T-113: Start the M2-A1 remaining plan, steps 1 to 9 (2026-11-26)
+- Prompt: "start"
+- Status: In progress
+
+## T-114: How to resume this conversation after a PC restart (2026-11-26)
+- Prompt: "i am going to restart my pc so docker will how can i start this conversation from here ?"
+- Status: Completed
+- Summary: Explained claude --continue and claude --resume from the project folder, and listed where M2-A1 stands (steps 1 and 2 done, step 3 onward waiting for Docker).
+- Status update (2026-11-26): Completed.
+
+## T-115: Docker daemon started, resume M2-A1 (2026-11-26)
+- Prompt: "now i start docker deamon"
+- Status: Needs input
+- Summary: Docker is back; db, api, worker containers and pgdata/uploads volumes intact. The node:22 image was broken after the disk-full pull (exec format error, same digest after re-pull); node:22-slim works. Step 3 done: npm ci, tsc, ESLint clean, Vitest 39/39 pass.
+- Status update (2026-11-26): Needs input (continue with step 4, regenerate the API client).
+
+## T-116: Do all the remaining steps (2026-11-26)
+- Prompt: "do all the reamining step"
+- Status: Completed
+- Summary: Steps 4 to 9 of M2-A1 done: API client regenerated, upload page (UploadWizard) with 7 Vitest tests, docs updated (filedescription, FILE_STRUCTURE, m2.md). ruff, pytest (971), tsc, ESLint pass; Vitest passed 46/46 in a node:22-slim container. Stack runs: db, api, worker healthy, one Alembic head 0015, api and worker share the uploads volume. The settings.local.json deny line was not re-added (edit declined by the user).
+- Status update (2026-11-26): Completed.
+
+## T-117: Confirm which steps were done (2026-11-26)
+- Prompt: "so you did all 9 steps ecvept docker-compose.yml"
+- Status: Completed
+- Summary: Clarified that all 9 steps are done, including the docker-compose.yml change; only the settings.local.json deny line is left.
+- Status update (2026-11-26): Completed.
+
+## T-118: Run frontend and test upload in the browser (2026-11-26)
+- Prompt: "so right now frontend and backend server is running if yes give me url of frontend and i want to test on browser and also check upload functionality"
+- Status: Completed
+- Summary: Started the frontend (compose profile, port 3000); it answers 200. One admin user exists in the dev DB; its password is not known to Claude, so the browser test is left to the user.
+- Status update (2026-11-26): Completed.
+
+## T-119: What is a worksheet (2026-11-26)
+- Prompt: "what is worksheet here ?"
+- Status: Completed
+- Summary: Explained that a worksheet is one tab inside an Excel (XLSX) workbook, and why the picker appears only for multi-sheet files.
+- Status update (2026-11-26): Completed.
+
+## T-120: How to see files in the docker uploads volume (2026-11-26)
+- Prompt: "okay how can i show this files in my docker volume is there any command to see"
+- Status: Completed
+- Summary: Gave docker compose exec ls and a throwaway-container command to list the uploads volume; ran the listing.
+- Status update (2026-11-26): Completed.
+
+## T-121: Stored file name differs from the uploaded name (2026-11-26)
+- Prompt: "it give this but my file name is different" (pasted the ls output of /srv/uploads)
+- Status: Completed
+- Summary: Confirmed by querying import_files that the random stored name maps to the original name "Agentic  Databse.xlsx"; this is by design.
+- Status update (2026-11-26): Completed.
+
+## T-122: How is a duplicate file detected (2026-11-26)
+- Prompt: "how it can duplicate file ?"
+- Status: Completed
+- Summary: Explained SHA-256 duplicate detection (D-109): same bytes means duplicate, name is ignored.
+- Status update (2026-11-26): Completed.
+
+## T-123: Backend files of M2-A1 and how they connect (2026-11-26)
+- Prompt: "give me the name of file of backend which used in m2-a1 implementation and tell me the flow how each file connected to each other ?"
+- Status: Completed
+- Summary: Listed the backend files used by M2-A1 (imports package, config, audit action, migration 0014, tests) and explained the upload flow from API to multipart, upload service, parsers, xlsx_safety, storage, database and audit.
+- Status update (2026-11-26): Completed.

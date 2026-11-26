@@ -48,7 +48,7 @@ BD_BACKEND/
 ├── migrations/                # exists: Alembic
 │   ├── env.py, script.py.mako # exists
 │   ├── migrations.md          # exists: plain-language explainer of migrations
-│   └── versions/              # exists: 0001 pgvector, 0002 users, 0003 sessions, 0004 audit_log, 0005 core tables, 0006 leads tables, 0007 imports tables, 0008 compliance tables, 0009 content tables, 0010 campaigns tables, 0011 outreach tables, 0012 mail tables, 0013 notifications tables; 0014+ planned
+│   └── versions/              # exists: 0001 pgvector, 0002 users, 0003 sessions, 0004 audit_log, 0005 core tables, 0006 leads tables, 0007 imports tables, 0008 compliance tables, 0009 content tables, 0010 campaigns tables, 0011 outreach tables, 0012 mail tables, 0013 notifications tables, 0014 import file storage columns, 0015 merge of the 0013 and 0014 branches; 0016+ planned
 ├── app/
 │   ├── __init__.py            # exists
 │   ├── main.py                # exists: FastAPI app and router registration
@@ -92,6 +92,7 @@ BD_FRONTEND/
 │   │   └── (app)/             # route group: every signed-in screen; layout.tsx checks /auth/me server-side
 │   │       └── leads/ campaigns/ review/ outbox/ admin/ users/ profile/   # empty shells (B3); M2-0 adds leads/{import,quarantine,duplicates}/ and admin/{source-profiles,mappings}/ shells
 │   ├── components/            # shared UI: AppShell, NavBar, LoginForm, LogoutButton, PlaceholderPage; later tables, filter chips, email preview
+│   │   └── import/            # import wizard parts: UploadWizard.tsx (M2-A1 upload step, exists)
 │   └── lib/
 │       ├── api/               # typed client generated from the FastAPI OpenAPI schema; never hand-edited
 │       ├── api-client.ts      # hand-written setup (base URL, cookies, CSRF fetch, 401 redirect); pages import the API from here
@@ -100,7 +101,7 @@ BD_FRONTEND/
 │       ├── auth-context.tsx   # AuthProvider and useCurrentUser() for client components
 │       └── nav-items.ts       # menu entries and the roles that see them (cosmetic)
 └── tests/
-    ├── unit/                  # Vitest tests (LoginForm, AppShell, nav-items, csrf, auth-and-logout); run by npm test
+    ├── unit/                  # Vitest tests (LoginForm, AppShell, nav-items, csrf, auth-and-logout, import-upload); run by npm test
     └── e2e/                   # Playwright journeys (login.spec.ts, helpers.ts); run by npm run test:e2e
 ```
 
