@@ -48,7 +48,7 @@ BD_BACKEND/
 ├── migrations/                # exists: Alembic
 │   ├── env.py, script.py.mako # exists
 │   ├── migrations.md          # exists: plain-language explainer of migrations
-│   └── versions/              # exists: 0001 pgvector, 0002 users, 0003 sessions, 0004 audit_log, 0005 core tables, 0006 leads tables, 0007 imports tables, 0008 compliance tables, 0009 content tables, 0010 campaigns tables, 0011 outreach tables, 0012 mail tables, 0013 notifications tables; 0014+ planned
+│   └── versions/              # exists: 0001 pgvector, 0002 users, 0003 sessions, 0004 audit_log, 0005 core tables, 0006 leads tables, 0007 imports tables, 0008 compliance tables, 0009 content tables, 0010 campaigns tables, 0011 outreach tables, 0012 mail tables, 0013 notifications tables, 0014 import file storage columns, 0015 merge of the 0013 and 0014 branches, 0016 raw_rows outcome and reason_code (M2-A5); 0017+ planned
 ├── app/
 │   ├── __init__.py            # exists
 │   ├── main.py                # exists: FastAPI app and router registration
@@ -59,7 +59,7 @@ BD_BACKEND/
 │   ├── models.py              # exists: registry importing every module's models (frozen after A0)
 │   ├── core/                  # exists: api, clock, cookies, dependencies, errors, model_helpers, models, passwords, schemas, services, tasks (sample job, A10); permissions planned
 │   ├── audit/                 # exists: models, services (append-only audit log)
-│   ├── imports/               # exists: models (6 tables), wiring.py (ingest_row stub, M2-0), tasks.py (empty), profiles_api.py (empty router), M2-A1 upload: api, errors, storage, xlsx_safety, parsers, multipart, access, upload, schemas; planned: mapping, preview, pipeline, reports
+│   ├── imports/               # exists: models (6 tables), wiring.py (returns the real `leads.ingest.ingest_row`, wired in M2-A7), tasks.py (`process_import`, M2-A3), M2-A1 upload: api, errors, storage, xlsx_safety, parsers, multipart, access, upload, schemas; M2-A2 mapping: layouts, conversion, mapping, preview, mapping_api; M2-A3 processing: pipeline, owners; M2-A4 owner assignment: assignment, assignment_api, raw_keys; M2-A5 report: reports, reports_api, downloads; M2-A6 profile admin: profiles, profiles_api
 │   ├── leads/                 # exists: models (16 tables), contracts.py (M2 seam types), quarantine_api.py, duplicates_api.py, mappings_api.py (empty routers), `reference_data.py`, `normalization.py`, `validation.py`, `seed_reference_data.py` (M2-B1: cleaning rules, starter lists, row validation, mapping seed), `quarantine.py`, `schemas.py` (M2-B2: quarantine service and models; `quarantine_api.py` now has the endpoints), `duplicates.py`, `duplicate_schemas.py`, `mappings.py`, `mapping_schemas.py` (M2-B5 and M2-B6: duplicate review and mapping admin services and models; `duplicates_api.py` and `mappings_api.py` now have the endpoints), `matching.py`, `engagement.py` (M2-B3: person and company matching, possible duplicates, source engagement rules), `merge.py`, `row_fields.py`, `ingest.py` (M2-B4: merge, row parsing and the real `ingest_row`); planned: search
 │   ├── compliance/            # exists: models (4 tables: opt-outs, gate status, checklist items, erasure records); planned: services (eligibility, opt-outs, erasure, gate), api
 │   ├── content/               # exists: models (9 tables: voice, size and industry profiles, knowledge items and embeddings, profile-item link, email structures and sections, config versions); planned: services (knowledge lifecycle, embedding, retrieval, versioning), api
@@ -68,7 +68,7 @@ BD_BACKEND/
 │   ├── mail/                  # exists: models (6 tables: mail threads, outbox copies, inbound replies, delta cursors, reply classifications, bounces); planned: Sender interface, MockSender, GraphSender, reply monitor, threading
 │   ├── notifications/         # exists: models (2 tables: notifications, SLA reminders); planned: in-app and email notifications, SLA reminders, dashboard queries
 │   └── ai/                    # planned: provider adapter, tasks, payload builders, validators, retrieval, prompt loader
-└── tests/                     # exists: flat test_*.py files, conftest.py, factories/ (`__init__`, `common`, `core`, `leads`, `imports`, `compliance` since A11; `content`, `campaigns`, `outreach`, `mail`, `notifications` since B11), test_factories.py, `test_leads_normalization.py`, `test_leads_validation.py`, `test_leads_reference_seed.py` (M2-B1), `test_leads_quarantine.py`, `test_leads_quarantine_api.py` (M2-B2), `test_leads_matching.py`, `test_leads_engagement.py` (M2-B3), `test_leads_ingest.py`, `test_leads_merge.py` (M2-B4), `test_leads_duplicates.py`, `test_leads_mappings.py` (M2-B5, M2-B6), test_b_factories.py, test_b_schema_gaps.py, test_schema_rule_gaps.py, test_sample_job.py; per-module folders planned
+└── tests/                     # exists: flat test_*.py files, conftest.py, factories/ (`__init__`, `common`, `core`, `leads`, `imports`, `compliance` since A11; `content`, `campaigns`, `outreach`, `mail`, `notifications` since B11), test_factories.py, `test_import_*.py` (M2-A1 to A7, incl. `test_import_contract.py` and `test_import_e2e.py`), `test_leads_normalization.py`, `test_leads_validation.py`, `test_leads_reference_seed.py` (M2-B1), `test_leads_quarantine.py`, `test_leads_quarantine_api.py` (M2-B2), `test_leads_matching.py`, `test_leads_engagement.py` (M2-B3), `test_leads_ingest.py`, `test_leads_merge.py` (M2-B4), `test_leads_duplicates.py`, `test_leads_mappings.py` (M2-B5, M2-B6), test_b_factories.py, test_b_schema_gaps.py, test_schema_rule_gaps.py, test_sample_job.py; per-module folders planned
 ```
 
 Each module folder holds `models.py`, `schemas.py`, `services.py`, `api.py` (router), and `tasks.py` if it has background jobs.
@@ -91,10 +91,11 @@ BD_FRONTEND/
 │   │   ├── login/             # public login page
 │   │   └── (app)/             # route group: every signed-in screen; layout.tsx checks /auth/me server-side
 │   │       └── leads/ campaigns/ review/ outbox/ admin/ users/ profile/   # empty shells (B3); M2-0 adds leads/{import,quarantine,duplicates}/ and admin/{source-profiles,mappings}/ shells
-│   ├── components/            # shared UI: AppShell, NavBar, LoginForm, LogoutButton, PlaceholderPage; `quality/` (M2-B2: QuarantineScreen, QuarantineEditor; M2-B5: DuplicatesScreen, DuplicateCompare), `admin/` (M2-B6: MappingsScreen, IndustryMappingsPanel, StateMappingsPanel); later tables, filter chips, email preview
+│   ├── components/            # shared UI: AppShell, NavBar, LoginForm, LogoutButton, PlaceholderPage; `import/` (M2-A1 to A6: UploadWizard, ImportWizard, ProfileStep, MappingStep, PreviewStep, ImportRunner, ImportProgress, UnmatchedOwnersPanel, ImportReport, ImportChangesList, SourceProfilesAdmin, SourceProfileDetail), `quality/` (M2-B2: QuarantineScreen, QuarantineEditor; M2-B5: DuplicatesScreen, DuplicateCompare), `admin/` (M2-B6: MappingsScreen, IndustryMappingsPanel, StateMappingsPanel); later tables, filter chips, email preview
 │   └── lib/
 │       ├── api/               # typed client generated from the FastAPI OpenAPI schema; never hand-edited
 │       ├── api-client.ts      # hand-written setup (base URL, cookies, CSRF fetch, 401 redirect); pages import the API from here
+│       ├── import/            # wording and helpers for the import screens (M2-A2 to A5: errors, messages, mapping-form, progress, report)
 │       ├── quality/quarantine.ts  # labels, filter options and messages for the quarantine screen (M2-B2)
 │       ├── quality/review.ts      # wording and merge-form helpers for the duplicate and mapping screens (M2-B5, M2-B6)
 │       ├── csrf.ts            # in-memory CSRF token and the fetch that sends X-CSRF-Token (B12)
@@ -102,8 +103,8 @@ BD_FRONTEND/
 │       ├── auth-context.tsx   # AuthProvider and useCurrentUser() for client components
 │       └── nav-items.ts       # menu entries and the roles that see them (cosmetic)
 └── tests/
-    ├── unit/                  # Vitest tests (LoginForm, AppShell, nav-items, csrf, auth-and-logout); run by npm test
-    └── e2e/                   # Playwright journeys (login.spec.ts, helpers.ts); run by npm run test:e2e
+    ├── unit/                  # Vitest tests (LoginForm, AppShell, nav-items, csrf, auth-and-logout, import-upload, import-mapping, import-preview, import-mapping-form, import-runner, import-progress, import-assignment, import-report, import-source-profiles); run by npm test
+    └── e2e/                   # Playwright journeys (login.spec.ts, import-journey.spec.ts (M2-A7), helpers.ts); run by npm run test:e2e
 ```
 
 ## Where new things go

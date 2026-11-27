@@ -145,9 +145,7 @@ def test_update_is_rejected_by_the_trigger(session: Session) -> None:
     entry = record(session, action=AuditAction.USER_CREATED)
 
     with pytest.raises(DBAPIError) as exc:
-        session.execute(
-            text("UPDATE audit_log SET action = 'x' WHERE id = :id"), {"id": entry.id}
-        )
+        session.execute(text("UPDATE audit_log SET action = 'x' WHERE id = :id"), {"id": entry.id})
 
     assert "audit_log is append-only: UPDATE is not allowed" in str(exc.value)
 

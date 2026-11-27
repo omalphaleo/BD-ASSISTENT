@@ -212,9 +212,7 @@ def test_successful_login_writes_an_audit_row_without_secrets(
     assert row.summary is None
 
 
-def test_blocked_http_login_looks_like_a_wrong_password(
-    db_session: Session, alice: User
-) -> None:
+def test_blocked_http_login_looks_like_a_wrong_password(db_session: Session, alice: User) -> None:
     """Over HTTP a blocked correct password gets the same 401 body and no cookie."""
 
     def override_get_session() -> Iterator[Session]:

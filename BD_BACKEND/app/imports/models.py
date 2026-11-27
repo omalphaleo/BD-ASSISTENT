@@ -30,6 +30,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.clock import now
 from app.core.model_helpers import TimestampMixin, enum_column, in_check, uuid_pk
 from app.db import Base
+from app.leads.contracts import RowOutcomeKind
 
 # Lowercase hex SHA-256 digest: 64 characters.
 SHA256_HEX_PATTERN = "^[0-9a-f]{64}$"
@@ -59,9 +60,10 @@ class ImportStatus(enum.StrEnum):
 class SourceProfile(TimestampMixin, Base):
     """A saved description of one kind of source file, edited by admins only (D-049).
 
-    layout is free text because the three predefined layouts are not agreed yet; the
-    import service validates it. mapping_defaults holds the saved header-to-field defaults,
-    while column_mappings records what was actually used for each file.
+    layout is a free label (at most 64 characters) that nothing validates or reads: the
+    three predefined layouts are not agreed yet (U2). mapping_defaults holds the saved
+    header-to-field defaults, while column_mappings records what was actually used for each
+    file.
     """
 
     __tablename__ = "source_profiles"
@@ -187,7 +189,8 @@ class RawRow(Base):
     A database trigger (migration 0007) rejects any UPDATE that changes the original
     columns; only person_id, the link to the lead, may change (release, merge, SET NULL).
     Rows are removed only by erase-person. There is no updated_at, because nothing about
-    the original may change.
+    the original may change. The processing result (outcome, reason_code) is not part of the
+    original, so the guard lets it be set after the row is stored.
     """
 
     __tablename__ = "raw_rows"
@@ -212,6 +215,12 @@ class RawRow(Base):
         ForeignKey("people.id", ondelete="SET NULL", name="fk_raw_rows_person_id_people"),
         nullable=True,
     )
+    # What the import did with the row and why (migration 0016, M2-A5). NULL for rows stored
+    # before that migration or not processed yet. Outside the immutability guard, like person_id.
+    outcome: Mapped[RowOutcomeKind | None] = mapped_column(
+        enum_column(RowOutcomeKind), nullable=True
+    )
+    reason_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=now
     )
@@ -220,6 +229,7 @@ class RawRow(Base):
         UniqueConstraint(
             "import_file_id", "row_number", name="uq_raw_rows_import_file_id_row_number"
         ),
+        in_check("outcome", RowOutcomeKind, "ck_raw_rows_outcome_valid"),
         CheckConstraint("row_number >= 1", name="ck_raw_rows_row_number_positive"),
         CheckConstraint(
             "email_normalized = lower(email_normalized)",

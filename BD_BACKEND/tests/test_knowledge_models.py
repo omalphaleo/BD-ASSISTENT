@@ -117,9 +117,7 @@ def test_retired_item_keeps_its_approval_history(db_session: Session) -> None:
 
 def test_draft_item_with_retired_at_is_rejected(assert_rejected: Rejected) -> None:
     """A draft cannot already carry a retired_at."""
-    assert_rejected(
-        _item(retired_at=now()), "ck_knowledge_items_status_matches_timestamps"
-    )
+    assert_rejected(_item(retired_at=now()), "ck_knowledge_items_status_matches_timestamps")
 
 
 def test_unknown_status_is_rejected(db_session: Session) -> None:

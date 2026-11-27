@@ -2103,6 +2103,129 @@ Status: Needs input
 - Summary: Wrote the one-off `BD_BACKEND/create_dummy_user.py` (git-ignored by an existing rule) and showed it for review; it uses `hash_password`, the `User` model and `get_engine`, reads `E2E_ADMIN_*` and `E2E_REP_*` from the env file given as its argument, skips existing emails and never prints passwords. Not run yet; `app/core` untouched; nothing committed.
 - Status update (2026-11-25): Needs input: approval to run it (it needs the `.env.local` file visible inside the api container).
 
+## T-111: Check merged M1 B11 and B12 and plan remaining M2-A1 (2026-11-26)
+- Prompt: "merge m1- b11 and b12 implementation check it and give detail plan for remaining task of m2-a1 and dont take any assumption if you have any doubt ask me to resolve it first"
+- Status: In progress
+
+## T-112: Add step 9 (run the whole stack in Docker) to the M2-A1 plan (2026-11-26)
+- Prompt: "also add step 9 to run whole app to check is it working or not backend frontend db whole in docker"
+- Status: Completed
+- Summary: Added step 9 to the remaining M2-A1 plan (full-stack Docker verification). No code changed; waiting for the go-ahead to start step 1.
+- Status update (2026-11-26): Completed.
+
+## T-113: Start the M2-A1 remaining plan, steps 1 to 9 (2026-11-26)
+- Prompt: "start"
+- Status: In progress
+
+## T-114: How to resume this conversation after a PC restart (2026-11-26)
+- Prompt: "i am going to restart my pc so docker will how can i start this conversation from here ?"
+- Status: Completed
+- Summary: Explained claude --continue and claude --resume from the project folder, and listed where M2-A1 stands (steps 1 and 2 done, step 3 onward waiting for Docker).
+- Status update (2026-11-26): Completed.
+
+## T-115: Docker daemon started, resume M2-A1 (2026-11-26)
+- Prompt: "now i start docker deamon"
+- Status: Needs input
+- Summary: Docker is back; db, api, worker containers and pgdata/uploads volumes intact. The node:22 image was broken after the disk-full pull (exec format error, same digest after re-pull); node:22-slim works. Step 3 done: npm ci, tsc, ESLint clean, Vitest 39/39 pass.
+- Status update (2026-11-26): Needs input (continue with step 4, regenerate the API client).
+
+## T-116: Do all the remaining steps (2026-11-26)
+- Prompt: "do all the reamining step"
+- Status: Completed
+- Summary: Steps 4 to 9 of M2-A1 done: API client regenerated, upload page (UploadWizard) with 7 Vitest tests, docs updated (filedescription, FILE_STRUCTURE, m2.md). ruff, pytest (971), tsc, ESLint pass; Vitest passed 46/46 in a node:22-slim container. Stack runs: db, api, worker healthy, one Alembic head 0015, api and worker share the uploads volume. The settings.local.json deny line was not re-added (edit declined by the user).
+- Status update (2026-11-26): Completed.
+
+## T-117: Confirm which steps were done (2026-11-26)
+- Prompt: "so you did all 9 steps ecvept docker-compose.yml"
+- Status: Completed
+- Summary: Clarified that all 9 steps are done, including the docker-compose.yml change; only the settings.local.json deny line is left.
+- Status update (2026-11-26): Completed.
+
+## T-118: Run frontend and test upload in the browser (2026-11-26)
+- Prompt: "so right now frontend and backend server is running if yes give me url of frontend and i want to test on browser and also check upload functionality"
+- Status: Completed
+- Summary: Started the frontend (compose profile, port 3000); it answers 200. One admin user exists in the dev DB; its password is not known to Claude, so the browser test is left to the user.
+- Status update (2026-11-26): Completed.
+
+## T-119: What is a worksheet (2026-11-26)
+- Prompt: "what is worksheet here ?"
+- Status: Completed
+- Summary: Explained that a worksheet is one tab inside an Excel (XLSX) workbook, and why the picker appears only for multi-sheet files.
+- Status update (2026-11-26): Completed.
+
+## T-120: How to see files in the docker uploads volume (2026-11-26)
+- Prompt: "okay how can i show this files in my docker volume is there any command to see"
+- Status: Completed
+- Summary: Gave docker compose exec ls and a throwaway-container command to list the uploads volume; ran the listing.
+- Status update (2026-11-26): Completed.
+
+## T-121: Stored file name differs from the uploaded name (2026-11-26)
+- Prompt: "it give this but my file name is different" (pasted the ls output of /srv/uploads)
+- Status: Completed
+- Summary: Confirmed by querying import_files that the random stored name maps to the original name "Agentic  Databse.xlsx"; this is by design.
+- Status update (2026-11-26): Completed.
+
+## T-122: How is a duplicate file detected (2026-11-26)
+- Prompt: "how it can duplicate file ?"
+- Status: Completed
+- Summary: Explained SHA-256 duplicate detection (D-109): same bytes means duplicate, name is ignored.
+- Status update (2026-11-26): Completed.
+
+## T-123: Backend files of M2-A1 and how they connect (2026-11-26)
+- Prompt: "give me the name of file of backend which used in m2-a1 implementation and tell me the flow how each file connected to each other ?"
+- Status: Completed
+- Summary: Listed the backend files used by M2-A1 (imports package, config, audit action, migration 0014, tests) and explained the upload flow from API to multipart, upload service, parsers, xlsx_safety, storage, database and audit.
+- Status update (2026-11-26): Completed.
+
+## T-124: Describe M2-A2 implementation from m2.md (2026-11-26)
+- Prompt: "read m2.md and desribe m2-a2 implemetation"
+- Status: Completed
+- Summary: Read m2.md and described the planned M2-A2 (mapping, preview, estimate) backend, frontend, boundaries and open points.
+- Status update (2026-11-26): Completed.
+
+## T-125: Detailed M2-A2 backend implementation plan, source-independent mapping (2026-11-26)
+- Prompt: "Prepare a detailed implementation plan for M2-A2 (Backend) based on the existing project documentation, completed tasks, database schema, and current codebase. The system must support importing lead data from Apollo as well as other external sources, so design a flexible, source-independent mapping approach. Ensure the plan covers: how data from different sources will be mapped to our standardized internal lead fields; source-specific field mapping, custom fields, missing fields, and inconsistent data formats; validation, normalization, duplicate detection, and error handling; database changes, APIs, services, and background jobs required; testing strategy, dependencies, and implementation sequence. Important: Do not make assumptions or start implementation. First inspect the existing code and documentation, identify gaps or ambiguities, and ask me questions wherever a decision is needed. Provide recommendations for each unresolved decision before finalizing the implementation plan."
+- Status: Needs input
+- Summary: Inspected m2.md, Q-A.md (D-040 to D-078) and the imports and leads code; drafted the M2-A2 backend plan with open questions and recommendations. No code written.
+- Status update (2026-11-26): Needs input, waiting for answers to the questions.
+
+## T-124: How the duplicate check works in code (2026-11-26)
+- Prompt: "how it check duplicay"
+- Status: Completed
+- Summary: Explained the duplicate check in code: SHA-256 in multipart._sha256_of, lookup in upload.find_earlier_upload, 409 in api.py.
+- Status update (2026-11-26): Completed.
+
+## T-126: M2-A3 implementation plan, decisions and implementation start (2026-11-27)
+- Prompt: "give a3 implementation plan" / "desribe m2-a3" / "Create a detailed implementation plan for M2-A3 ... Do not make any implementation or code changes yet ..." / "instead of writing it start working on this approved from my end"
+- Status: Completed
+- Decisions approved: explicit POST /imports/{id}/start; derived progress, no migration; per-row SAVEPOINT, rejected with ingest_error; chunk size 500; per-import queueing lock + state check; cell warnings ignored; FAILED without retry endpoint; owners matched on email, written post-ingest if people.owner_id is NULL.
+- Summary: Implemented M2-A3 backend: `imports/pipeline.py` (chunked, resumable run), `owners.py`, `process_import` task with per-import queueing lock, start and progress endpoints, config (`IMPORT_CHUNK_SIZE`, `COOLING_OFF_DAYS`), regenerated `openapi.json` and the client; docs updated. 1070 backend tests pass.
+- Status update (2026-11-27): Completed.
+
+## T-127: Describe M2-A4 implementation (2026-11-27)
+- Prompt: "describe m2-a4 implemetation"
+- Status: Completed
+- Summary: Explained that M2-A4 (progress page and owner assignment) is not implemented yet and described its planned scope per m2.md, plus what A3 already provides.
+- Status update (2026-11-27): Completed.
+
+## T-128: M2-A4 implementation plan (2026-11-27)
+- Prompt: "Create a detailed implementation plan for M2-A4 based on the existing project documentation, architecture, approved decisions, and the completed M2-A1, M2-A2, and M2-A3 implementation. ... Do not make any implementation or code changes yet. Present unresolved questions one at a time ... Do not finalize the implementation plan until all necessary decisions are resolved and I explicitly approve it. ... Verify completed M2 tasks against the actual code rather than assuming the documentation accurately reflects the current implementation."
+- Status: Completed
+- Decisions approved: unmatched leads derived on read (no migration); assignment per owner text incl. a "no owner given" group; fill empty owners only; `GET /imports/assignable-users` (`ASSIGN_LEADS`); "cancel" is UI-only; import ID in the URL; plus defaults (assign only when COMPLETED, `ASSIGN_LEADS` for the list, audit without owner text, Start button in the preview step, shared key helper).
+- Summary: Planned, then implemented M2-A4: `imports/{assignment,assignment_api,raw_keys}.py`, 3 endpoints, regenerated `openapi.json` and client; frontend `/leads/import/[importId]`, `ImportRunner`, `ImportProgress`, `UnmatchedOwnersPanel`, enabled Start import. Docs updated. ruff, pytest (1090), tsc, ESLint and Vitest (87, on Node 22.19 in Docker) green.
+- Status update (2026-11-27): Completed.
+
+## T-129: M2-A6 implementation: source profile admin (2026-11-27)
+- Prompt: "I approve the M2-A6 implementation plan and all three suggestions (A, B and C). A: Enforce case-insensitive profile name uniqueness in the service without a migration. B: Show a warning when deactivating a profile referenced by in-progress imports, but do not block deactivation. C: Update the SourceProfile model docstring to reflect that layout is a free label. Also, log the M2-A6 implementation task in USERPROMPT.md as required by CLAUDE.md. Proceed with implementation. Follow the approved scope and existing architecture. Do not introduce additional features or assumptions."
+- Status: Needs input
+- Summary: Backend of M2-A6 written (not yet run): `imports/profiles.py` service, `profiles_api.py` (5 routes, `MANAGE_SOURCE_PROFILES`), profile schemas, `ProfileRejectedError`, case-insensitive unique names, deactivation warning, docstring fix in `models.py`, tests `test_import_profiles.py` and matrix rows; ruff clean. pytest, `openapi.json`/client regeneration, frontend and docs are not done because Docker is not running and no local test tooling is available.
+- Status update (2026-11-27): Needs input (start Docker, then continue with tests, regeneration, frontend and docs).
+
+## T-130: M2-A7 implementation plan (2026-11-27)
+- Prompt: "Create a detailed implementation plan for M2-A7 based on the existing project documentation, architecture, approved decisions, and the completed M2-A1 through M2-A6 implementation. Before implementation: 1. Review the relevant documentation and existing code ... 2. Break down the implementation into clear tasks ... 3. Identify any unresolved requirements ... 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any additional suggestions ... Do not make any implementation or code changes yet. Present unresolved questions one at a time ... Do not finalize the implementation plan until all necessary decisions are resolved and I explicitly approve it. ... Verify completed M2 tasks against the actual code ... Verify all dependencies and identify any unfinished tasks that could affect M2-A7."
+- Status: Needs input
+- Summary: Verified M2-A1..A6 and W2 against the code and `origin/main`; found that B's M2-B1..B6 are already on `origin/main`, that `row_fields.py` reads field keys that differ from A's `TARGET_FIELDS`, and that A6 is only partly done. Presented findings and the first open decision; no code changed, plan not finalized.
+- Status update (2026-11-27): Needs input (decisions D1 onward).
 ## T-111: M2-B1 and M2-B2 explanation, prerequisites and plans (2026-11-26, backfilled)
 - Prompts (plan mode, so logged late; summarised from the verbatim requests): "Let's start with M2 – B1. First, explain what M2 – B1 is ... dependencies and prerequisites ... Explain everything step by step in simple terms before we begin implementation." Follow-ups: whether data is already in the database and whether Apollo data is needed before B1 (A1 vs B); "Normalization needs real lead data to work on. Until we have it, how can M2-B1 build and check normalization"; "Explain what M2 – B2 does and provide a detailed implementation plan ..."; which fields are quarantined beyond email; whether missing first-name validation is in B2; "what files are created in b1 and b2".
 - Summary: Explained B1 and B2 from `milestone/m2.md`, `docs/plan.md` and `Q-A.md`. No data is loaded in the database yet and Apollo data is not needed for B1; upload/import is Developer A's (A1 to A3). Quarantine covers email and first name only; first-name rule lives in B1, quarantine handling in B2.
@@ -2168,3 +2291,9 @@ Status: Needs input
 - Summary: Answered that B1 to B6 are built and verified, with a short list of open items beyond committing.
 - Status update (2026-11-26): Completed. Nothing was changed in the code.
 - Status: Completed
+
+## T-131: M2-A7 implementation start (2026-11-27)
+- Prompt: "start working on a7 approved plan"
+- Status: Needs input
+- Summary: Wired the real `ingest_row` in `imports/wiring.py`; added `tests/test_import_contract.py` (strict xfail on `row_fields.py` until B fixes the keys) and `tests/test_import_e2e.py` (9 tests, real `ingest_row`); wrote `tests/e2e/import-journey.spec.ts` (compiles, not yet run); repaired `FILE_STRUCTURE.md` after the merge and updated the A7 docs. 1415 backend tests pass, 1 xfail.
+- Status update (2026-11-27): Needs input (B's `row_fields.py` fix, the joint `contracts.py` PR, and permission to run the Playwright journey against the live stack).
