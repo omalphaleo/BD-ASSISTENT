@@ -20,9 +20,12 @@ Risks:
   migration that replaces the constraint. Changing the 768-dimension vector size also needs a
   new migration (and re-embedding).
 - Never edit this migration after it is applied; further changes need a new migration.
+- Chain order (2026-11-26, m2.md section 31 item 3): re-pointed from 0008 to 0014 so the
+  history has one head after M2-A1 added 0014 on top of 0008. Only the revision link moved;
+  the tables created here are unchanged and 0009 to 0013 keep their order after 0014.
 
 Revision ID: 0009
-Revises: 0008
+Revises: 0014
 Create Date: 2026-11-23
 """
 
@@ -34,7 +37,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0009"
-down_revision: str | None = "0008"
+down_revision: str | None = "0014"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

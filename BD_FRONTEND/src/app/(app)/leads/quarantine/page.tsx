@@ -1,13 +1,13 @@
 /**
- * Empty shell for the Quarantine screen (task M2-0).
+ * Quarantine screen route (task M2-B2).
  *
- * Needed so the route and its menu link exist now; the quarantine review list arrives in M2-B2.
+ * Needed so the menu link "Quarantine" opens the review list of import rows that failed
+ * validation. The page only renders the client component; every rule and permission is enforced
+ * by the server.
  */
-import PlaceholderPage from "@/components/PlaceholderPage";
+import QuarantineScreen from "@/components/quality/QuarantineScreen";
 
-/** Renders the placeholder for Quarantine. */
+/** Renders the quarantine review screen. */
 export default function QuarantinePage() {
-  return (
-    <PlaceholderPage title="Quarantine" availability="The quarantine review list arrives in M2." />
-  );
+  return <QuarantineScreen />;
 }

@@ -1,14 +1,12 @@
 /**
- * Empty shell for the Mappings admin screen (task M2-0).
+ * Mappings admin route (task M2-B6).
  *
- * Needed so the route and its menu link exist now; the industry and state mapping admin
- * arrives in M2-B6.
+ * Needed so the menu link "Mappings" opens the industry and state mapping admin. The page only
+ * renders the client component; every rule and permission is enforced by the server.
  */
-import PlaceholderPage from "@/components/PlaceholderPage";
+import MappingsScreen from "@/components/admin/MappingsScreen";
 
-/** Renders the placeholder for Mappings. */
+/** Renders the mappings admin screen. */
 export default function MappingsPage() {
-  return (
-    <PlaceholderPage title="Mappings" availability="The industry and state mapping admin arrives in M2." />
-  );
+  return <MappingsScreen />;
 }
