@@ -65,6 +65,9 @@ class Permission(enum.StrEnum):
     APPROVE_DRAFT = "approve_draft"
     VIEW_ALL_DRAFTS = "view_all_drafts"
     # Compliance (planned: M3, M8).
+    ADD_OPT_OUT = "add_opt_out"  # D-066
+    VIEW_OPT_OUTS = "view_opt_outs"  # D-067
+    ADD_NOTE = "add_note"  # lead notes (M3)
     REMOVE_OPT_OUT = "remove_opt_out"
     ERASE_PERSON = "erase_person"
     ACTIVATE_REAL_SENDING = "activate_real_sending"
@@ -101,6 +104,9 @@ PERMISSION_ROLES: dict[Permission, frozenset[UserRole]] = {
     Permission.EDIT_DRAFT: _REP_ONLY,  # owner only; managers and admins are read-only
     Permission.APPROVE_DRAFT: _REP_ONLY,  # owner only
     Permission.VIEW_ALL_DRAFTS: _MANAGER_UP,  # read-only
+    Permission.ADD_OPT_OUT: _ALL_ROLES,  # D-066
+    Permission.VIEW_OPT_OUTS: _ALL_ROLES,  # D-067
+    Permission.ADD_NOTE: _ALL_ROLES,
     Permission.REMOVE_OPT_OUT: _MANAGER_UP,
     Permission.ERASE_PERSON: _ADMIN_ONLY,  # D-099
     Permission.ACTIVATE_REAL_SENDING: _ADMIN_ONLY,  # compliance gate
