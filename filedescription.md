@@ -223,7 +223,7 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 
 | File and names | What it does | Why it is used |
 |---|---|---|
-| `app/leads/search_api.py`, `segments_api.py` (workstream W1), `people_api.py`, `companies_api.py`, `app/compliance/opt_outs_api.py` (workstream W2) | Each holds one empty `router` (prefixes `/search`, `/segments`, `/people`, `/companies`, `/opt-outs`; same tag name). | Mounted in `main.py` once; M3-A and M3-B tasks add endpoints, each declaring a permission. |
+| `app/leads/segments_api.py` (workstream W1), `people_api.py`, `companies_api.py`, `app/compliance/opt_outs_api.py` (workstream W2) | Each holds one empty `router` (prefixes `/segments`, `/people`, `/companies`, `/opt-outs`; same tag name). `/search` is no longer empty (M3-A2, see its section). | Mounted in `main.py` once; M3-A and M3-B tasks add endpoints, each declaring a permission. |
 | `app/ai/__init__.py` | Header-only package (W1). | The path exists from M3-0; M3-A5 and M3-A6 fill it. |
 | `app/main.py` (edited), `app/audit/services.py` (edited), `app/core/permissions.py` (edited) | `main.py` imports and mounts the five routers; `AuditAction` gains the 12 M3 actions (`opt_out.added`, `opt_out.removed`, `person.erased`, `lead.owner_assigned`, `lead.flag_set`, `lead.flag_cleared`, `lead.note_added`, `segment.created`, `segment.updated`, `segment.deleted`, `export.leads_downloaded`, `search.nl_interpreted`); `Permission` and `PERMISSION_ROLES` gain `ADD_OPT_OUT` (D-066), `VIEW_OPT_OUTS` (D-067) and `ADD_NOTE`, all roles. | Frozen after M3-0 (m3.md section 20, rule 2). |
 | `tests/test_m3_scaffold.py` | No database: each of the five routers has its prefix and tag, no routes, and is imported by `main.py`; the 12 audit actions have the agreed values and none is duplicated; the three permissions are granted to every role. | Names cannot drift unnoticed. |
@@ -363,6 +363,49 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `RawRow` (`raw_rows`) | File (RESTRICT), `row_number` (at least 1, unique per file), JSONB `original_values`, lowercase `email_normalized` (indexed), nullable `person_id` (SET NULL, indexed), `created_at` only. A trigger in 0007 rejects any UPDATE of the original columns; `person_id` may change and DELETE is allowed. | Immutable originals (D-099, D-008); erase-person finds rows by person or by address, including unlinked quarantined ones. |
 | `ImportReport` (`import_reports`) | One per file (unique, CASCADE), the seven D-050 counts (each at least 0, default 0), JSONB `failure_reasons`. | Totals and the reason-coded failure breakdown shown after an import. |
 | `ImportChange` (`import_changes`) | Report and person (both CASCADE), JSONB `changes` (field to old/new), unique per report and person. | Transient "what changed in this import" summary (D-050); holds personal values, so it goes with the person. No expiry yet: retention is unresolved. |
+
+### `app/compliance/contracts.py` and `app/compliance/eligibility.py` (M3-A1)
+**Purpose:** the single eligibility service: one answer to "may we contact this person, and if not, why not?" for search, and later campaigns, drafting and sending. Each rule is one pair (SQL expression, record check) in one list, so the two cannot drift; a parity test proves it. Only reads tables, writes nothing, so no audit event. Decisions: contact limit 3 outbound emails in 30 days (D-020, D-083), any address opted out blocks (D-066), every failing reason is listed.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `EligibilityReason` (enum) | The seven blocking reasons, in listing order. | One vocabulary for badges, filters and the reasons panel. |
+| `EligibilityWarning` (enum) | `unverified_email`. | A caution that never blocks (D-042). |
+| `EligibilityContext` | Frozen: `now`, `cooling_off_days`, `contact_limit`, `contact_window_days`. | Both rule versions use the same inputs, so tests can pin time and limits. |
+| `EligibilityResult` | Frozen: `reasons`, `warnings`, property `eligible`. | What `check_eligibility` returns. |
+| `CONTACT_LIMIT`, `CONTACT_WINDOW_DAYS` | 3 and 30. | Named constants until M5 makes them admin settings (D-083). |
+| `PersonFacts` | Everything the record checks need about one person. | Loaded once so a check is a few queries, not one per rule. |
+| `_Rule` and `_RULES` | One entry per reason: SQL expression plus record check. | The single definition of each rule. |
+| `_*_sql` and `_*_record` functions | The seven rules as a SQL condition and as a check on `PersonFacts`. | Bulk search and per-person checks give the same answer. |
+| `build_context(db)` | Context from `core.clock.now()` and the cooling-off days from Settings. | Callers need not assemble the inputs. |
+| `reason_expression(reason, ctx)` | SQL condition true for people blocked by one reason. | Search badges and filters (M3-A2). |
+| `ineligible_expression(ctx)` | SQL condition true for people blocked by any reason. | "Eligible only" and the default view. |
+| `eligible_queryset(ctx)` | `select(Person)` of everyone who may be contacted. | Convenience for callers that add their own filters and paging. |
+| `load_facts(db, person, ctx)` | Loads the facts for one person. | Input of the record checks. |
+| `check_eligibility(db, person, ctx)` | Every blocking reason in order, plus warnings. | The per-person answer (sending, campaigns, lead page). |
+| `eligible_person_ids(db, ctx)` | Set of eligible person ids. | Tests and small callers. |
+| `_unverified_email_sql(ctx)` and `warning_expression(warning, ctx)` | SQL twin of the unverified-email warning (usable addresses exist, none verified), looked up in `_WARNING_SQL` (added in M3-A2). | The "unverified email" badge in search uses the same rule as `check_eligibility()`; the parity test covers it. |
+
+### `app/leads/filters.py`, `search_schemas.py`, `search.py` and `search_api.py` (M3-A2)
+**Purpose:** lead search. `FilterSet` is the one definition of "which leads" shared by the form, saved segments, export and AI search; `search.py` builds the query only from its fields; the API returns a page of rows with badges. Read-only, so no audit event. Decisions (m3.md, 2026-11-27): different filters combine with AND, values inside one list with OR; default view hides opted-out leads, "Show opted-out" adds them, and combining it with "Eligible only" is a 422; no migration.
+
+| Name | What it does | Why it is used |
+|---|---|---|
+| `filters.FilterSet` | Pydantic model, `extra="forbid"`: `industries`, `company_names`, `size_bands`, `countries`, `states`, `cities`, `titles`, `technologies`, `uses_salesforce`, `revenue_min`, `revenue_max`, `funding_stages`, `flags_include`, `flags_exclude`, `eligible_only`, `show_opted_out`; validators reject min above max, a flag both included and excluded, and the two toggles together. | Unknown or contradictory filters never reach the query. |
+| `filters.SizeBand`, `SIZE_BAND_RANGES` | SMB 1-200, mid-market 201-1,000, enterprise above 1,000 (D-085). | One home for the band edges. |
+| `filters.SortField`, `SortDirection` | The whitelist of sortable columns and the direction. | No arbitrary column can be sorted on. |
+| `MAX_VALUES_PER_LIST`, `MAX_TERM_LENGTH` | 50 values per list, 100 characters per term. | Keeps a request small and predictable. |
+| `search_schemas.SearchRequest` | `filters`, `sort`, `direction`, `limit` (default 50, max 200), `offset`. | The body of `POST /search/leads`. |
+| `search_schemas.SearchRow`, `CompanySummary`, `OwnerSummary`, `PrimaryEmail` | One lead: identity, company, both locations, primary email with verification, owner (email as name), last contacted, flags, badges. No phones. | The row contract the Leads screen (M3-A3) uses. |
+| `search_schemas.Badge` | `cooling_off`, `replied`, `possible_duplicate`, `unverified_email`, `opted_out` (Q-LEADS-07, D-067). | The five approved labels. |
+| `search_schemas.SearchResponse`, `FilterOptionsResponse` | A page with `total`, and the checkbox values with a `truncated` list. | "Select all matching" reads the count from `total`. |
+| `search.apply_filters(stmt, filters, ctx)` | Adds one condition per set filter, the default view and "eligible only" (from the eligibility service) to a query over people outer-joined to companies. | The only place filters become SQL. |
+| `search._equals_any`, `_contains_any`, `_escape_like`, `_size_band_condition`, `_location_condition`, `_flag_exists` | Exact case-blind match, contains match (wildcards escaped), band ranges, person-or-company-HQ location, flag existence. | Small, separately testable pieces of each filter. |
+| `search._order_by(sort, direction)` | Chosen column, empty values last, then person id. | Stable pages: no repeated or skipped rows. |
+| `search._load_page_facts`, `_load_badges`, `_to_row` | One query each for primary emails, flags, owners and badges of the page's people, then row assembly. | No query per lead. |
+| `search.search_leads(db, filters, ...)` | Runs the count and the page and returns a `SearchResponse`. | The search service behind the endpoint. |
+| `search.get_filter_options(db)`, `_distinct_values` | Distinct, case-deduplicated values per filter, each list capped at `MAX_FILTER_OPTIONS` (500). | Feeds the filter checkboxes. |
+| `search_api.search_leads` (`POST /search/leads`), `get_filter_options` (`GET /search/filter-options`) | Thin routes with `VIEW_ALL_LEADS`; 422 for a bad filter, sort or paging. | The contract the generated client uses. |
 
 ### `app/compliance/models.py`
 **Purpose:** the `compliance` tables (migration 0008, M1 task A5): per-address opt-outs (D-066), the real-sending gate and its checklist (D-081) and erasure proof without personal data (D-099). Tables only: no service, API or eligibility logic yet. `EligibilitySnapshot` is planned, not built. Same VARCHAR plus named CHECK style as `leads` and `imports`.
@@ -695,6 +738,9 @@ Common helpers repeated in several files: `_alembic_config(url)` (Alembic config
 | `factories/core.py` | `make_user`, `make_user_session`, `make_setting`, `make_clock_offset` (call once per test: the table allows one row), `make_job_lock`. Reused by B's factories for users. |
 | `factories/leads.py` | One `make_*` per leads table (company, person, person email/phone, social profile, contact channel, quarantine record, duplicate candidate, merge record, segment, lead note/event, touch, status flag, industry and state mapping). Parents are created when not passed; the duplicate-candidate factory orders the pair by id as the CHECK requires. |
 | `factories/imports.py` | `make_source_profile`, `make_import_file` (valid unique SHA-256), `make_column_mapping`, `make_raw_row`, `make_import_report`, `make_import_change`. Raw rows are only inserted, never updated (D-099). |
+| `factories/search.py` | `make_eligible_person`: a lead with one verified work address and no other facts (M3-A1). | A lead that passes every rule, so a test breaks one rule at a time. |
+| `test_eligibility_rules.py`, `test_eligibility_parity.py`, `test_eligibility_imports.py` | Each rule and boundary; SQL and record versions agree on 120 generated people (and for the unverified-email warning since M3-A2); the compliance/leads import guard (M3-A1). | Proves the eligibility service. |
+| `test_search_filters.py`, `test_search_query.py`, `test_search_default_view.py`, `test_search_pagination.py`, `test_search_badges.py`, `test_search_api.py` | FilterSet validation; each filter alone and combined; default view, "Show opted-out", "Eligible only"; sort, paging and total; badges and row contents; the two endpoints (auth, 422s, filter options and the cap) (M3-A2). | Proves lead search. |
 | `factories/compliance.py` | `make_opt_out`, `make_erasure_record`, plus `make_compliance_gate_status` and `make_compliance_checklist_item`, which return the rows migration 0008 already seeded (with overrides applied) instead of inserting a duplicate. |
 | `factories/content.py` | `make_voice_setting` (the voice is one row, so it returns the existing one), `make_size_profile`, `make_industry_profile` and `make_email_structure` (each takes the first unused key; raises `RuntimeError` when none is left), `make_knowledge_item`, `make_knowledge_embedding` (768-value vector, matching hash), `make_industry_profile_item`, `make_structure_section` (next position), `make_config_version`. Helpers `_first_unused`, `_hash`. | Valid content rows in one line (M1 task B11). |
 | `factories/campaigns.py` | `make_campaign` (draft, D-082 default timing), `make_campaign_lead` (eligible), `make_email_sequence`, `make_email_draft` (first email), `make_validation_result`. Each creates a missing parent. Constant `DEFAULT_SEQUENCE_CONFIG`. | A campaign chain in one line (B11). |

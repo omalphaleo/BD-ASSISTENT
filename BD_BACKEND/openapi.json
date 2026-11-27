@@ -61,6 +61,18 @@
         "title": "AssignableUserResponse",
         "type": "object"
       },
+      "Badge": {
+        "description": "Labels shown on a result row. The five approved ones (Q-LEADS-07, D-067, D-106).",
+        "enum": [
+          "cooling_off",
+          "replied",
+          "possible_duplicate",
+          "unverified_email",
+          "opted_out"
+        ],
+        "title": "Badge",
+        "type": "string"
+      },
       "CellWarningResponse": {
         "description": "A cell that could not be converted to its field's type; the value became null.",
         "properties": {
@@ -156,6 +168,79 @@
           }
         },
         "title": "ChooseProfileRequest",
+        "type": "object"
+      },
+      "CompanySummary": {
+        "description": "The company facts a result row shows.",
+        "properties": {
+          "employee_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Count"
+          },
+          "hq_city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hq City"
+          },
+          "hq_country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hq Country"
+          },
+          "hq_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hq State"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "industry": {
+            "title": "Industry",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "industry",
+          "employee_count",
+          "hq_city",
+          "hq_state",
+          "hq_country"
+        ],
+        "title": "CompanySummary",
         "type": "object"
       },
       "CreateIndustryMappingRequest": {
@@ -446,6 +531,15 @@
         "title": "DuplicateStatusFilter",
         "type": "string"
       },
+      "EmailVerificationStatus": {
+        "description": "Source verification state; unverified addresses stay eligible with a warning (D-042).",
+        "enum": [
+          "verified",
+          "unverified"
+        ],
+        "title": "EmailVerificationStatus",
+        "type": "string"
+      },
       "ErrorResponse": {
         "additionalProperties": false,
         "description": "Body of a 401 or 403: one fixed message, nothing about the user, owner or capability.",
@@ -592,6 +686,261 @@
           "new"
         ],
         "title": "FieldChangeResponse",
+        "type": "object"
+      },
+      "FilterOptionsResponse": {
+        "description": "The values the filter checkboxes offer, read from the data.\n\nEach list is capped; a name in `truncated` means that list was cut off.",
+        "properties": {
+          "cities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/LeadStatusFlagType"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "funding_stages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Funding Stages",
+            "type": "array"
+          },
+          "industries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Industries",
+            "type": "array"
+          },
+          "size_bands": {
+            "items": {
+              "$ref": "#/components/schemas/SizeBand"
+            },
+            "title": "Size Bands",
+            "type": "array"
+          },
+          "states": {
+            "items": {
+              "type": "string"
+            },
+            "title": "States",
+            "type": "array"
+          },
+          "technologies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Technologies",
+            "type": "array"
+          },
+          "truncated": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Truncated",
+            "type": "array"
+          }
+        },
+        "required": [
+          "industries",
+          "countries",
+          "states",
+          "cities",
+          "funding_stages",
+          "technologies",
+          "size_bands",
+          "flags",
+          "truncated"
+        ],
+        "title": "FilterOptionsResponse",
+        "type": "object"
+      },
+      "FilterSet": {
+        "additionalProperties": false,
+        "description": "Every way a lead search can be narrowed.\n\nDifferent filters combine with AND; the values inside one list combine with OR. A filter\nleft at its default (an empty list or None) is not applied. Matching rules:\n\n- industries, countries, states, cities, funding_stages: exact, case-insensitive.\n- countries, states, cities match the person's own location OR the company headquarters.\n- titles, company_names: \"contains\", case-insensitive.\n- technologies: exact tag match on the lowercased technology list.\n- size_bands: employee count inside any chosen band (D-085).\n- revenue_min / revenue_max: inclusive, in the currency the source used (not recorded).\n\nUnknown fields raise a validation error (extra=\"forbid\").",
+        "properties": {
+          "cities": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Cities",
+            "type": "array"
+          },
+          "company_names": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Company Names",
+            "type": "array"
+          },
+          "countries": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Countries",
+            "type": "array"
+          },
+          "eligible_only": {
+            "default": false,
+            "title": "Eligible Only",
+            "type": "boolean"
+          },
+          "flags_exclude": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeadStatusFlagType"
+            },
+            "maxItems": 6,
+            "title": "Flags Exclude",
+            "type": "array"
+          },
+          "flags_include": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LeadStatusFlagType"
+            },
+            "maxItems": 6,
+            "title": "Flags Include",
+            "type": "array"
+          },
+          "funding_stages": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Funding Stages",
+            "type": "array"
+          },
+          "industries": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Industries",
+            "type": "array"
+          },
+          "revenue_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Max"
+          },
+          "revenue_min": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Min"
+          },
+          "show_opted_out": {
+            "default": false,
+            "title": "Show Opted Out",
+            "type": "boolean"
+          },
+          "size_bands": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SizeBand"
+            },
+            "maxItems": 3,
+            "title": "Size Bands",
+            "type": "array"
+          },
+          "states": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "States",
+            "type": "array"
+          },
+          "technologies": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Technologies",
+            "type": "array"
+          },
+          "titles": {
+            "default": [],
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Titles",
+            "type": "array"
+          },
+          "uses_salesforce": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uses Salesforce"
+          }
+        },
+        "title": "FilterSet",
         "type": "object"
       },
       "FixQuarantineRequest": {
@@ -988,6 +1337,19 @@
         "title": "LeadChangeResponse",
         "type": "object"
       },
+      "LeadStatusFlagType": {
+        "description": "Business flags set by BD users (D-022, D-065, D-101).",
+        "enum": [
+          "existing_customer",
+          "in_conversation",
+          "partner",
+          "competitor",
+          "qualified",
+          "handed_off_to_sales"
+        ],
+        "title": "LeadStatusFlagType",
+        "type": "string"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "description": "Body of POST /auth/login. Unknown fields are rejected.",
@@ -1202,6 +1564,26 @@
         "title": "MergeDuplicateResponse",
         "type": "object"
       },
+      "OwnerSummary": {
+        "description": "The rep who owns the lead; the user's sign-in email is the only display name stored.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "OwnerSummary",
+        "type": "object"
+      },
       "PersonCardResponse": {
         "description": "One person of a pair: the mergeable fields as text, plus all addresses.",
         "properties": {
@@ -1332,6 +1714,24 @@
           "warnings"
         ],
         "title": "PreviewRowResponse",
+        "type": "object"
+      },
+      "PrimaryEmail": {
+        "description": "The lead's primary address and whether the source verified it (D-042).",
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "verification_status": {
+            "$ref": "#/components/schemas/EmailVerificationStatus"
+          }
+        },
+        "required": [
+          "address",
+          "verification_status"
+        ],
+        "title": "PrimaryEmail",
         "type": "object"
       },
       "ProfileDefaultsResponse": {
@@ -1706,6 +2106,224 @@
         "title": "SaveMappingRequest",
         "type": "object"
       },
+      "SearchRequest": {
+        "additionalProperties": false,
+        "description": "One search: the filters, the order and the page wanted.",
+        "properties": {
+          "direction": {
+            "$ref": "#/components/schemas/SortDirection",
+            "default": "asc"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/FilterSet"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortField",
+            "default": "name"
+          }
+        },
+        "title": "SearchRequest",
+        "type": "object"
+      },
+      "SearchResponse": {
+        "description": "A page of results. `total` counts every lead matching the filters, not only this page,\nso \"select all matching\" can show its count without a second endpoint.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SearchRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "SearchResponse",
+        "type": "object"
+      },
+      "SearchRow": {
+        "description": "One lead in the results.",
+        "properties": {
+          "badges": {
+            "items": {
+              "$ref": "#/components/schemas/Badge"
+            },
+            "title": "Badges",
+            "type": "array"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "company": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompanySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "first_name": {
+            "title": "First Name",
+            "type": "string"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/LeadStatusFlagType"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "last_contacted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Contacted At"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OwnerSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "person_id": {
+            "format": "uuid",
+            "title": "Person Id",
+            "type": "string"
+          },
+          "primary_email": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrimaryEmail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "seniority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seniority"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "person_id",
+          "first_name",
+          "last_name",
+          "title",
+          "seniority",
+          "city",
+          "state",
+          "country",
+          "company",
+          "primary_email",
+          "owner",
+          "last_contacted_at",
+          "flags",
+          "badges"
+        ],
+        "title": "SearchRow",
+        "type": "object"
+      },
       "SelectWorksheetRequest": {
         "additionalProperties": false,
         "description": "Body of POST /imports/{id}/worksheet.",
@@ -1752,6 +2370,37 @@
         ],
         "title": "SessionUserResponse",
         "type": "object"
+      },
+      "SizeBand": {
+        "description": "Company size profile by employee count (D-085).",
+        "enum": [
+          "smb",
+          "mid_market",
+          "enterprise"
+        ],
+        "title": "SizeBand",
+        "type": "string"
+      },
+      "SortDirection": {
+        "description": "Ascending or descending order.",
+        "enum": [
+          "asc",
+          "desc"
+        ],
+        "title": "SortDirection",
+        "type": "string"
+      },
+      "SortField": {
+        "description": "Columns a search can be ordered by. A fixed list, so no arbitrary column is reachable.",
+        "enum": [
+          "name",
+          "company",
+          "title",
+          "last_contacted_at",
+          "created_at"
+        ],
+        "title": "SortField",
+        "type": "string"
       },
       "SourceProfileDetailResponse": {
         "description": "One profile with its saved header -> field map and any non-blocking warnings.",
@@ -5291,6 +5940,110 @@
         "summary": "Update State Mapping",
         "tags": [
           "reference-mappings"
+        ]
+      }
+    },
+    "/search/filter-options": {
+      "get": {
+        "description": "Return the values the filter checkboxes offer (capped lists name themselves if cut).",
+        "operationId": "get_filter_options_search_filter_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          }
+        },
+        "summary": "Get Filter Options",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/search/leads": {
+      "post": {
+        "description": "Return one page of leads matching the filters, with the total number of matches.\n\nAn unknown filter field, an invalid combination or an unsupported sort is rejected with 422.",
+        "operationId": "search_leads_search_leads_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Search Leads",
+        "tags": [
+          "search"
         ]
       }
     },

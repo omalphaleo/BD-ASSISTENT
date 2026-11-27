@@ -2340,3 +2340,117 @@ Status: Needs input
 - Status: Needs input
 - Summary: Wired the real `ingest_row` in `imports/wiring.py`; added `tests/test_import_contract.py` (strict xfail on `row_fields.py` until B fixes the keys) and `tests/test_import_e2e.py` (9 tests, real `ingest_row`); wrote `tests/e2e/import-journey.spec.ts` (compiles, not yet run); repaired `FILE_STRUCTURE.md` after the merge and updated the A7 docs. 1415 backend tests pass, 1 xfail.
 - Status update (2026-11-27): Needs input (B's `row_fields.py` fix, the joint `contracts.py` PR, and permission to run the Playwright journey against the live stack).
+
+## T-132: Read m3.md (2026-11-27)
+
+Prompt: "read m3.md first"
+
+Status: Completed
+
+## T-133: M3-A0 implementation plan (2026-11-27)
+
+Prompt: "give me implementataion plan of m3-a0"
+
+Status: Needs input
+
+Summary: Explained there is no M3-A0 (scaffold is M3-0, Developer B, already on main); proposed M3-A1 plan instead.
+Status update: Needs input (2026-11-27)
+
+## T-134: M3-A1 detailed implementation plan, verify M1/M2 against code (2026-11-27)
+
+Prompt: "Create a detailed implementation plan for M3-A1 based on existing docs, architecture, approved decisions and completed M1 and M2. Review docs and code; break down tasks; identify unresolved items with options, pros, cons, recommendation; suggest improvements needing approval. No assumptions, no code changes, present unresolved questions one at a time, do not finalize until I approve, follow CLAUDE.md, verify M1/M2 against actual code, verify dependencies and cross-branch changes."
+
+Summary: Verified M1/M2/M3-0 against code on main; listed findings and 8 open decisions; asked decision 1 (contact-limit rule). No code changed.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-135: M3-A1 decision 1 answer (2026-11-27)
+
+Prompt: "a"
+
+Summary: Option A accepted for contact_limit (outbound touches in 30 days, ineligible at 3 or more, no 2-day gap); presented decision 2 (opt-out scope).
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-136: M3-A1 decision 2 answer (2026-11-27)
+
+Prompt: "a"
+
+Summary: Option A accepted: opted_out = any address of the person has an active opt-out; presented decision 3.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-137: M3-A1 decision 3 answer (2026-11-27)
+
+Prompt: "a"
+
+Summary: Option A for 3a (EligibilityContext) and 3b (narrow two-way compliance/leads link with ARCHITECTURE note and guard test); presented decision 4.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-138: M3-A1 decision 4 answer (2026-11-27)
+
+Prompt: "a"
+
+Summary: Option A accepted: check_eligibility returns every failing reason in fixed order plus warnings; presented decision 5.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-139: M3-A1 decision 5 answer (2026-11-27)
+
+Prompt: "a"
+
+Summary: Option A accepted: reuse read_cooling_off_days and constants from leads.engagement; presented decision 6.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-140: M3-A1 decision 6 answer (2026-11-27)
+
+Prompt: "A"
+
+Summary: Option A accepted: every outbound email touch of any status within 30 days counts toward contact_limit; presented decision 7.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-141: M3-A1 decision 7 answer (2026-11-27)
+
+Prompt: "a"
+
+Summary: Option A accepted: one SQL expression per reason plus ineligible_expression and thin eligible_queryset; presented decision 8.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-142: M3-A1 decision 8 answer (2026-11-27)
+
+Prompt: "a"
+
+Summary: Option A accepted (record M3 approvals in CLAUDE.local.md, update only my m3.md row); presented the full M3-A1 plan for approval. No code changed.
+Status update: Needs input (2026-11-27)
+
+Status: Needs input
+
+## T-143: Implement M3-A1 eligibility service (2026-11-27)
+
+Prompt: "approved plan start working"
+
+Status: Completed
+
+Summary: Built compliance/contracts.py and eligibility.py (7 rules as SQL+record pairs, parity test), factories/search.py, 3 test files; updated ARCHITECTURE, filedescription, FILE_STRUCTURE, m3.md row, CLAUDE.local.md. ruff clean, 1472 pytest pass.
+Status update: Completed (2026-11-27)
+
+## T-144: Implement M3-A2 FilterSet and search backend (2026-11-27)
+
+Prompt: "approved plan start working"
+
+Status: Completed
+
+Summary: Built leads/filters.py (FilterSet), search_schemas.py, search.py and search_api.py (POST /search/leads, GET /search/filter-options), plus warning_expression() in eligibility.py and 6 test files; regenerated openapi.json and the client; updated filedescription, FILE_STRUCTURE, ARCHITECTURE, m3.md row. ruff clean, 1536 pytest pass (in Docker).
+Status update: Completed (2026-11-27)

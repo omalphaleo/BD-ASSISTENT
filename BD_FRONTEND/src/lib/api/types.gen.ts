@@ -53,6 +53,13 @@ export type AssignableUserResponse = {
 };
 
 /**
+ * Badge
+ *
+ * Labels shown on a result row. The five approved ones (Q-LEADS-07, D-067, D-106).
+ */
+export type Badge = 'cooling_off' | 'replied' | 'possible_duplicate' | 'unverified_email' | 'opted_out';
+
+/**
  * CellWarningResponse
  *
  * A cell that could not be converted to its field's type; the value became null.
@@ -115,6 +122,42 @@ export type ChooseProfileRequest = {
      * Source Profile Id
      */
     source_profile_id?: string | null;
+};
+
+/**
+ * CompanySummary
+ *
+ * The company facts a result row shows.
+ */
+export type CompanySummary = {
+    /**
+     * Employee Count
+     */
+    employee_count: number | null;
+    /**
+     * Hq City
+     */
+    hq_city: string | null;
+    /**
+     * Hq Country
+     */
+    hq_country: string | null;
+    /**
+     * Hq State
+     */
+    hq_state: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Industry
+     */
+    industry: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -297,6 +340,13 @@ export type DuplicateStatus = 'open' | 'merged' | 'not_duplicate';
 export type DuplicateStatusFilter = 'open' | 'not_duplicate';
 
 /**
+ * EmailVerificationStatus
+ *
+ * Source verification state; unverified addresses stay eligible with a warning (D-042).
+ */
+export type EmailVerificationStatus = 'verified' | 'unverified';
+
+/**
  * ErrorResponse
  *
  * Body of a 401 or 403: one fixed message, nothing about the user, owner or capability.
@@ -384,6 +434,136 @@ export type FieldChangeResponse = {
      * Old
      */
     old: string | number | number | boolean | null;
+};
+
+/**
+ * FilterOptionsResponse
+ *
+ * The values the filter checkboxes offer, read from the data.
+ *
+ * Each list is capped; a name in `truncated` means that list was cut off.
+ */
+export type FilterOptionsResponse = {
+    /**
+     * Cities
+     */
+    cities: Array<string>;
+    /**
+     * Countries
+     */
+    countries: Array<string>;
+    /**
+     * Flags
+     */
+    flags: Array<LeadStatusFlagType>;
+    /**
+     * Funding Stages
+     */
+    funding_stages: Array<string>;
+    /**
+     * Industries
+     */
+    industries: Array<string>;
+    /**
+     * Size Bands
+     */
+    size_bands: Array<SizeBand>;
+    /**
+     * States
+     */
+    states: Array<string>;
+    /**
+     * Technologies
+     */
+    technologies: Array<string>;
+    /**
+     * Truncated
+     */
+    truncated: Array<string>;
+};
+
+/**
+ * FilterSet
+ *
+ * Every way a lead search can be narrowed.
+ *
+ * Different filters combine with AND; the values inside one list combine with OR. A filter
+ * left at its default (an empty list or None) is not applied. Matching rules:
+ *
+ * - industries, countries, states, cities, funding_stages: exact, case-insensitive.
+ * - countries, states, cities match the person's own location OR the company headquarters.
+ * - titles, company_names: "contains", case-insensitive.
+ * - technologies: exact tag match on the lowercased technology list.
+ * - size_bands: employee count inside any chosen band (D-085).
+ * - revenue_min / revenue_max: inclusive, in the currency the source used (not recorded).
+ *
+ * Unknown fields raise a validation error (extra="forbid").
+ */
+export type FilterSet = {
+    /**
+     * Cities
+     */
+    cities?: Array<string>;
+    /**
+     * Company Names
+     */
+    company_names?: Array<string>;
+    /**
+     * Countries
+     */
+    countries?: Array<string>;
+    /**
+     * Eligible Only
+     */
+    eligible_only?: boolean;
+    /**
+     * Flags Exclude
+     */
+    flags_exclude?: Array<LeadStatusFlagType>;
+    /**
+     * Flags Include
+     */
+    flags_include?: Array<LeadStatusFlagType>;
+    /**
+     * Funding Stages
+     */
+    funding_stages?: Array<string>;
+    /**
+     * Industries
+     */
+    industries?: Array<string>;
+    /**
+     * Revenue Max
+     */
+    revenue_max?: number | string | null;
+    /**
+     * Revenue Min
+     */
+    revenue_min?: number | string | null;
+    /**
+     * Show Opted Out
+     */
+    show_opted_out?: boolean;
+    /**
+     * Size Bands
+     */
+    size_bands?: Array<SizeBand>;
+    /**
+     * States
+     */
+    states?: Array<string>;
+    /**
+     * Technologies
+     */
+    technologies?: Array<string>;
+    /**
+     * Titles
+     */
+    titles?: Array<string>;
+    /**
+     * Uses Salesforce
+     */
+    uses_salesforce?: boolean | null;
 };
 
 /**
@@ -634,6 +814,13 @@ export type LeadChangeResponse = {
 };
 
 /**
+ * LeadStatusFlagType
+ *
+ * Business flags set by BD users (D-022, D-065, D-101).
+ */
+export type LeadStatusFlagType = 'existing_customer' | 'in_conversation' | 'partner' | 'competitor' | 'qualified' | 'handed_off_to_sales';
+
+/**
  * LoginRequest
  *
  * Body of POST /auth/login. Unknown fields are rejected.
@@ -776,6 +963,22 @@ export type MergeDuplicateResponse = {
 };
 
 /**
+ * OwnerSummary
+ *
+ * The rep who owns the lead; the user's sign-in email is the only display name stored.
+ */
+export type OwnerSummary = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * PersonCardResponse
  *
  * One person of a pair: the mergeable fields as text, plus all addresses.
@@ -841,6 +1044,19 @@ export type PreviewRowResponse = {
      * Warnings
      */
     warnings: Array<CellWarningResponse>;
+};
+
+/**
+ * PrimaryEmail
+ *
+ * The lead's primary address and whether the source verified it (D-042).
+ */
+export type PrimaryEmail = {
+    /**
+     * Address
+     */
+    address: string;
+    verification_status: EmailVerificationStatus;
 };
 
 /**
@@ -1065,6 +1281,105 @@ export type SaveMappingRequest = {
 };
 
 /**
+ * SearchRequest
+ *
+ * One search: the filters, the order and the page wanted.
+ */
+export type SearchRequest = {
+    direction?: SortDirection;
+    filters?: FilterSet;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Offset
+     */
+    offset?: number;
+    sort?: SortField;
+};
+
+/**
+ * SearchResponse
+ *
+ * A page of results. `total` counts every lead matching the filters, not only this page,
+ * so "select all matching" can show its count without a second endpoint.
+ */
+export type SearchResponse = {
+    /**
+     * Items
+     */
+    items: Array<SearchRow>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Offset
+     */
+    offset: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * SearchRow
+ *
+ * One lead in the results.
+ */
+export type SearchRow = {
+    /**
+     * Badges
+     */
+    badges: Array<Badge>;
+    /**
+     * City
+     */
+    city: string | null;
+    company: CompanySummary | null;
+    /**
+     * Country
+     */
+    country: string | null;
+    /**
+     * First Name
+     */
+    first_name: string;
+    /**
+     * Flags
+     */
+    flags: Array<LeadStatusFlagType>;
+    /**
+     * Last Contacted At
+     */
+    last_contacted_at: string | null;
+    /**
+     * Last Name
+     */
+    last_name: string | null;
+    owner: OwnerSummary | null;
+    /**
+     * Person Id
+     */
+    person_id: string;
+    primary_email: PrimaryEmail | null;
+    /**
+     * Seniority
+     */
+    seniority: string | null;
+    /**
+     * State
+     */
+    state: string | null;
+    /**
+     * Title
+     */
+    title: string | null;
+};
+
+/**
  * SelectWorksheetRequest
  *
  * Body of POST /imports/{id}/worksheet.
@@ -1099,6 +1414,27 @@ export type SessionUserResponse = {
     id: string;
     role: UserRole;
 };
+
+/**
+ * SizeBand
+ *
+ * Company size profile by employee count (D-085).
+ */
+export type SizeBand = 'smb' | 'mid_market' | 'enterprise';
+
+/**
+ * SortDirection
+ *
+ * Ascending or descending order.
+ */
+export type SortDirection = 'asc' | 'desc';
+
+/**
+ * SortField
+ *
+ * Columns a search can be ordered by. A fixed list, so no arbitrary column is reachable.
+ */
+export type SortField = 'name' | 'company' | 'title' | 'last_contacted_at' | 'created_at';
 
 /**
  * SourceProfileDetailResponse
@@ -3185,6 +3521,68 @@ export type UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponses = {
 };
 
 export type UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponse = UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponses[keyof UpdateStateMappingReferenceMappingsStatesMappingIdPatchResponses];
+
+export type GetFilterOptionsSearchFilterOptionsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/search/filter-options';
+};
+
+export type GetFilterOptionsSearchFilterOptionsGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type GetFilterOptionsSearchFilterOptionsGetError = GetFilterOptionsSearchFilterOptionsGetErrors[keyof GetFilterOptionsSearchFilterOptionsGetErrors];
+
+export type GetFilterOptionsSearchFilterOptionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: FilterOptionsResponse;
+};
+
+export type GetFilterOptionsSearchFilterOptionsGetResponse = GetFilterOptionsSearchFilterOptionsGetResponses[keyof GetFilterOptionsSearchFilterOptionsGetResponses];
+
+export type SearchLeadsSearchLeadsPostData = {
+    body: SearchRequest;
+    path?: never;
+    query?: never;
+    url: '/search/leads';
+};
+
+export type SearchLeadsSearchLeadsPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type SearchLeadsSearchLeadsPostError = SearchLeadsSearchLeadsPostErrors[keyof SearchLeadsSearchLeadsPostErrors];
+
+export type SearchLeadsSearchLeadsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SearchResponse;
+};
+
+export type SearchLeadsSearchLeadsPostResponse = SearchLeadsSearchLeadsPostResponses[keyof SearchLeadsSearchLeadsPostResponses];
 
 export type ListSourceProfilesSourceProfilesGetData = {
     body?: never;
