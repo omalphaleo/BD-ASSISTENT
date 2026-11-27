@@ -625,7 +625,7 @@ These six tables back the Excel/CSV/Apollo import (M2). No service reads or writ
 
 **File Location:** `BD_BACKEND/app/imports/models.py` (class `RawRow`, table `raw_rows`).
 
-**Purpose:** The permanent untouched original of every imported row (D-099, D-008). A database trigger (migration 0007) rejects any UPDATE that changes the original columns; only `person_id` may change. Rows are removed only by erase-person. It has no `updated_at` because nothing about the original may change. Example: row 5 of `apollo-nov.csv` with `{"Email": "Dana@Acme.com", ...}`.
+**Purpose:** The permanent untouched original of every imported row (D-099, D-008). A database trigger (migration 0007) rejects any UPDATE that changes the original columns; only `person_id`, `outcome` and `reason_code` may change (the last two were added by migration 0016, M2-A5, and record what the import did with the row). Rows are removed only by erase-person. It has no `updated_at` because nothing about the original may change. Example: row 5 of `apollo-nov.csv` with `{"Email": "Dana@Acme.com", ...}`.
 
 | Field Name | Type | Description |
 |---|---|---|
@@ -635,6 +635,8 @@ These six tables back the Excel/CSV/Apollo import (M2). No service reads or writ
 | `original_values` | JSONB, required | Header (or column position) to cell value, exactly as received. |
 | `email_normalized` | String(320), optional | Lowercased, trimmed email found in the row. Lets erase-person find rows never linked to a person (such as quarantined ones, D-099). Indexed. |
 | `person_id` | UUID, optional, foreign key to `people.id` (SET NULL) | The lead this row created or updated; may change on release or merge. Indexed. |
+| `outcome` | String(18), optional, CHECK `ck_raw_rows_outcome_valid` | What the import did with the row: `imported`, `updated`, `unchanged`, `quarantined`, `possible_duplicate` or `rejected`. Set by the pipeline right after `ingest_row` (migration 0016). NULL for rows stored before that migration; the report's failed-rows download lists only `rejected` and `quarantined` rows. Outside the immutability guard. |
+| `reason_code` | String(64), optional | Why a row was `rejected` or `quarantined` (for example `personal_email_only`, or `ingest_error` when `ingest_row` raised). NULL for every other outcome. Outside the immutability guard. |
 | `created_at` | DateTime (timezone), required | When the row was stored. |
 
 ## 27. ImportReport

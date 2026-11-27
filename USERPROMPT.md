@@ -2201,3 +2201,28 @@ Status: Needs input
 - Decisions approved: explicit POST /imports/{id}/start; derived progress, no migration; per-row SAVEPOINT, rejected with ingest_error; chunk size 500; per-import queueing lock + state check; cell warnings ignored; FAILED without retry endpoint; owners matched on email, written post-ingest if people.owner_id is NULL.
 - Summary: Implemented M2-A3 backend: `imports/pipeline.py` (chunked, resumable run), `owners.py`, `process_import` task with per-import queueing lock, start and progress endpoints, config (`IMPORT_CHUNK_SIZE`, `COOLING_OFF_DAYS`), regenerated `openapi.json` and the client; docs updated. 1070 backend tests pass.
 - Status update (2026-11-27): Completed.
+
+## T-127: Describe M2-A4 implementation (2026-11-27)
+- Prompt: "describe m2-a4 implemetation"
+- Status: Completed
+- Summary: Explained that M2-A4 (progress page and owner assignment) is not implemented yet and described its planned scope per m2.md, plus what A3 already provides.
+- Status update (2026-11-27): Completed.
+
+## T-128: M2-A4 implementation plan (2026-11-27)
+- Prompt: "Create a detailed implementation plan for M2-A4 based on the existing project documentation, architecture, approved decisions, and the completed M2-A1, M2-A2, and M2-A3 implementation. ... Do not make any implementation or code changes yet. Present unresolved questions one at a time ... Do not finalize the implementation plan until all necessary decisions are resolved and I explicitly approve it. ... Verify completed M2 tasks against the actual code rather than assuming the documentation accurately reflects the current implementation."
+- Status: Completed
+- Decisions approved: unmatched leads derived on read (no migration); assignment per owner text incl. a "no owner given" group; fill empty owners only; `GET /imports/assignable-users` (`ASSIGN_LEADS`); "cancel" is UI-only; import ID in the URL; plus defaults (assign only when COMPLETED, `ASSIGN_LEADS` for the list, audit without owner text, Start button in the preview step, shared key helper).
+- Summary: Planned, then implemented M2-A4: `imports/{assignment,assignment_api,raw_keys}.py`, 3 endpoints, regenerated `openapi.json` and client; frontend `/leads/import/[importId]`, `ImportRunner`, `ImportProgress`, `UnmatchedOwnersPanel`, enabled Start import. Docs updated. ruff, pytest (1090), tsc, ESLint and Vitest (87, on Node 22.19 in Docker) green.
+- Status update (2026-11-27): Completed.
+
+## T-129: M2-A6 implementation: source profile admin (2026-11-27)
+- Prompt: "I approve the M2-A6 implementation plan and all three suggestions (A, B and C). A: Enforce case-insensitive profile name uniqueness in the service without a migration. B: Show a warning when deactivating a profile referenced by in-progress imports, but do not block deactivation. C: Update the SourceProfile model docstring to reflect that layout is a free label. Also, log the M2-A6 implementation task in USERPROMPT.md as required by CLAUDE.md. Proceed with implementation. Follow the approved scope and existing architecture. Do not introduce additional features or assumptions."
+- Status: Needs input
+- Summary: Backend of M2-A6 written (not yet run): `imports/profiles.py` service, `profiles_api.py` (5 routes, `MANAGE_SOURCE_PROFILES`), profile schemas, `ProfileRejectedError`, case-insensitive unique names, deactivation warning, docstring fix in `models.py`, tests `test_import_profiles.py` and matrix rows; ruff clean. pytest, `openapi.json`/client regeneration, frontend and docs are not done because Docker is not running and no local test tooling is available.
+- Status update (2026-11-27): Needs input (start Docker, then continue with tests, regeneration, frontend and docs).
+
+## T-130: M2-A7 implementation plan (2026-11-27)
+- Prompt: "Create a detailed implementation plan for M2-A7 based on the existing project documentation, architecture, approved decisions, and the completed M2-A1 through M2-A6 implementation. Before implementation: 1. Review the relevant documentation and existing code ... 2. Break down the implementation into clear tasks ... 3. Identify any unresolved requirements ... 4. For each unresolved item, explain the available options, their pros and cons, and your recommendation. 5. Highlight any additional suggestions ... Do not make any implementation or code changes yet. Present unresolved questions one at a time ... Do not finalize the implementation plan until all necessary decisions are resolved and I explicitly approve it. ... Verify completed M2 tasks against the actual code ... Verify all dependencies and identify any unfinished tasks that could affect M2-A7."
+- Status: Needs input
+- Summary: Verified M2-A1..A6 and W2 against the code and `origin/main`; found that B's M2-B1..B6 are already on `origin/main`, that `row_fields.py` reads field keys that differ from A's `TARGET_FIELDS`, and that A6 is only partly done. Presented findings and the first open decision; no code changed, plan not finalized.
+- Status update (2026-11-27): Needs input (decisions D1 onward).

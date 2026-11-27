@@ -84,6 +84,70 @@ class StartRejectedError(Exception):
         self.message = message
 
 
+class AssignErrorKind(enum.StrEnum):
+    """Why an owner assignment was refused; mapped to an HTTP status in imports.assignment_api."""
+
+    NOT_ASSIGNABLE_YET = "not_assignable_yet"  # 409: the import has not completed
+    USER_NOT_ASSIGNABLE = "user_not_assignable"  # 422: unknown or inactive target user
+
+
+class AssignRejectedError(Exception):
+    """An owner assignment was refused for a reason the manager can act on.
+
+    Attributes:
+        kind: The category of the refusal.
+        message: A fixed, client-safe explanation (no lead data).
+    """
+
+    def __init__(self, kind: AssignErrorKind, message: str) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.message = message
+
+
+class ReportErrorKind(enum.StrEnum):
+    """Why a report or download was refused; mapped to HTTP 409 in imports.reports_api."""
+
+    NOT_FINISHED = "not_finished"  # the import is still being processed or was never started
+
+
+class ReportRejectedError(Exception):
+    """A report or download was asked for before the import finished (D-050, D-111).
+
+    Attributes:
+        kind: The category of the refusal.
+        message: A fixed, client-safe explanation (no lead data).
+    """
+
+    def __init__(self, kind: ReportErrorKind, message: str) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.message = message
+
+
+class ProfileErrorKind(enum.StrEnum):
+    """Why a source profile admin request was refused; mapped to HTTP in imports.profiles_api."""
+
+    NOT_FOUND = "not_found"  # 404
+    DUPLICATE_NAME = "duplicate_name"  # 409: another profile already has this name
+    INVALID_DEFAULTS = "invalid_defaults"  # 409: the saved mapping is broken, fix it first
+    UNKNOWN_COLUMN = "unknown_column"  # 422: a header to remove is not in the saved mapping
+
+
+class ProfileRejectedError(Exception):
+    """A source profile admin request was refused for a reason the admin can act on (D-049).
+
+    Attributes:
+        kind: The category of the refusal.
+        message: A fixed, client-safe explanation.
+    """
+
+    def __init__(self, kind: ProfileErrorKind, message: str) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.message = message
+
+
 class ImportNotFoundError(Exception):
     """The import does not exist, or the caller may not see it.
 

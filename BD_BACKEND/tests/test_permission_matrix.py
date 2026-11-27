@@ -97,6 +97,21 @@ EXPECTED_REAL_ROUTES = {
     # M2-A3: start the background import and read its progress.
     ("POST", "/imports/{import_id}/start"): "import_leads",
     ("GET", "/imports/{import_id}/progress"): "import_leads",
+    # M2-A4: assign the leads whose source owner matched no user (D-075).
+    ("GET", "/imports/assignable-users"): "assign_leads",
+    ("GET", "/imports/{import_id}/unmatched-owners"): "assign_leads",
+    ("POST", "/imports/{import_id}/assign-owner"): "assign_leads",
+    # M2-A5: report, change summary and CSV downloads (D-050, D-111).
+    ("GET", "/imports/{import_id}/report"): "import_leads",
+    ("GET", "/imports/{import_id}/changes"): "import_leads",
+    ("GET", "/imports/{import_id}/download/failed-rows.csv"): "download_import_files",
+    ("GET", "/imports/{import_id}/download/changes.csv"): "download_import_files",
+    # M2-A6: source profile admin (admins only, D-049, D-104).
+    ("GET", "/source-profiles"): "manage_source_profiles",
+    ("POST", "/source-profiles"): "manage_source_profiles",
+    ("GET", "/source-profiles/{profile_id}"): "manage_source_profiles",
+    ("PATCH", "/source-profiles/{profile_id}"): "manage_source_profiles",
+    ("POST", "/source-profiles/{profile_id}/remove-columns"): "manage_source_profiles",
 }
 
 

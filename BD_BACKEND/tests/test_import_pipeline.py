@@ -174,6 +174,45 @@ def test_every_outcome_is_counted_and_the_import_completes(
     assert _actions(db_session)[-1] == AuditAction.IMPORT_FINISHED.value
 
 
+def test_each_raw_row_keeps_its_outcome_and_failure_reason(
+    db_session: Session, storage: LocalDiskStorage, limits: UploadLimits
+) -> None:
+    """raw_rows.outcome is set for every row; only quarantined and rejected rows keep a reason."""
+    kinds = list(RowOutcomeKind)
+    import_file = _make_import(db_session, storage, _rows(len(kinds)))
+    ingest = FakeIngest(
+        lambda row: RowOutcome(kind=kinds[row.row_number - 2], reason_code="some_reason")
+    )
+
+    _run(db_session, import_file, storage, limits, ingest)
+
+    db_session.expire_all()
+    stored = {
+        row.row_number: (row.outcome, row.reason_code)
+        for row in db_session.scalars(select(RawRow).where(RawRow.import_file_id == import_file.id))
+    }
+    for number, kind in enumerate(kinds, start=2):
+        failed = kind in (RowOutcomeKind.QUARANTINED, RowOutcomeKind.REJECTED)
+        assert stored[number] == (kind, "some_reason" if failed else None)
+
+
+def test_a_row_whose_ingest_raised_is_stored_as_rejected_with_ingest_error(
+    db_session: Session, storage: LocalDiskStorage, limits: UploadLimits
+) -> None:
+    """An exception inside ingest_row leaves outcome=rejected and reason ingest_error on the row."""
+
+    def boom(row: SourceRow) -> RowOutcome:
+        raise ValueError("synthetic failure")
+
+    import_file = _make_import(db_session, storage, _rows(1))
+
+    _run(db_session, import_file, storage, limits, FakeIngest(boom))
+
+    db_session.expire_all()
+    (row,) = db_session.scalars(select(RawRow).where(RawRow.import_file_id == import_file.id))
+    assert (row.outcome, row.reason_code) == (RowOutcomeKind.REJECTED, INGEST_ERROR_REASON)
+
+
 def test_source_row_carries_the_mapping_and_the_import_context(
     db_session: Session, storage: LocalDiskStorage, limits: UploadLimits
 ) -> None:

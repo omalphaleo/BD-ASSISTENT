@@ -48,7 +48,7 @@ BD_BACKEND/
 ├── migrations/                # exists: Alembic
 │   ├── env.py, script.py.mako # exists
 │   ├── migrations.md          # exists: plain-language explainer of migrations
-│   └── versions/              # exists: 0001 pgvector, 0002 users, 0003 sessions, 0004 audit_log, 0005 core tables, 0006 leads tables, 0007 imports tables, 0008 compliance tables, 0009 content tables, 0010 campaigns tables, 0011 outreach tables, 0012 mail tables, 0013 notifications tables, 0014 import file storage columns, 0015 merge of the 0013 and 0014 branches; 0016+ planned
+│   └── versions/              # exists: 0001 pgvector, 0002 users, 0003 sessions, 0004 audit_log, 0005 core tables, 0006 leads tables, 0007 imports tables, 0008 compliance tables, 0009 content tables, 0010 campaigns tables, 0011 outreach tables, 0012 mail tables, 0013 notifications tables, 0014 import file storage columns, 0015 merge of the 0013 and 0014 branches, 0016 raw_rows outcome and reason_code (M2-A5); 0017+ planned
 ├── app/
 │   ├── __init__.py            # exists
 │   ├── main.py                # exists: FastAPI app and router registration
@@ -59,7 +59,7 @@ BD_BACKEND/
 │   ├── models.py              # exists: registry importing every module's models (frozen after A0)
 │   ├── core/                  # exists: api, clock, cookies, dependencies, errors, model_helpers, models, passwords, schemas, services, tasks (sample job, A10); permissions planned
 │   ├── audit/                 # exists: models, services (append-only audit log)
-│   ├── imports/               # exists: models (6 tables), wiring.py (ingest_row stub, M2-0), tasks.py (`process_import`, M2-A3), profiles_api.py (empty router), M2-A1 upload: api, errors, storage, xlsx_safety, parsers, multipart, access, upload, schemas; M2-A2 mapping: layouts, conversion, mapping, preview, mapping_api; M2-A3 processing: pipeline, owners; planned: reports
+│   ├── imports/               # exists: models (6 tables), wiring.py (ingest_row stub, M2-0), tasks.py (`process_import`, M2-A3), M2-A6 profile admin: profiles, profiles_api, M2-A1 upload: api, errors, storage, xlsx_safety, parsers, multipart, access, upload, schemas; M2-A2 mapping: layouts, conversion, mapping, preview, mapping_api; M2-A3 processing: pipeline, owners; M2-A4 owner assignment: assignment, assignment_api, raw_keys; M2-A5 report: reports, reports_api, downloads
 │   ├── leads/                 # exists: models (16 tables), contracts.py (M2 seam types), quarantine_api.py, duplicates_api.py, mappings_api.py (empty routers); planned: ingest, matching, merge, search
 │   ├── compliance/            # exists: models (4 tables: opt-outs, gate status, checklist items, erasure records); planned: services (eligibility, opt-outs, erasure, gate), api
 │   ├── content/               # exists: models (9 tables: voice, size and industry profiles, knowledge items and embeddings, profile-item link, email structures and sections, config versions); planned: services (knowledge lifecycle, embedding, retrieval, versioning), api
@@ -92,7 +92,7 @@ BD_FRONTEND/
 │   │   └── (app)/             # route group: every signed-in screen; layout.tsx checks /auth/me server-side
 │   │       └── leads/ campaigns/ review/ outbox/ admin/ users/ profile/   # empty shells (B3); M2-0 adds leads/{import,quarantine,duplicates}/ and admin/{source-profiles,mappings}/ shells
 │   ├── components/            # shared UI: AppShell, NavBar, LoginForm, LogoutButton, PlaceholderPage; later tables, filter chips, email preview
-│   │   └── import/            # import wizard parts: UploadWizard.tsx (M2-A1 upload step), ImportWizard.tsx, ProfileStep.tsx, MappingStep.tsx, PreviewStep.tsx (M2-A2 steps); helpers in src/lib/import/ (errors, messages, mapping-form), all exist
+│   │   └── import/            # import wizard parts: UploadWizard.tsx (M2-A1 upload step), ImportWizard.tsx (upload entry), ProfileStep.tsx, MappingStep.tsx, PreviewStep.tsx (M2-A2 steps), ImportRunner.tsx, ImportProgress.tsx, UnmatchedOwnersPanel.tsx (M2-A4: one import by URL, progress, owner assignment), ImportReport.tsx, ImportChangesList.tsx (M2-A5 report), SourceProfilesAdmin.tsx, SourceProfileDetail.tsx (M2-A6 profile admin); helpers in src/lib/import/ (errors, messages, mapping-form, progress, report), all exist; ImportReport.tsx and ImportChangesList.tsx (M2-A5: report, paged changes, CSV downloads); the page for one import is src/app/(app)/leads/import/[importId]/page.tsx (M2-A4) and its report is .../[importId]/report/page.tsx (M2-A5)
 │   └── lib/
 │       ├── api/               # typed client generated from the FastAPI OpenAPI schema; never hand-edited
 │       ├── api-client.ts      # hand-written setup (base URL, cookies, CSRF fetch, 401 redirect); pages import the API from here

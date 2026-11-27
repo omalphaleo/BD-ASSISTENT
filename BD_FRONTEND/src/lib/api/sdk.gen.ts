@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeUserRoleUsersUserIdPatchData, ChangeUserRoleUsersUserIdPatchErrors, ChangeUserRoleUsersUserIdPatchResponses, ChooseWorksheetImportsImportIdWorksheetPostData, ChooseWorksheetImportsImportIdWorksheetPostErrors, ChooseWorksheetImportsImportIdWorksheetPostResponses, CreateUserUsersPostData, CreateUserUsersPostErrors, CreateUserUsersPostResponses, DeactivateUserUsersUserIdDeactivatePostData, DeactivateUserUsersUserIdDeactivatePostErrors, DeactivateUserUsersUserIdDeactivatePostResponses, GetImportProgressImportsImportIdProgressGetData, GetImportProgressImportsImportIdProgressGetErrors, GetImportProgressImportsImportIdProgressGetResponses, GetImportStatusImportsImportIdGetData, GetImportStatusImportsImportIdGetErrors, GetImportStatusImportsImportIdGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListProfileOptionsImportsProfilesGetData, ListProfileOptionsImportsProfilesGetErrors, ListProfileOptionsImportsProfilesGetResponses, ListTargetFieldsImportsTargetFieldsGetData, ListTargetFieldsImportsTargetFieldsGetErrors, ListTargetFieldsImportsTargetFieldsGetResponses, ListUsersUsersGetData, ListUsersUsersGetErrors, ListUsersUsersGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, LogoutAuthLogoutPostData, LogoutAuthLogoutPostErrors, LogoutAuthLogoutPostResponses, MeAuthMeGetData, MeAuthMeGetErrors, MeAuthMeGetResponses, MyProfileUsersMeGetData, MyProfileUsersMeGetErrors, MyProfileUsersMeGetResponses, PutMappingImportsImportIdMappingPutData, PutMappingImportsImportIdMappingPutErrors, PutMappingImportsImportIdMappingPutResponses, ReactivateUserUsersUserIdReactivatePostData, ReactivateUserUsersUserIdReactivatePostErrors, ReactivateUserUsersUserIdReactivatePostResponses, ReadEstimateImportsImportIdEstimateGetData, ReadEstimateImportsImportIdEstimateGetErrors, ReadEstimateImportsImportIdEstimateGetResponses, ReadMappingImportsImportIdMappingGetData, ReadMappingImportsImportIdMappingGetErrors, ReadMappingImportsImportIdMappingGetResponses, ReadPreviewImportsImportIdPreviewGetData, ReadPreviewImportsImportIdPreviewGetErrors, ReadPreviewImportsImportIdPreviewGetResponses, SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostData, SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostErrors, SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostResponses, SetImportProfileImportsImportIdProfilePutData, SetImportProfileImportsImportIdProfilePutErrors, SetImportProfileImportsImportIdProfilePutResponses, StartImportProcessingImportsImportIdStartPostData, StartImportProcessingImportsImportIdStartPostErrors, StartImportProcessingImportsImportIdStartPostResponses, UploadImportFileImportsUploadPostData, UploadImportFileImportsUploadPostErrors, UploadImportFileImportsUploadPostResponses } from './types.gen';
+import type { ChangeUserRoleUsersUserIdPatchData, ChangeUserRoleUsersUserIdPatchErrors, ChangeUserRoleUsersUserIdPatchResponses, ChooseWorksheetImportsImportIdWorksheetPostData, ChooseWorksheetImportsImportIdWorksheetPostErrors, ChooseWorksheetImportsImportIdWorksheetPostResponses, CreateSourceProfileSourceProfilesPostData, CreateSourceProfileSourceProfilesPostErrors, CreateSourceProfileSourceProfilesPostResponses, CreateUserUsersPostData, CreateUserUsersPostErrors, CreateUserUsersPostResponses, DeactivateUserUsersUserIdDeactivatePostData, DeactivateUserUsersUserIdDeactivatePostErrors, DeactivateUserUsersUserIdDeactivatePostResponses, DownloadChangesImportsImportIdDownloadChangesCsvGetData, DownloadChangesImportsImportIdDownloadChangesCsvGetErrors, DownloadChangesImportsImportIdDownloadChangesCsvGetResponses, DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetData, DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetErrors, DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetResponses, EditSourceProfileSourceProfilesProfileIdPatchData, EditSourceProfileSourceProfilesProfileIdPatchErrors, EditSourceProfileSourceProfilesProfileIdPatchResponses, GetAssignableUsersImportsAssignableUsersGetData, GetAssignableUsersImportsAssignableUsersGetErrors, GetAssignableUsersImportsAssignableUsersGetResponses, GetImportChangesImportsImportIdChangesGetData, GetImportChangesImportsImportIdChangesGetErrors, GetImportChangesImportsImportIdChangesGetResponses, GetImportProgressImportsImportIdProgressGetData, GetImportProgressImportsImportIdProgressGetErrors, GetImportProgressImportsImportIdProgressGetResponses, GetImportReportImportsImportIdReportGetData, GetImportReportImportsImportIdReportGetErrors, GetImportReportImportsImportIdReportGetResponses, GetImportStatusImportsImportIdGetData, GetImportStatusImportsImportIdGetErrors, GetImportStatusImportsImportIdGetResponses, GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetData, GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetErrors, GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetResponses, HealthHealthGetData, HealthHealthGetResponses, ListProfileOptionsImportsProfilesGetData, ListProfileOptionsImportsProfilesGetErrors, ListProfileOptionsImportsProfilesGetResponses, ListSourceProfilesSourceProfilesGetData, ListSourceProfilesSourceProfilesGetErrors, ListSourceProfilesSourceProfilesGetResponses, ListTargetFieldsImportsTargetFieldsGetData, ListTargetFieldsImportsTargetFieldsGetErrors, ListTargetFieldsImportsTargetFieldsGetResponses, ListUsersUsersGetData, ListUsersUsersGetErrors, ListUsersUsersGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, LogoutAuthLogoutPostData, LogoutAuthLogoutPostErrors, LogoutAuthLogoutPostResponses, MeAuthMeGetData, MeAuthMeGetErrors, MeAuthMeGetResponses, MyProfileUsersMeGetData, MyProfileUsersMeGetErrors, MyProfileUsersMeGetResponses, PostAssignOwnerImportsImportIdAssignOwnerPostData, PostAssignOwnerImportsImportIdAssignOwnerPostErrors, PostAssignOwnerImportsImportIdAssignOwnerPostResponses, PutMappingImportsImportIdMappingPutData, PutMappingImportsImportIdMappingPutErrors, PutMappingImportsImportIdMappingPutResponses, ReactivateUserUsersUserIdReactivatePostData, ReactivateUserUsersUserIdReactivatePostErrors, ReactivateUserUsersUserIdReactivatePostResponses, ReadEstimateImportsImportIdEstimateGetData, ReadEstimateImportsImportIdEstimateGetErrors, ReadEstimateImportsImportIdEstimateGetResponses, ReadMappingImportsImportIdMappingGetData, ReadMappingImportsImportIdMappingGetErrors, ReadMappingImportsImportIdMappingGetResponses, ReadPreviewImportsImportIdPreviewGetData, ReadPreviewImportsImportIdPreviewGetErrors, ReadPreviewImportsImportIdPreviewGetResponses, ReadSourceProfileSourceProfilesProfileIdGetData, ReadSourceProfileSourceProfilesProfileIdGetErrors, ReadSourceProfileSourceProfilesProfileIdGetResponses, RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostData, RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostErrors, RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostResponses, SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostData, SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostErrors, SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostResponses, SetImportProfileImportsImportIdProfilePutData, SetImportProfileImportsImportIdProfilePutErrors, SetImportProfileImportsImportIdProfilePutResponses, StartImportProcessingImportsImportIdStartPostData, StartImportProcessingImportsImportIdStartPostErrors, StartImportProcessingImportsImportIdStartPostResponses, UploadImportFileImportsUploadPostData, UploadImportFileImportsUploadPostErrors, UploadImportFileImportsUploadPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -58,6 +58,13 @@ export const meAuthMeGet = <ThrowOnError extends boolean = false>(options?: Opti
 export const healthHealthGet = <ThrowOnError extends boolean = false>(options?: Options<HealthHealthGetData, ThrowOnError>): RequestResult<HealthHealthGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<HealthHealthGetResponses, unknown, ThrowOnError>({ url: '/health', ...options });
 
 /**
+ * Get Assignable Users
+ *
+ * List the active users a manager may assign leads to (id and email only).
+ */
+export const getAssignableUsersImportsAssignableUsersGet = <ThrowOnError extends boolean = false>(options?: Options<GetAssignableUsersImportsAssignableUsersGetData, ThrowOnError>): RequestResult<GetAssignableUsersImportsAssignableUsersGetResponses, GetAssignableUsersImportsAssignableUsersGetErrors, ThrowOnError> => (options?.client ?? client).get<GetAssignableUsersImportsAssignableUsersGetResponses, GetAssignableUsersImportsAssignableUsersGetErrors, ThrowOnError>({ url: '/imports/assignable-users', ...options });
+
+/**
  * List Profile Options
  *
  * Active source profiles an uploader may choose for an import.
@@ -97,6 +104,41 @@ export const uploadImportFileImportsUploadPost = <ThrowOnError extends boolean =
  * Return an import's state. Reps see their own imports; managers and admins see all.
  */
 export const getImportStatusImportsImportIdGet = <ThrowOnError extends boolean = false>(options: Options<GetImportStatusImportsImportIdGetData, ThrowOnError>): RequestResult<GetImportStatusImportsImportIdGetResponses, GetImportStatusImportsImportIdGetErrors, ThrowOnError> => (options.client ?? client).get<GetImportStatusImportsImportIdGetResponses, GetImportStatusImportsImportIdGetErrors, ThrowOnError>({ url: '/imports/{import_id}', ...options });
+
+/**
+ * Post Assign Owner
+ *
+ * Assign every still-unowned lead of one owner text to a user; already-owned leads stay.
+ */
+export const postAssignOwnerImportsImportIdAssignOwnerPost = <ThrowOnError extends boolean = false>(options: Options<PostAssignOwnerImportsImportIdAssignOwnerPostData, ThrowOnError>): RequestResult<PostAssignOwnerImportsImportIdAssignOwnerPostResponses, PostAssignOwnerImportsImportIdAssignOwnerPostErrors, ThrowOnError> => (options.client ?? client).post<PostAssignOwnerImportsImportIdAssignOwnerPostResponses, PostAssignOwnerImportsImportIdAssignOwnerPostErrors, ThrowOnError>({
+    url: '/imports/{import_id}/assign-owner',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Import Changes
+ *
+ * Return one page of "what changed in this import": each updated lead's old and new values.
+ */
+export const getImportChangesImportsImportIdChangesGet = <ThrowOnError extends boolean = false>(options: Options<GetImportChangesImportsImportIdChangesGetData, ThrowOnError>): RequestResult<GetImportChangesImportsImportIdChangesGetResponses, GetImportChangesImportsImportIdChangesGetErrors, ThrowOnError> => (options.client ?? client).get<GetImportChangesImportsImportIdChangesGetResponses, GetImportChangesImportsImportIdChangesGetErrors, ThrowOnError>({ url: '/imports/{import_id}/changes', ...options });
+
+/**
+ * Download Changes
+ *
+ * Download what the import changed, one line per changed field (audited, D-111).
+ */
+export const downloadChangesImportsImportIdDownloadChangesCsvGet = <ThrowOnError extends boolean = false>(options: Options<DownloadChangesImportsImportIdDownloadChangesCsvGetData, ThrowOnError>): RequestResult<DownloadChangesImportsImportIdDownloadChangesCsvGetResponses, DownloadChangesImportsImportIdDownloadChangesCsvGetErrors, ThrowOnError> => (options.client ?? client).get<DownloadChangesImportsImportIdDownloadChangesCsvGetResponses, DownloadChangesImportsImportIdDownloadChangesCsvGetErrors, ThrowOnError>({ url: '/imports/{import_id}/download/changes.csv', ...options });
+
+/**
+ * Download Failed Rows
+ *
+ * Download the rejected and quarantined rows with their reason (audited, D-111).
+ */
+export const downloadFailedRowsImportsImportIdDownloadFailedRowsCsvGet = <ThrowOnError extends boolean = false>(options: Options<DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetData, ThrowOnError>): RequestResult<DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetResponses, DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetErrors, ThrowOnError> => (options.client ?? client).get<DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetResponses, DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetErrors, ThrowOnError>({ url: '/imports/{import_id}/download/failed-rows.csv', ...options });
 
 /**
  * Read Estimate
@@ -171,6 +213,13 @@ export const setImportProfileImportsImportIdProfilePut = <ThrowOnError extends b
 export const getImportProgressImportsImportIdProgressGet = <ThrowOnError extends boolean = false>(options: Options<GetImportProgressImportsImportIdProgressGetData, ThrowOnError>): RequestResult<GetImportProgressImportsImportIdProgressGetResponses, GetImportProgressImportsImportIdProgressGetErrors, ThrowOnError> => (options.client ?? client).get<GetImportProgressImportsImportIdProgressGetResponses, GetImportProgressImportsImportIdProgressGetErrors, ThrowOnError>({ url: '/imports/{import_id}/progress', ...options });
 
 /**
+ * Get Import Report
+ *
+ * Return the totals, reason-coded failures and changed-lead count of a finished import.
+ */
+export const getImportReportImportsImportIdReportGet = <ThrowOnError extends boolean = false>(options: Options<GetImportReportImportsImportIdReportGetData, ThrowOnError>): RequestResult<GetImportReportImportsImportIdReportGetResponses, GetImportReportImportsImportIdReportGetErrors, ThrowOnError> => (options.client ?? client).get<GetImportReportImportsImportIdReportGetResponses, GetImportReportImportsImportIdReportGetErrors, ThrowOnError>({ url: '/imports/{import_id}/report', ...options });
+
+/**
  * Start Import Processing
  *
  * Start processing: only the uploader, once, with a saved mapping (the wizard's last step).
@@ -181,12 +230,75 @@ export const getImportProgressImportsImportIdProgressGet = <ThrowOnError extends
 export const startImportProcessingImportsImportIdStartPost = <ThrowOnError extends boolean = false>(options: Options<StartImportProcessingImportsImportIdStartPostData, ThrowOnError>): RequestResult<StartImportProcessingImportsImportIdStartPostResponses, StartImportProcessingImportsImportIdStartPostErrors, ThrowOnError> => (options.client ?? client).post<StartImportProcessingImportsImportIdStartPostResponses, StartImportProcessingImportsImportIdStartPostErrors, ThrowOnError>({ url: '/imports/{import_id}/start', ...options });
 
 /**
+ * Get Unmatched Owners
+ *
+ * List the owner texts of an import that left leads without an owner (empty until it runs).
+ */
+export const getUnmatchedOwnersImportsImportIdUnmatchedOwnersGet = <ThrowOnError extends boolean = false>(options: Options<GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetData, ThrowOnError>): RequestResult<GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetResponses, GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetErrors, ThrowOnError> => (options.client ?? client).get<GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetResponses, GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetErrors, ThrowOnError>({ url: '/imports/{import_id}/unmatched-owners', ...options });
+
+/**
  * Choose Worksheet
  *
  * Choose the worksheet to import from a multi-sheet XLSX (only the uploader may).
  */
 export const chooseWorksheetImportsImportIdWorksheetPost = <ThrowOnError extends boolean = false>(options: Options<ChooseWorksheetImportsImportIdWorksheetPostData, ThrowOnError>): RequestResult<ChooseWorksheetImportsImportIdWorksheetPostResponses, ChooseWorksheetImportsImportIdWorksheetPostErrors, ThrowOnError> => (options.client ?? client).post<ChooseWorksheetImportsImportIdWorksheetPostResponses, ChooseWorksheetImportsImportIdWorksheetPostErrors, ThrowOnError>({
     url: '/imports/{import_id}/worksheet',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Source Profiles
+ *
+ * Every source profile, active and inactive.
+ */
+export const listSourceProfilesSourceProfilesGet = <ThrowOnError extends boolean = false>(options?: Options<ListSourceProfilesSourceProfilesGetData, ThrowOnError>): RequestResult<ListSourceProfilesSourceProfilesGetResponses, ListSourceProfilesSourceProfilesGetErrors, ThrowOnError> => (options?.client ?? client).get<ListSourceProfilesSourceProfilesGetResponses, ListSourceProfilesSourceProfilesGetErrors, ThrowOnError>({ url: '/source-profiles', ...options });
+
+/**
+ * Create Source Profile
+ *
+ * Create an active profile with no saved mapping.
+ */
+export const createSourceProfileSourceProfilesPost = <ThrowOnError extends boolean = false>(options: Options<CreateSourceProfileSourceProfilesPostData, ThrowOnError>): RequestResult<CreateSourceProfileSourceProfilesPostResponses, CreateSourceProfileSourceProfilesPostErrors, ThrowOnError> => (options.client ?? client).post<CreateSourceProfileSourceProfilesPostResponses, CreateSourceProfileSourceProfilesPostErrors, ThrowOnError>({
+    url: '/source-profiles',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read Source Profile
+ *
+ * One profile with its saved header -> field map.
+ */
+export const readSourceProfileSourceProfilesProfileIdGet = <ThrowOnError extends boolean = false>(options: Options<ReadSourceProfileSourceProfilesProfileIdGetData, ThrowOnError>): RequestResult<ReadSourceProfileSourceProfilesProfileIdGetResponses, ReadSourceProfileSourceProfilesProfileIdGetErrors, ThrowOnError> => (options.client ?? client).get<ReadSourceProfileSourceProfilesProfileIdGetResponses, ReadSourceProfileSourceProfilesProfileIdGetErrors, ThrowOnError>({ url: '/source-profiles/{profile_id}', ...options });
+
+/**
+ * Edit Source Profile
+ *
+ * Rename, relabel, activate or deactivate a profile; deactivation may carry a warning.
+ */
+export const editSourceProfileSourceProfilesProfileIdPatch = <ThrowOnError extends boolean = false>(options: Options<EditSourceProfileSourceProfilesProfileIdPatchData, ThrowOnError>): RequestResult<EditSourceProfileSourceProfilesProfileIdPatchResponses, EditSourceProfileSourceProfilesProfileIdPatchErrors, ThrowOnError> => (options.client ?? client).patch<EditSourceProfileSourceProfilesProfileIdPatchResponses, EditSourceProfileSourceProfilesProfileIdPatchErrors, ThrowOnError>({
+    url: '/source-profiles/{profile_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Remove Source Profile Columns
+ *
+ * Forget saved header mappings of a profile.
+ */
+export const removeSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPost = <ThrowOnError extends boolean = false>(options: Options<RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostData, ThrowOnError>): RequestResult<RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostResponses, RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostErrors, ThrowOnError> => (options.client ?? client).post<RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostResponses, RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostErrors, ThrowOnError>({
+    url: '/source-profiles/{profile_id}/remove-columns',
     ...options,
     headers: {
         'Content-Type': 'application/json',

@@ -127,8 +127,11 @@ def test_m2_router_is_empty_prefixed_and_mounted(
     assert isinstance(router, APIRouter)
     assert router.prefix == prefix
     assert router.tags == [tag]
-    if module is not imports_api:  # M2-A1 gave /imports its first routes
+    # M2-A1 gave /imports its first routes; M2-A6 gave /source-profiles its five.
+    if module not in (imports_api, profiles_api):
         assert router.routes == []
+    if module is profiles_api:
+        assert len(router.routes) == 5  # list, create, read, edit, remove-columns
     assert getattr(main_module, main_name) is router
 
 

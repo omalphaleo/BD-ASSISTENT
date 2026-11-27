@@ -5,6 +5,54 @@ export type ClientOptions = {
 };
 
 /**
+ * AssignOwnerRequest
+ *
+ * Assign every still-unowned lead of one owner text (owner_group) to one user.
+ */
+export type AssignOwnerRequest = {
+    /**
+     * Owner Group
+     */
+    owner_group: string;
+    /**
+     * User Id
+     */
+    user_id: string;
+};
+
+/**
+ * AssignOwnerResponse
+ *
+ * How many leads got the owner, and how many already had one and were left alone.
+ */
+export type AssignOwnerResponse = {
+    /**
+     * Assigned
+     */
+    assigned: number;
+    /**
+     * Skipped
+     */
+    skipped: number;
+};
+
+/**
+ * AssignableUserResponse
+ *
+ * An active user a manager can assign leads to.
+ */
+export type AssignableUserResponse = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
  * CellWarningResponse
  *
  * A cell that could not be converted to its field's type; the value became null.
@@ -30,6 +78,30 @@ export type ChangeRoleRequest = {
 };
 
 /**
+ * ChangesPageResponse
+ *
+ * One page of the change summary; total counts every changed lead of the import.
+ */
+export type ChangesPageResponse = {
+    /**
+     * Items
+     */
+    items: Array<LeadChangeResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
  * ChooseProfileRequest
  *
  * Body of PUT /imports/{id}/profile: the source profile and the default country (D-078).
@@ -43,6 +115,22 @@ export type ChooseProfileRequest = {
      * Source Profile Id
      */
     source_profile_id?: string | null;
+};
+
+/**
+ * CreateSourceProfileRequest
+ *
+ * Body of POST /source-profiles; the profile starts active with no saved mapping.
+ */
+export type CreateSourceProfileRequest = {
+    /**
+     * Layout
+     */
+    layout: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -144,6 +232,46 @@ export type EstimateResponse = {
 };
 
 /**
+ * FailureReasonResponse
+ *
+ * How many rows failed (rejected or quarantined) for one reason code.
+ */
+export type FailureReasonResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
+ * FieldChangeResponse
+ *
+ * One changed field of an updated lead: its label and the value before and after.
+ */
+export type FieldChangeResponse = {
+    /**
+     * Field
+     */
+    field: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * New
+     */
+    new: string | number | number | boolean | null;
+    /**
+     * Old
+     */
+    old: string | number | number | boolean | null;
+};
+
+/**
  * ImportFileResponse
  *
  * An import as shown in status calls (no storage key, no server path).
@@ -241,11 +369,88 @@ export type ImportProgressResponse = {
 };
 
 /**
+ * ImportReportResponse
+ *
+ * The report of a finished import: the seven D-050 totals, why rows failed, changed leads.
+ */
+export type ImportReportResponse = {
+    /**
+     * Changes Total
+     */
+    changes_total: number;
+    /**
+     * Duplicates Found
+     */
+    duplicates_found: number;
+    /**
+     * Failure Reasons
+     */
+    failure_reasons: Array<FailureReasonResponse>;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Imported
+     */
+    imported: number;
+    /**
+     * Quarantined
+     */
+    quarantined: number;
+    /**
+     * Received
+     */
+    received: number;
+    /**
+     * Rejected
+     */
+    rejected: number;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    status: ImportStatus;
+    /**
+     * Unchanged
+     */
+    unchanged: number;
+    /**
+     * Updated
+     */
+    updated: number;
+};
+
+/**
  * ImportStatus
  *
  * Lifecycle of an uploaded import file.
  */
 export type ImportStatus = 'uploaded' | 'mapping' | 'processing' | 'completed' | 'failed';
+
+/**
+ * LeadChangeResponse
+ *
+ * What the import changed on one updated lead.
+ */
+export type LeadChangeResponse = {
+    /**
+     * Changes
+     */
+    changes: Array<FieldChangeResponse>;
+    /**
+     * Email
+     */
+    email: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Person Id
+     */
+    person_id: string;
+};
 
 /**
  * LoginRequest
@@ -402,6 +607,22 @@ export type ProfileDefaultsResponse = {
 };
 
 /**
+ * ProfileErrorResponse
+ *
+ * Body of a refused profile request: a fixed message and a stable machine-readable code.
+ */
+export type ProfileErrorResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Detail
+     */
+    detail: string;
+};
+
+/**
  * ProfileOptionResponse
  *
  * A source profile the uploader may choose (no saved mapping content is exposed).
@@ -439,6 +660,18 @@ export type ProfileSuggestionResponse = {
      * Source Profile Id
      */
     source_profile_id: string;
+};
+
+/**
+ * RemoveProfileColumnsRequest
+ *
+ * Body of POST /source-profiles/{id}/remove-columns: saved headers to forget.
+ */
+export type RemoveProfileColumnsRequest = {
+    /**
+     * Headers
+     */
+    headers: Array<string>;
 };
 
 /**
@@ -502,6 +735,96 @@ export type SessionUserResponse = {
 };
 
 /**
+ * SourceProfileDetailResponse
+ *
+ * One profile with its saved header -> field map and any non-blocking warnings.
+ */
+export type SourceProfileDetailResponse = {
+    /**
+     * Columns
+     */
+    columns: {
+        [key: string]: string;
+    };
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Defaults Valid
+     */
+    defaults_valid: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Layout
+     */
+    layout: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Saved Column Count
+     */
+    saved_column_count: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Warnings
+     */
+    warnings?: Array<string>;
+};
+
+/**
+ * SourceProfileResponse
+ *
+ * A source profile in the admin list; defaults_valid is false if its mapping is broken.
+ */
+export type SourceProfileResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Defaults Valid
+     */
+    defaults_valid: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Layout
+     */
+    layout: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Saved Column Count
+     */
+    saved_column_count: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * TargetFieldResponse
  *
  * One canonical field a column can be mapped to (from the registry in leads.contracts).
@@ -543,6 +866,50 @@ export type UnmappedColumnResponse = {
      * Source Header
      */
     source_header: string;
+};
+
+/**
+ * UnmatchedOwnerResponse
+ *
+ * An owner text that matched no user, with the import's leads still without an owner.
+ */
+export type UnmatchedOwnerResponse = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Is Blank
+     */
+    is_blank: boolean;
+    /**
+     * Lead Count
+     */
+    lead_count: number;
+    /**
+     * Owner Group
+     */
+    owner_group: string;
+};
+
+/**
+ * UpdateSourceProfileRequest
+ *
+ * Body of PATCH /source-profiles/{id}; a field that is left out stays unchanged.
+ */
+export type UpdateSourceProfileRequest = {
+    /**
+     * Is Active
+     */
+    is_active?: boolean | null;
+    /**
+     * Layout
+     */
+    layout?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
 };
 
 /**
@@ -805,6 +1172,37 @@ export type HealthHealthGetResponses = {
     200: unknown;
 };
 
+export type GetAssignableUsersImportsAssignableUsersGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/imports/assignable-users';
+};
+
+export type GetAssignableUsersImportsAssignableUsersGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type GetAssignableUsersImportsAssignableUsersGetError = GetAssignableUsersImportsAssignableUsersGetErrors[keyof GetAssignableUsersImportsAssignableUsersGetErrors];
+
+export type GetAssignableUsersImportsAssignableUsersGetResponses = {
+    /**
+     * Response Get Assignable Users Imports Assignable Users Get
+     *
+     * Successful Response
+     */
+    200: Array<AssignableUserResponse>;
+};
+
+export type GetAssignableUsersImportsAssignableUsersGetResponse = GetAssignableUsersImportsAssignableUsersGetResponses[keyof GetAssignableUsersImportsAssignableUsersGetResponses];
+
 export type ListProfileOptionsImportsProfilesGetData = {
     body?: never;
     path?: never;
@@ -956,6 +1354,191 @@ export type GetImportStatusImportsImportIdGetResponses = {
 };
 
 export type GetImportStatusImportsImportIdGetResponse = GetImportStatusImportsImportIdGetResponses[keyof GetImportStatusImportsImportIdGetResponses];
+
+export type PostAssignOwnerImportsImportIdAssignOwnerPostData = {
+    body: AssignOwnerRequest;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/assign-owner';
+};
+
+export type PostAssignOwnerImportsImportIdAssignOwnerPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import has not completed.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type PostAssignOwnerImportsImportIdAssignOwnerPostError = PostAssignOwnerImportsImportIdAssignOwnerPostErrors[keyof PostAssignOwnerImportsImportIdAssignOwnerPostErrors];
+
+export type PostAssignOwnerImportsImportIdAssignOwnerPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: AssignOwnerResponse;
+};
+
+export type PostAssignOwnerImportsImportIdAssignOwnerPostResponse = PostAssignOwnerImportsImportIdAssignOwnerPostResponses[keyof PostAssignOwnerImportsImportIdAssignOwnerPostResponses];
+
+export type GetImportChangesImportsImportIdChangesGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+    };
+    url: '/imports/{import_id}/changes';
+};
+
+export type GetImportChangesImportsImportIdChangesGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import has not finished yet.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetImportChangesImportsImportIdChangesGetError = GetImportChangesImportsImportIdChangesGetErrors[keyof GetImportChangesImportsImportIdChangesGetErrors];
+
+export type GetImportChangesImportsImportIdChangesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ChangesPageResponse;
+};
+
+export type GetImportChangesImportsImportIdChangesGetResponse = GetImportChangesImportsImportIdChangesGetResponses[keyof GetImportChangesImportsImportIdChangesGetResponses];
+
+export type DownloadChangesImportsImportIdDownloadChangesCsvGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/download/changes.csv';
+};
+
+export type DownloadChangesImportsImportIdDownloadChangesCsvGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import has not finished yet.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type DownloadChangesImportsImportIdDownloadChangesCsvGetError = DownloadChangesImportsImportIdDownloadChangesCsvGetErrors[keyof DownloadChangesImportsImportIdDownloadChangesCsvGetErrors];
+
+export type DownloadChangesImportsImportIdDownloadChangesCsvGetResponses = {
+    /**
+     * One line per changed field.
+     */
+    200: unknown;
+};
+
+export type DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/download/failed-rows.csv';
+};
+
+export type DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import has not finished yet.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetError = DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetErrors[keyof DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetErrors];
+
+export type DownloadFailedRowsImportsImportIdDownloadFailedRowsCsvGetResponses = {
+    /**
+     * Rejected and quarantined rows.
+     */
+    200: unknown;
+};
 
 export type ReadEstimateImportsImportIdEstimateGetData = {
     body?: never;
@@ -1275,6 +1858,52 @@ export type GetImportProgressImportsImportIdProgressGetResponses = {
 
 export type GetImportProgressImportsImportIdProgressGetResponse = GetImportProgressImportsImportIdProgressGetResponses[keyof GetImportProgressImportsImportIdProgressGetResponses];
 
+export type GetImportReportImportsImportIdReportGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/report';
+};
+
+export type GetImportReportImportsImportIdReportGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import has not finished yet.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetImportReportImportsImportIdReportGetError = GetImportReportImportsImportIdReportGetErrors[keyof GetImportReportImportsImportIdReportGetErrors];
+
+export type GetImportReportImportsImportIdReportGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportReportResponse;
+};
+
+export type GetImportReportImportsImportIdReportGetResponse = GetImportReportImportsImportIdReportGetResponses[keyof GetImportReportImportsImportIdReportGetResponses];
+
 export type StartImportProcessingImportsImportIdStartPostData = {
     body?: never;
     path: {
@@ -1321,6 +1950,50 @@ export type StartImportProcessingImportsImportIdStartPostResponses = {
 
 export type StartImportProcessingImportsImportIdStartPostResponse = StartImportProcessingImportsImportIdStartPostResponses[keyof StartImportProcessingImportsImportIdStartPostResponses];
 
+export type GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/unmatched-owners';
+};
+
+export type GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetError = GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetErrors[keyof GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetErrors];
+
+export type GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetResponses = {
+    /**
+     * Response Get Unmatched Owners Imports  Import Id  Unmatched Owners Get
+     *
+     * Successful Response
+     */
+    200: Array<UnmatchedOwnerResponse>;
+};
+
+export type GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetResponse = GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetResponses[keyof GetUnmatchedOwnersImportsImportIdUnmatchedOwnersGetResponses];
+
 export type ChooseWorksheetImportsImportIdWorksheetPostData = {
     body: SelectWorksheetRequest;
     path: {
@@ -1366,6 +2039,216 @@ export type ChooseWorksheetImportsImportIdWorksheetPostResponses = {
 };
 
 export type ChooseWorksheetImportsImportIdWorksheetPostResponse = ChooseWorksheetImportsImportIdWorksheetPostResponses[keyof ChooseWorksheetImportsImportIdWorksheetPostResponses];
+
+export type ListSourceProfilesSourceProfilesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/source-profiles';
+};
+
+export type ListSourceProfilesSourceProfilesGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type ListSourceProfilesSourceProfilesGetError = ListSourceProfilesSourceProfilesGetErrors[keyof ListSourceProfilesSourceProfilesGetErrors];
+
+export type ListSourceProfilesSourceProfilesGetResponses = {
+    /**
+     * Response List Source Profiles Source Profiles Get
+     *
+     * Successful Response
+     */
+    200: Array<SourceProfileResponse>;
+};
+
+export type ListSourceProfilesSourceProfilesGetResponse = ListSourceProfilesSourceProfilesGetResponses[keyof ListSourceProfilesSourceProfilesGetResponses];
+
+export type CreateSourceProfileSourceProfilesPostData = {
+    body: CreateSourceProfileRequest;
+    path?: never;
+    query?: never;
+    url: '/source-profiles';
+};
+
+export type CreateSourceProfileSourceProfilesPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such source profile.
+     */
+    404: ProfileErrorResponse;
+    /**
+     * Name taken or saved mapping invalid.
+     */
+    409: ProfileErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type CreateSourceProfileSourceProfilesPostError = CreateSourceProfileSourceProfilesPostErrors[keyof CreateSourceProfileSourceProfilesPostErrors];
+
+export type CreateSourceProfileSourceProfilesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SourceProfileDetailResponse;
+};
+
+export type CreateSourceProfileSourceProfilesPostResponse = CreateSourceProfileSourceProfilesPostResponses[keyof CreateSourceProfileSourceProfilesPostResponses];
+
+export type ReadSourceProfileSourceProfilesProfileIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/source-profiles/{profile_id}';
+};
+
+export type ReadSourceProfileSourceProfilesProfileIdGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such source profile.
+     */
+    404: ProfileErrorResponse;
+    /**
+     * Name taken or saved mapping invalid.
+     */
+    409: ProfileErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ReadSourceProfileSourceProfilesProfileIdGetError = ReadSourceProfileSourceProfilesProfileIdGetErrors[keyof ReadSourceProfileSourceProfilesProfileIdGetErrors];
+
+export type ReadSourceProfileSourceProfilesProfileIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceProfileDetailResponse;
+};
+
+export type ReadSourceProfileSourceProfilesProfileIdGetResponse = ReadSourceProfileSourceProfilesProfileIdGetResponses[keyof ReadSourceProfileSourceProfilesProfileIdGetResponses];
+
+export type EditSourceProfileSourceProfilesProfileIdPatchData = {
+    body: UpdateSourceProfileRequest;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/source-profiles/{profile_id}';
+};
+
+export type EditSourceProfileSourceProfilesProfileIdPatchErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such source profile.
+     */
+    404: ProfileErrorResponse;
+    /**
+     * Name taken or saved mapping invalid.
+     */
+    409: ProfileErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type EditSourceProfileSourceProfilesProfileIdPatchError = EditSourceProfileSourceProfilesProfileIdPatchErrors[keyof EditSourceProfileSourceProfilesProfileIdPatchErrors];
+
+export type EditSourceProfileSourceProfilesProfileIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceProfileDetailResponse;
+};
+
+export type EditSourceProfileSourceProfilesProfileIdPatchResponse = EditSourceProfileSourceProfilesProfileIdPatchResponses[keyof EditSourceProfileSourceProfilesProfileIdPatchResponses];
+
+export type RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostData = {
+    body: RemoveProfileColumnsRequest;
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/source-profiles/{profile_id}/remove-columns';
+};
+
+export type RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such source profile.
+     */
+    404: ProfileErrorResponse;
+    /**
+     * Name taken or saved mapping invalid.
+     */
+    409: ProfileErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostError = RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostErrors[keyof RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostErrors];
+
+export type RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SourceProfileDetailResponse;
+};
+
+export type RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostResponse = RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostResponses[keyof RemoveSourceProfileColumnsSourceProfilesProfileIdRemoveColumnsPostResponses];
 
 export type ListUsersUsersGetData = {
     body?: never;

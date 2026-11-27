@@ -46,6 +46,7 @@ from app.imports.mapping import (
 from app.imports.models import ImportFile, ImportReport, ImportStatus, RawRow
 from app.imports.owners import OwnerIndex, assign_owner_if_empty, build_owner_index, resolve_owner
 from app.imports.parsers import UploadLimits
+from app.imports.raw_keys import original_value_keys
 from app.imports.storage import FileStorage
 from app.imports.upload import EDITABLE_STATUSES, get_import_for_viewer
 from app.leads.contracts import (
@@ -68,6 +69,7 @@ MAPPING_INCOMPLETE_MESSAGE = "Save a column mapping that covers the required fie
 INGEST_ERROR_REASON = "ingest_error"
 UNSPECIFIED_REASON = "unspecified"
 EMAIL_NORMALIZED_MAX_LENGTH = 320
+REASON_CODE_MAX_LENGTH = 64  # raw_rows.reason_code
 
 # Which ImportReport counter each outcome adds to (the seven D-050 totals).
 _COUNTER_BY_OUTCOME: dict[RowOutcomeKind, str] = {
@@ -289,10 +291,17 @@ def _process_chunk(db: Session, run: _RunSettings, chunk: Sequence[Record]) -> N
             default_country=run.import_file.default_country,
         )
         outcome = _ingest_isolated(db, run, source_row)
-        if outcome.person_id is not None:
-            db.execute(
-                update(RawRow).where(RawRow.id == raw_row_id).values(person_id=outcome.person_id)
+        # Link the lead and keep the result per row, so the report can list the rows that
+        # failed or were quarantined with their reason (D-050). Neither column is guarded.
+        db.execute(
+            update(RawRow)
+            .where(RawRow.id == raw_row_id)
+            .values(
+                person_id=outcome.person_id,
+                outcome=outcome.kind,
+                reason_code=_stored_reason(outcome),
             )
+        )
         _count_outcome(run.report, outcome)
 
 
@@ -318,6 +327,13 @@ def _ingest_isolated(db: Session, run: _RunSettings, source_row: SourceRow) -> R
         )
         return RowOutcome(kind=RowOutcomeKind.REJECTED, reason_code=INGEST_ERROR_REASON)
     return outcome
+
+
+def _stored_reason(outcome: RowOutcome) -> str | None:
+    """The reason code kept on the raw row: only failures carry one, cut to the column length."""
+    if outcome.kind not in _FAILURE_OUTCOMES:
+        return None
+    return (outcome.reason_code or UNSPECIFIED_REASON)[:REASON_CODE_MAX_LENGTH]
 
 
 def _owner_name(source_row: SourceRow) -> str | None:
@@ -360,14 +376,9 @@ def _json_cell(cell: object) -> object:
 
 def _original_values(headers: Sequence[str], cells: Sequence[object]) -> dict[str, object]:
     """The row keyed by header, or by column position where a header is empty or repeated."""
-    seen: set[str] = set()
-    original: dict[str, object] = {}
-    for index, cell in enumerate(cells):
-        header = headers[index] if index < len(headers) else ""
-        key = header if header and header not in seen else f"column_{index + 1}"
-        seen.add(key)
-        original[key] = _json_cell(cell)
-    return original
+    # The key rule is shared with the owner assignment (imports.raw_keys), which reads it back.
+    keys = original_value_keys(headers, len(cells))
+    return {key: _json_cell(cell) for key, cell in zip(keys, cells, strict=True)}
 
 
 def _normalized_email(columns: Sequence[MappedColumn], cells: Sequence[object]) -> str | None:

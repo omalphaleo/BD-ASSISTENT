@@ -4,7 +4,8 @@ Needed so the frontend can upload a CSV or XLSX file, see an import's state, and
 worksheet of a multi-sheet workbook. Thin handlers: the work is in imports.upload, the
 parsers and the storage. Every route requires IMPORT_LEADS; whose imports a user may see is
 decided in imports.access. The mapping, preview and estimate routes (M2-A2) live in
-imports.mapping_api and are included here; M2-A3 to M2-A5 add progress and report routes.
+imports.mapping_api and are included here, as are the owner-assignment routes of M2-A4
+(imports.assignment_api); M2-A3 added start and progress, M2-A5 adds the report routes.
 """
 
 import logging
@@ -21,6 +22,7 @@ from app.config import get_settings
 from app.core.models import User
 from app.core.permissions import Permission, require_permission
 from app.db import get_session
+from app.imports.assignment_api import router as assignment_router
 from app.imports.errors import (
     ImportNotFoundError,
     StartErrorKind,
@@ -37,6 +39,7 @@ from app.imports.pipeline import (
     get_progress,
     start_import,
 )
+from app.imports.reports_api import router as reports_router
 from app.imports.schemas import (
     DuplicateFileResponse,
     ImportFileResponse,
@@ -61,6 +64,8 @@ router = APIRouter(prefix="/imports", tags=["imports"])
 # Included first: its fixed paths (/target-fields, /profiles) must be matched before the
 # "/{import_id}" routes below, which would otherwise try to read them as an import ID.
 router.include_router(mapping_router)
+router.include_router(assignment_router)  # M2-A4; same reason: "/assignable-users" is fixed
+router.include_router(reports_router)  # M2-A5: report, changes and CSV downloads
 
 # HTTP status for each refusal kind. 422 means "the content of the file is not usable".
 UPLOAD_ERROR_STATUS: dict[UploadErrorKind, int] = {

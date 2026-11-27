@@ -1,6 +1,66 @@
 {
   "components": {
     "schemas": {
+      "AssignOwnerRequest": {
+        "description": "Assign every still-unowned lead of one owner text (owner_group) to one user.",
+        "properties": {
+          "owner_group": {
+            "maxLength": 512,
+            "title": "Owner Group",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner_group",
+          "user_id"
+        ],
+        "title": "AssignOwnerRequest",
+        "type": "object"
+      },
+      "AssignOwnerResponse": {
+        "description": "How many leads got the owner, and how many already had one and were left alone.",
+        "properties": {
+          "assigned": {
+            "title": "Assigned",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assigned",
+          "skipped"
+        ],
+        "title": "AssignOwnerResponse",
+        "type": "object"
+      },
+      "AssignableUserResponse": {
+        "description": "An active user a manager can assign leads to.",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "AssignableUserResponse",
+        "type": "object"
+      },
       "CellWarningResponse": {
         "description": "A cell that could not be converted to its field's type; the value became null.",
         "properties": {
@@ -34,6 +94,38 @@
         "title": "ChangeRoleRequest",
         "type": "object"
       },
+      "ChangesPageResponse": {
+        "description": "One page of the change summary; total counts every changed lead of the import.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LeadChangeResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "page_size",
+          "items"
+        ],
+        "title": "ChangesPageResponse",
+        "type": "object"
+      },
       "ChooseProfileRequest": {
         "additionalProperties": false,
         "description": "Body of PUT /imports/{id}/profile: the source profile and the default country (D-078).",
@@ -64,6 +156,30 @@
           }
         },
         "title": "ChooseProfileRequest",
+        "type": "object"
+      },
+      "CreateSourceProfileRequest": {
+        "additionalProperties": false,
+        "description": "Body of POST /source-profiles; the profile starts active with no saved mapping.",
+        "properties": {
+          "layout": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Layout",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "layout"
+        ],
+        "title": "CreateSourceProfileRequest",
         "type": "object"
       },
       "CreateUserRequest": {
@@ -203,6 +319,86 @@
           "can_start"
         ],
         "title": "EstimateResponse",
+        "type": "object"
+      },
+      "FailureReasonResponse": {
+        "description": "How many rows failed (rejected or quarantined) for one reason code.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "count"
+        ],
+        "title": "FailureReasonResponse",
+        "type": "object"
+      },
+      "FieldChangeResponse": {
+        "description": "One changed field of an updated lead: its label and the value before and after.",
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "new": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New"
+          },
+          "old": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old"
+          }
+        },
+        "required": [
+          "field",
+          "label",
+          "old",
+          "new"
+        ],
+        "title": "FieldChangeResponse",
         "type": "object"
       },
       "ImportFileResponse": {
@@ -365,6 +561,77 @@
         "title": "ImportProgressResponse",
         "type": "object"
       },
+      "ImportReportResponse": {
+        "description": "The report of a finished import: the seven D-050 totals, why rows failed, changed leads.",
+        "properties": {
+          "changes_total": {
+            "title": "Changes Total",
+            "type": "integer"
+          },
+          "duplicates_found": {
+            "title": "Duplicates Found",
+            "type": "integer"
+          },
+          "failure_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/FailureReasonResponse"
+            },
+            "title": "Failure Reasons",
+            "type": "array"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "imported": {
+            "title": "Imported",
+            "type": "integer"
+          },
+          "quarantined": {
+            "title": "Quarantined",
+            "type": "integer"
+          },
+          "received": {
+            "title": "Received",
+            "type": "integer"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "filename",
+          "row_count",
+          "received",
+          "imported",
+          "updated",
+          "unchanged",
+          "duplicates_found",
+          "quarantined",
+          "rejected",
+          "failure_reasons",
+          "changes_total"
+        ],
+        "title": "ImportReportResponse",
+        "type": "object"
+      },
       "ImportStatus": {
         "description": "Lifecycle of an uploaded import file.",
         "enum": [
@@ -376,6 +643,46 @@
         ],
         "title": "ImportStatus",
         "type": "string"
+      },
+      "LeadChangeResponse": {
+        "description": "What the import changed on one updated lead.",
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChangeResponse"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "person_id": {
+            "format": "uuid",
+            "title": "Person Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "name",
+          "email",
+          "changes"
+        ],
+        "title": "LeadChangeResponse",
+        "type": "object"
       },
       "LoginRequest": {
         "additionalProperties": false,
@@ -616,6 +923,25 @@
         "title": "ProfileDefaultsResponse",
         "type": "object"
       },
+      "ProfileErrorResponse": {
+        "description": "Body of a refused profile request: a fixed message and a stable machine-readable code.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "code"
+        ],
+        "title": "ProfileErrorResponse",
+        "type": "object"
+      },
       "ProfileOptionResponse": {
         "description": "A source profile the uploader may choose (no saved mapping content is exposed).",
         "properties": {
@@ -664,6 +990,26 @@
           "overlap"
         ],
         "title": "ProfileSuggestionResponse",
+        "type": "object"
+      },
+      "RemoveProfileColumnsRequest": {
+        "additionalProperties": false,
+        "description": "Body of POST /source-profiles/{id}/remove-columns: saved headers to forget.",
+        "properties": {
+          "headers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16384,
+            "minItems": 1,
+            "title": "Headers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "headers"
+        ],
+        "title": "RemoveProfileColumnsRequest",
         "type": "object"
       },
       "SaveDefaultRequest": {
@@ -748,6 +1094,125 @@
         "title": "SessionUserResponse",
         "type": "object"
       },
+      "SourceProfileDetailResponse": {
+        "description": "One profile with its saved header -> field map and any non-blocking warnings.",
+        "properties": {
+          "columns": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "defaults_valid": {
+            "title": "Defaults Valid",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "layout": {
+            "title": "Layout",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "saved_column_count": {
+            "title": "Saved Column Count",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "layout",
+          "is_active",
+          "saved_column_count",
+          "defaults_valid",
+          "created_at",
+          "updated_at",
+          "columns"
+        ],
+        "title": "SourceProfileDetailResponse",
+        "type": "object"
+      },
+      "SourceProfileResponse": {
+        "description": "A source profile in the admin list; defaults_valid is false if its mapping is broken.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "defaults_valid": {
+            "title": "Defaults Valid",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "layout": {
+            "title": "Layout",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "saved_column_count": {
+            "title": "Saved Column Count",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "layout",
+          "is_active",
+          "saved_column_count",
+          "defaults_valid",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SourceProfileResponse",
+        "type": "object"
+      },
       "TargetFieldResponse": {
         "description": "One canonical field a column can be mapped to (from the registry in leads.contracts).",
         "properties": {
@@ -799,6 +1264,80 @@
           "source_header"
         ],
         "title": "UnmappedColumnResponse",
+        "type": "object"
+      },
+      "UnmatchedOwnerResponse": {
+        "description": "An owner text that matched no user, with the import's leads still without an owner.",
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "is_blank": {
+            "title": "Is Blank",
+            "type": "boolean"
+          },
+          "lead_count": {
+            "title": "Lead Count",
+            "type": "integer"
+          },
+          "owner_group": {
+            "title": "Owner Group",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner_group",
+          "display_name",
+          "lead_count",
+          "is_blank"
+        ],
+        "title": "UnmatchedOwnerResponse",
+        "type": "object"
+      },
+      "UpdateSourceProfileRequest": {
+        "additionalProperties": false,
+        "description": "Body of PATCH /source-profiles/{id}; a field that is left out stays unchanged.",
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layout"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "UpdateSourceProfileRequest",
         "type": "object"
       },
       "UploadErrorResponse": {
@@ -1216,6 +1755,53 @@
         ]
       }
     },
+    "/imports/assignable-users": {
+      "get": {
+        "description": "List the active users a manager may assign leads to (id and email only).",
+        "operationId": "get_assignable_users_imports_assignable_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssignableUserResponse"
+                  },
+                  "title": "Response Get Assignable Users Imports Assignable Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          }
+        },
+        "summary": "Get Assignable Users",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
     "/imports/profiles": {
       "get": {
         "description": "Active source profiles an uploader may choose for an import.",
@@ -1478,6 +2064,332 @@
         },
         "summary": "Get Import Status",
         "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/assign-owner": {
+      "post": {
+        "description": "Assign every still-unowned lead of one owner text to a user; already-owned leads stay.",
+        "operationId": "post_assign_owner_imports__import_id__assign_owner_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignOwnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignOwnerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import has not completed."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Post Assign Owner",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/changes": {
+      "get": {
+        "description": "Return one page of \"what changed in this import\": each updated lead's old and new values.",
+        "operationId": "get_import_changes_imports__import_id__changes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 100000,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangesPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import has not finished yet."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Get Import Changes",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/download/changes.csv": {
+      "get": {
+        "description": "Download what the import changed, one line per changed field (audited, D-111).",
+        "operationId": "download_changes_imports__import_id__download_changes_csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "One line per changed field."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import has not finished yet."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Download Changes",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/download/failed-rows.csv": {
+      "get": {
+        "description": "Download the rejected and quarantined rows with their reason (audited, D-111).",
+        "operationId": "download_failed_rows_imports__import_id__download_failed_rows_csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Rejected and quarantined rows."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import has not finished yet."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Download Failed Rows",
+        "tags": [
+          "imports",
           "imports"
         ]
       }
@@ -2045,6 +2957,84 @@
         ]
       }
     },
+    "/imports/{import_id}/report": {
+      "get": {
+        "description": "Return the totals, reason-coded failures and changed-lead count of a finished import.",
+        "operationId": "get_import_report_imports__import_id__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import has not finished yet."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Get Import Report",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
     "/imports/{import_id}/start": {
       "post": {
         "description": "Start processing: only the uploader, once, with a saved mapping (the wizard's last step).\n\nThe state change is committed first, then the background job is queued with a lock on the\nimport ID; a second queued job for the same import is refused with 409.",
@@ -2118,6 +3108,78 @@
         },
         "summary": "Start Import Processing",
         "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/unmatched-owners": {
+      "get": {
+        "description": "List the owner texts of an import that left leads without an owner (empty until it runs).",
+        "operationId": "get_unmatched_owners_imports__import_id__unmatched_owners_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UnmatchedOwnerResponse"
+                  },
+                  "title": "Response Get Unmatched Owners Imports  Import Id  Unmatched Owners Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Get Unmatched Owners",
+        "tags": [
+          "imports",
           "imports"
         ]
       }
@@ -2206,6 +3268,402 @@
         "summary": "Choose Worksheet",
         "tags": [
           "imports"
+        ]
+      }
+    },
+    "/source-profiles": {
+      "get": {
+        "description": "Every source profile, active and inactive.",
+        "operationId": "list_source_profiles_source_profiles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceProfileResponse"
+                  },
+                  "title": "Response List Source Profiles Source Profiles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          }
+        },
+        "summary": "List Source Profiles",
+        "tags": [
+          "source-profiles"
+        ]
+      },
+      "post": {
+        "description": "Create an active profile with no saved mapping.",
+        "operationId": "create_source_profile_source_profiles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSourceProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceProfileDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "No such source profile."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "Name taken or saved mapping invalid."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create Source Profile",
+        "tags": [
+          "source-profiles"
+        ]
+      }
+    },
+    "/source-profiles/{profile_id}": {
+      "get": {
+        "description": "One profile with its saved header -> field map.",
+        "operationId": "read_source_profile_source_profiles__profile_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceProfileDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "No such source profile."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "Name taken or saved mapping invalid."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Read Source Profile",
+        "tags": [
+          "source-profiles"
+        ]
+      },
+      "patch": {
+        "description": "Rename, relabel, activate or deactivate a profile; deactivation may carry a warning.",
+        "operationId": "edit_source_profile_source_profiles__profile_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSourceProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceProfileDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "No such source profile."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "Name taken or saved mapping invalid."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Edit Source Profile",
+        "tags": [
+          "source-profiles"
+        ]
+      }
+    },
+    "/source-profiles/{profile_id}/remove-columns": {
+      "post": {
+        "description": "Forget saved header mappings of a profile.",
+        "operationId": "remove_source_profile_columns_source_profiles__profile_id__remove_columns_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveProfileColumnsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceProfileDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "No such source profile."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileErrorResponse"
+                }
+              }
+            },
+            "description": "Name taken or saved mapping invalid."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Remove Source Profile Columns",
+        "tags": [
+          "source-profiles"
         ]
       }
     },

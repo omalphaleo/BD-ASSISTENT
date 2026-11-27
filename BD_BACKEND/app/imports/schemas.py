@@ -6,8 +6,9 @@ client through openapi.json) and so responses never expose the storage key or se
 
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.imports.mapping import MappingView
 from app.imports.models import ImportFile, ImportReport, ImportStatus
@@ -270,6 +271,69 @@ class MappingErrorResponse(BaseModel):
     code: str
 
 
+# --- Source profile admin (M2-A6) -------------------------------------------------------------
+
+# Names and layout labels are trimmed and must not be blank; the layout is a free label (U2).
+ProfileName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+ProfileLayout = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)
+]
+
+
+class CreateSourceProfileRequest(BaseModel):
+    """Body of POST /source-profiles; the profile starts active with no saved mapping."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: ProfileName
+    layout: ProfileLayout
+
+
+class UpdateSourceProfileRequest(BaseModel):
+    """Body of PATCH /source-profiles/{id}; a field that is left out stays unchanged."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: ProfileName | None = None
+    layout: ProfileLayout | None = None
+    is_active: bool | None = None
+
+
+class RemoveProfileColumnsRequest(BaseModel):
+    """Body of POST /source-profiles/{id}/remove-columns: saved headers to forget."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    headers: list[str] = Field(min_length=1, max_length=MAX_MAPPING_COLUMNS)
+
+
+class SourceProfileResponse(BaseModel):
+    """A source profile in the admin list; defaults_valid is false if its mapping is broken."""
+
+    id: uuid.UUID
+    name: str
+    layout: str
+    is_active: bool
+    saved_column_count: int
+    defaults_valid: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class SourceProfileDetailResponse(SourceProfileResponse):
+    """One profile with its saved header -> field map and any non-blocking warnings."""
+
+    columns: dict[str, str]
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ProfileErrorResponse(BaseModel):
+    """Body of a refused profile request: a fixed message and a stable machine-readable code."""
+
+    detail: str
+    code: str
+
+
 # --- Processing: start and progress (M2-A3) ---------------------------------------------------
 
 
@@ -317,3 +381,93 @@ class ImportProgressResponse(BaseModel):
             percent=percent,
             finished=import_file.status in (ImportStatus.COMPLETED, ImportStatus.FAILED),
         )
+
+
+# --- Owner assignment (M2-A4) -----------------------------------------------------------------
+
+# Longest owner text accepted back from the client (cells are far shorter in practice).
+MAX_OWNER_GROUP_LENGTH = 512
+
+
+class UnmatchedOwnerResponse(BaseModel):
+    """An owner text that matched no user, with the import's leads still without an owner."""
+
+    owner_group: str
+    display_name: str
+    lead_count: int
+    is_blank: bool
+
+
+class AssignOwnerRequest(BaseModel):
+    """Assign every still-unowned lead of one owner text (owner_group) to one user."""
+
+    owner_group: str = Field(max_length=MAX_OWNER_GROUP_LENGTH)
+    user_id: uuid.UUID
+
+
+class AssignOwnerResponse(BaseModel):
+    """How many leads got the owner, and how many already had one and were left alone."""
+
+    assigned: int
+    skipped: int
+
+
+class AssignableUserResponse(BaseModel):
+    """An active user a manager can assign leads to."""
+
+    id: uuid.UUID
+    email: str
+
+
+# --- Import report, change summary and downloads (M2-A5) --------------------------------------
+
+
+class FailureReasonResponse(BaseModel):
+    """How many rows failed (rejected or quarantined) for one reason code."""
+
+    code: str
+    count: int
+
+
+class ImportReportResponse(BaseModel):
+    """The report of a finished import: the seven D-050 totals, why rows failed, changed leads."""
+
+    status: ImportStatus
+    filename: str
+    row_count: int
+    received: int
+    imported: int
+    updated: int
+    unchanged: int
+    duplicates_found: int
+    quarantined: int
+    rejected: int
+    failure_reasons: list[FailureReasonResponse]
+    changes_total: int
+
+
+class FieldChangeResponse(BaseModel):
+    """One changed field of an updated lead: its label and the value before and after."""
+
+    field: str
+    label: str
+    old: str | int | float | bool | None
+    new: str | int | float | bool | None
+
+
+class LeadChangeResponse(BaseModel):
+    """What the import changed on one updated lead."""
+
+    person_id: uuid.UUID
+    name: str
+    email: str | None
+    changes: list[FieldChangeResponse]
+
+
+class ChangesPageResponse(BaseModel):
+    """One page of the change summary; total counts every changed lead of the import."""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[LeadChangeResponse]

@@ -5,8 +5,9 @@
  *
  * Needed so the uploader can check the first rows as the saved mapping reads them, see cells that
  * could not be converted, and see what the file itself implies (row counts, rows without the
- * mandatory fields, unmapped columns) before starting. "Start import" is shown but disabled:
- * the import job arrives with M2-A3. Numbers and warnings come from the server.
+ * mandatory fields, unmapped columns) before starting. "Start import" (M2-A4 UI) asks the server
+ * to start the job and is enabled only when the server's estimate says the import can start; the
+ * server still checks that the caller is the uploader. Numbers and warnings come from the server.
  */
 import { useEffect, useState } from "react";
 
@@ -14,20 +15,23 @@ import "@/lib/api-client";
 import {
   readEstimateImportsImportIdEstimateGet,
   readPreviewImportsImportIdPreviewGet,
+  startImportProcessingImportsImportIdStartPost,
 } from "@/lib/api/sdk.gen";
 import type { EstimateResponse, PreviewResponse } from "@/lib/api/types.gen";
 import { errorMessage } from "@/lib/import/errors";
 import { blockingIssueText, warningText } from "@/lib/import/messages";
 
-type Props = Readonly<{ importId: string; onBack: () => void }>;
+type Props = Readonly<{ importId: string; onBack: () => void; onStarted: () => void }>;
 
 const NO_HEADER = "(no header)";
 
-/** Renders the preview table, the estimate panel and the (disabled) start button. */
-export default function PreviewStep({ importId, onBack }: Props) {
+/** Renders the preview table, the estimate panel and the start button. */
+export default function PreviewStep({ importId, onBack, onStarted }: Props) {
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [estimate, setEstimate] = useState<EstimateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +54,21 @@ export default function PreviewStep({ importId, onBack }: Props) {
       cancelled = true;
     };
   }, [importId]);
+
+  /** Asks the server to start the import (uploader only); the host then shows the progress. */
+  async function handleStart() {
+    setStartError(null);
+    setStarting(true);
+    const result = await startImportProcessingImportsImportIdStartPost({
+      path: { import_id: importId },
+    });
+    setStarting(false);
+    if (result.data) {
+      onStarted();
+      return;
+    }
+    setStartError(errorMessage(result.error, result.response));
+  }
 
   if (!preview || !estimate) {
     return error ? <p role="alert">{error}</p> : <p>Loading the preview…</p>;
@@ -122,10 +141,15 @@ export default function PreviewStep({ importId, onBack }: Props) {
       <button className="button button-secondary" type="button" onClick={onBack}>
         Back to mapping
       </button>{" "}
-      <button className="button" type="button" disabled>
-        Start import
+      {startError && <p role="alert">{startError}</p>}
+      <button
+        className="button"
+        type="button"
+        disabled={!estimate.can_start || starting}
+        onClick={() => void handleStart()}
+      >
+        {starting ? "Starting…" : "Start import"}
       </button>
-      <p>Starting an import will be available in M2-A3.</p>
     </section>
   );
 }
