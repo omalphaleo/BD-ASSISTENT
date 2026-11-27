@@ -2291,3 +2291,9 @@ Status: Needs input
 - Summary: Answered that B1 to B6 are built and verified, with a short list of open items beyond committing.
 - Status update (2026-11-26): Completed. Nothing was changed in the code.
 - Status: Completed
+
+## T-131: M2-A7 implementation start (2026-11-27)
+- Prompt: "start working on a7 approved plan"
+- Status: Needs input
+- Summary: Wired the real `ingest_row` in `imports/wiring.py`; added `tests/test_import_contract.py` (strict xfail on `row_fields.py` until B fixes the keys) and `tests/test_import_e2e.py` (9 tests, real `ingest_row`); wrote `tests/e2e/import-journey.spec.ts` (compiles, not yet run); repaired `FILE_STRUCTURE.md` after the merge and updated the A7 docs. 1415 backend tests pass, 1 xfail.
+- Status update (2026-11-27): Needs input (B's `row_fields.py` fix, the joint `contracts.py` PR, and permission to run the Playwright journey against the live stack).

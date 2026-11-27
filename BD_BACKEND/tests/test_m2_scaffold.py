@@ -1,4 +1,4 @@
-"""Tests for the M2-0 scaffold: contract types, wiring stub, empty routers, audit actions, worker.
+"""Tests for the M2-0 scaffold: contract types, ingest_row wiring, routers, audit actions, worker.
 
 Needed so the parts both M2 workstreams build on (leads/contracts.py, imports/wiring.py, the
 pre-mounted routers, the AuditAction vocabulary and the worker task path) cannot drift or be
@@ -26,6 +26,7 @@ from app.leads.contracts import (
     RowOutcomeKind,
     SourceRow,
 )
+from app.leads.ingest import ingest_row
 from app.worker import app as worker_app
 
 M2_AUDIT_ACTIONS = {
@@ -107,15 +108,9 @@ def test_field_change_has_the_agreed_json_keys() -> None:
     assert set(FieldChange.__dataclass_fields__) == {"field", "old", "new"}
 
 
-def test_unwired_ingest_row_fails_loudly() -> None:
-    """Before integration step I1 the stub raises instead of reporting fake successes."""
-    ingest_row = get_ingest_row()
-    row = SourceRow(1, {}, None, uuid.uuid4(), None, None)
-    ctx = ImportContext(
-        uuid.uuid4(), None, datetime(2026, 11, 25, tzinfo=UTC), 90, IngestSource.IMPORT
-    )
-    with pytest.raises(NotImplementedError):
-        ingest_row(None, row, ctx)  # type: ignore[arg-type]
+def test_wiring_returns_the_real_ingest_row() -> None:
+    """Since integration step I1 (M2-A7) the wiring hands out W2's real ingest_row, not a stub."""
+    assert get_ingest_row() is ingest_row
 
 
 @pytest.mark.parametrize(("module", "prefix", "tag", "main_name"), ROUTERS)
@@ -127,8 +122,9 @@ def test_m2_router_is_empty_prefixed_and_mounted(
     assert isinstance(router, APIRouter)
     assert router.prefix == prefix
     assert router.tags == [tag]
-    # M2-A1 gave /imports its first routes; M2-B2 gave /quarantine its own.
-    if module not in (imports_api, quarantine_api, duplicates_api, mappings_api):
+    # M2-A1 gave /imports its first routes, M2-A6 gave /source-profiles its five, and W2's
+    # M2-B2, B5 and B6 gave the other three theirs.
+    if module not in (imports_api, profiles_api, quarantine_api, duplicates_api, mappings_api):
         assert router.routes == []
     if module is profiles_api:
         assert len(router.routes) == 5  # list, create, read, edit, remove-columns
