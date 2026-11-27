@@ -397,6 +397,17 @@ export type EstimateResponse = {
 };
 
 /**
+ * ExportRequest
+ *
+ * One CSV export: the filters and the order. No paging; the whole filter is exported.
+ */
+export type ExportRequest = {
+    direction?: SortDirection;
+    filters?: FilterSetInput;
+    sort?: SortField;
+};
+
+/**
  * FailureReasonResponse
  *
  * How many rows failed (rejected or quarantined) for one reason code.
@@ -499,7 +510,7 @@ export type FilterOptionsResponse = {
  *
  * Unknown fields raise a validation error (extra="forbid").
  */
-export type FilterSet = {
+export type FilterSetInput = {
     /**
      * Cities
      */
@@ -540,6 +551,90 @@ export type FilterSet = {
      * Revenue Min
      */
     revenue_min?: number | string | null;
+    /**
+     * Show Opted Out
+     */
+    show_opted_out?: boolean;
+    /**
+     * Size Bands
+     */
+    size_bands?: Array<SizeBand>;
+    /**
+     * States
+     */
+    states?: Array<string>;
+    /**
+     * Technologies
+     */
+    technologies?: Array<string>;
+    /**
+     * Titles
+     */
+    titles?: Array<string>;
+    /**
+     * Uses Salesforce
+     */
+    uses_salesforce?: boolean | null;
+};
+
+/**
+ * FilterSet
+ *
+ * Every way a lead search can be narrowed.
+ *
+ * Different filters combine with AND; the values inside one list combine with OR. A filter
+ * left at its default (an empty list or None) is not applied. Matching rules:
+ *
+ * - industries, countries, states, cities, funding_stages: exact, case-insensitive.
+ * - countries, states, cities match the person's own location OR the company headquarters.
+ * - titles, company_names: "contains", case-insensitive.
+ * - technologies: exact tag match on the lowercased technology list.
+ * - size_bands: employee count inside any chosen band (D-085).
+ * - revenue_min / revenue_max: inclusive, in the currency the source used (not recorded).
+ *
+ * Unknown fields raise a validation error (extra="forbid").
+ */
+export type FilterSetOutput = {
+    /**
+     * Cities
+     */
+    cities?: Array<string>;
+    /**
+     * Company Names
+     */
+    company_names?: Array<string>;
+    /**
+     * Countries
+     */
+    countries?: Array<string>;
+    /**
+     * Eligible Only
+     */
+    eligible_only?: boolean;
+    /**
+     * Flags Exclude
+     */
+    flags_exclude?: Array<LeadStatusFlagType>;
+    /**
+     * Flags Include
+     */
+    flags_include?: Array<LeadStatusFlagType>;
+    /**
+     * Funding Stages
+     */
+    funding_stages?: Array<string>;
+    /**
+     * Industries
+     */
+    industries?: Array<string>;
+    /**
+     * Revenue Max
+     */
+    revenue_max?: string | null;
+    /**
+     * Revenue Min
+     */
+    revenue_min?: string | null;
     /**
      * Show Opted Out
      */
@@ -1287,7 +1382,7 @@ export type SaveMappingRequest = {
  */
 export type SearchRequest = {
     direction?: SortDirection;
-    filters?: FilterSet;
+    filters?: FilterSetInput;
     /**
      * Limit
      */
@@ -1378,6 +1473,105 @@ export type SearchRow = {
      */
     title: string | null;
 };
+
+/**
+ * SegmentCreate
+ *
+ * A new segment: a name, the filters to save and who may see it (private by default, D-098).
+ */
+export type SegmentCreate = {
+    filters: FilterSetInput;
+    /**
+     * Name
+     */
+    name: string;
+    visibility?: SegmentVisibility;
+};
+
+/**
+ * SegmentListResponse
+ *
+ * Every segment the caller may see: their own plus the ones shared with the team.
+ */
+export type SegmentListResponse = {
+    /**
+     * Items
+     */
+    items: Array<SegmentResponse>;
+};
+
+/**
+ * SegmentOwner
+ *
+ * The rep who owns the segment; the sign-in email is the only display name stored.
+ */
+export type SegmentOwner = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
+ * SegmentResponse
+ *
+ * One segment as the search page shows it.
+ */
+export type SegmentResponse = {
+    /**
+     * Can Edit
+     */
+    can_edit: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    filters: FilterSetOutput | null;
+    /**
+     * Filters Valid
+     */
+    filters_valid: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    owner: SegmentOwner | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    visibility: SegmentVisibility;
+};
+
+/**
+ * SegmentUpdate
+ *
+ * Rename and/or share or unshare a segment. At least one field must be given.
+ *
+ * Filters cannot be changed (Decision 7 of the M3-A4 plan): save a new segment instead.
+ */
+export type SegmentUpdate = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    visibility?: SegmentVisibility | null;
+};
+
+/**
+ * SegmentVisibility
+ *
+ * Whether a saved filter is visible only to its owner or to every BD user (D-009).
+ */
+export type SegmentVisibility = 'private' | 'shared';
 
 /**
  * SelectWorksheetRequest
@@ -3583,6 +3777,183 @@ export type SearchLeadsSearchLeadsPostResponses = {
 };
 
 export type SearchLeadsSearchLeadsPostResponse = SearchLeadsSearchLeadsPostResponses[keyof SearchLeadsSearchLeadsPostResponses];
+
+export type ExportLeadsSearchLeadsExportCsvPostData = {
+    body: ExportRequest;
+    path?: never;
+    query?: never;
+    url: '/search/leads/export.csv';
+};
+
+export type ExportLeadsSearchLeadsExportCsvPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ExportLeadsSearchLeadsExportCsvPostError = ExportLeadsSearchLeadsExportCsvPostErrors[keyof ExportLeadsSearchLeadsExportCsvPostErrors];
+
+export type ExportLeadsSearchLeadsExportCsvPostResponses = {
+    /**
+     * Every lead matching the filters.
+     */
+    200: unknown;
+};
+
+export type ListSegmentsSegmentsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/segments';
+};
+
+export type ListSegmentsSegmentsGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type ListSegmentsSegmentsGetError = ListSegmentsSegmentsGetErrors[keyof ListSegmentsSegmentsGetErrors];
+
+export type ListSegmentsSegmentsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SegmentListResponse;
+};
+
+export type ListSegmentsSegmentsGetResponse = ListSegmentsSegmentsGetResponses[keyof ListSegmentsSegmentsGetResponses];
+
+export type CreateSegmentSegmentsPostData = {
+    body: SegmentCreate;
+    path?: never;
+    query?: never;
+    url: '/segments';
+};
+
+export type CreateSegmentSegmentsPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type CreateSegmentSegmentsPostError = CreateSegmentSegmentsPostErrors[keyof CreateSegmentSegmentsPostErrors];
+
+export type CreateSegmentSegmentsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SegmentResponse;
+};
+
+export type CreateSegmentSegmentsPostResponse = CreateSegmentSegmentsPostResponses[keyof CreateSegmentSegmentsPostResponses];
+
+export type DeleteSegmentSegmentsSegmentIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Segment Id
+         */
+        segment_id: string;
+    };
+    query?: never;
+    url: '/segments/{segment_id}';
+};
+
+export type DeleteSegmentSegmentsSegmentIdDeleteErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such segment, or someone else's private one.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type DeleteSegmentSegmentsSegmentIdDeleteError = DeleteSegmentSegmentsSegmentIdDeleteErrors[keyof DeleteSegmentSegmentsSegmentIdDeleteErrors];
+
+export type DeleteSegmentSegmentsSegmentIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteSegmentSegmentsSegmentIdDeleteResponse = DeleteSegmentSegmentsSegmentIdDeleteResponses[keyof DeleteSegmentSegmentsSegmentIdDeleteResponses];
+
+export type UpdateSegmentSegmentsSegmentIdPatchData = {
+    body: SegmentUpdate;
+    path: {
+        /**
+         * Segment Id
+         */
+        segment_id: string;
+    };
+    query?: never;
+    url: '/segments/{segment_id}';
+};
+
+export type UpdateSegmentSegmentsSegmentIdPatchErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such segment, or someone else's private one.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type UpdateSegmentSegmentsSegmentIdPatchError = UpdateSegmentSegmentsSegmentIdPatchErrors[keyof UpdateSegmentSegmentsSegmentIdPatchErrors];
+
+export type UpdateSegmentSegmentsSegmentIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: SegmentResponse;
+};
+
+export type UpdateSegmentSegmentsSegmentIdPatchResponse = UpdateSegmentSegmentsSegmentIdPatchResponses[keyof UpdateSegmentSegmentsSegmentIdPatchResponses];
 
 export type ListSourceProfilesSourceProfilesGetData = {
     body?: never;

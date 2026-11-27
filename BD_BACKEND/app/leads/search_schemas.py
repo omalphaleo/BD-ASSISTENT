@@ -41,6 +41,16 @@ class SearchRequest(BaseModel):
     offset: int = Field(default=0, ge=0)
 
 
+class ExportRequest(BaseModel):
+    """One CSV export: the filters and the order. No paging; the whole filter is exported."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filters: FilterSet = Field(default_factory=FilterSet)
+    sort: SortField = SortField.NAME
+    direction: SortDirection = SortDirection.ASC
+
+
 class CompanySummary(BaseModel):
     """The company facts a result row shows."""
 

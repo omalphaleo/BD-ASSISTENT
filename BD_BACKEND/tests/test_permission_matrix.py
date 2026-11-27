@@ -120,6 +120,11 @@ EXPECTED_REAL_ROUTES = {
     # (tests/test_leads_quarantine.py), which this role matrix does not model.
     ("POST", "/search/leads"): "view_all_leads",  # M3-A2, D-001, D-026
     ("GET", "/search/filter-options"): "view_all_leads",  # M3-A2
+    ("POST", "/search/leads/export.csv"): "export_csv",  # M3-A5, D-087
+    ("GET", "/segments"): "view_all_leads",  # M3-A4, D-098
+    ("POST", "/segments"): "create_segment",  # M3-A4, D-098
+    ("PATCH", "/segments/{segment_id}"): "create_segment",  # M3-A4; owner re-checked in service
+    ("DELETE", "/segments/{segment_id}"): "create_segment",  # M3-A4; owner re-checked in service
     ("GET", "/quarantine"): "fix_quarantine",
     ("GET", "/quarantine/{record_id}"): "fix_quarantine",
     ("PATCH", "/quarantine/{record_id}"): "fix_quarantine",

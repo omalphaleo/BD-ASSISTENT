@@ -7,8 +7,9 @@ nothing to the database schema. All data is synthetic.
 
 from sqlalchemy.orm import Session
 
-from app.leads.models import Person
-from factories.leads import make_person, make_person_email
+from app.core.models import User
+from app.leads.models import Person, Segment, SegmentVisibility
+from factories.leads import make_person, make_person_email, make_segment
 
 
 def make_eligible_person(session: Session, **person_overrides: object) -> Person:
@@ -20,3 +21,20 @@ def make_eligible_person(session: Session, **person_overrides: object) -> Person
     person = make_person(session, **person_overrides)
     make_person_email(session, person=person, verification_status="verified", is_primary=True)
     return person
+
+
+def make_owned_segment(
+    session: Session,
+    owner: User | None,
+    *,
+    shared: bool = False,
+    **overrides: object,
+) -> Segment:
+    """Insert a segment for the owner (None = ownerless), private unless `shared` is true."""
+    visibility = SegmentVisibility.SHARED if shared else SegmentVisibility.PRIVATE
+    return make_segment(
+        session,
+        owner_id=owner.id if owner else None,
+        visibility=visibility,
+        **overrides,
+    )

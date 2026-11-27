@@ -180,7 +180,7 @@ def apply_filters(stmt: Select[Any], filters: FilterSet, ctx: EligibilityContext
 # --- Ordering ---
 
 
-def _order_by(sort: SortField, direction: SortDirection) -> list[ColumnElement[Any]]:
+def order_by_terms(sort: SortField, direction: SortDirection) -> list[ColumnElement[Any]]:
     """Return the ORDER BY terms: the chosen column, empty values last, then id for stable pages."""
     text_columns: dict[SortField, list[ColumnElement[Any]]] = {
         SortField.NAME: [func.lower(Person.last_name), func.lower(Person.first_name)],
@@ -205,7 +205,7 @@ def _order_by(sort: SortField, direction: SortDirection) -> list[ColumnElement[A
 
 
 @dataclass(frozen=True, slots=True)
-class _PageFacts:
+class PageFacts:
     """Per-person facts gathered for one page of results."""
 
     primary_emails: dict[UUID, PrimaryEmail]
@@ -235,7 +235,7 @@ def _load_badges(
     return badges
 
 
-def _load_page_facts(db: Session, people: Sequence[Person], ctx: EligibilityContext) -> _PageFacts:
+def load_page_facts(db: Session, people: Sequence[Person], ctx: EligibilityContext) -> PageFacts:
     """Gather primary emails, flags, owners and badges for the people on one page."""
     ids = [person.id for person in people]
     primary_emails = {
@@ -260,10 +260,10 @@ def _load_page_facts(db: Session, people: Sequence[Person], ctx: EligibilityCont
         user_id: OwnerSummary(id=user_id, name=email)
         for user_id, email in db.execute(select(User.id, User.email).where(User.id.in_(owner_ids)))
     }
-    return _PageFacts(primary_emails, flags, owners, _load_badges(db, ids, ctx))
+    return PageFacts(primary_emails, flags, owners, _load_badges(db, ids, ctx))
 
 
-def _to_row(person: Person, company: Company | None, facts: _PageFacts) -> SearchRow:
+def to_row(person: Person, company: Company | None, facts: PageFacts) -> SearchRow:
     """Assemble one result row from the person, their company and the page facts."""
     return SearchRow(
         person_id=person.id,
@@ -324,12 +324,12 @@ def search_leads(
     )
     page = db.execute(
         apply_filters(select(Person, Company).outerjoin(Company, join), filters, ctx)
-        .order_by(*_order_by(sort, direction))
+        .order_by(*order_by_terms(sort, direction))
         .limit(limit)
         .offset(offset)
     ).all()
-    facts = _load_page_facts(db, [person for person, _ in page], ctx) if page else None
-    items = [_to_row(person, company, facts) for person, company in page] if facts else []
+    facts = load_page_facts(db, [person for person, _ in page], ctx) if page else None
+    items = [to_row(person, company, facts) for person, company in page] if facts else []
     return SearchResponse(items=items, total=total or 0, limit=limit, offset=offset)
 
 

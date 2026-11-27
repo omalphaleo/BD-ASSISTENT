@@ -41,8 +41,8 @@ ROUTERS = [
 
 
 # Routers whose endpoints are built; a router leaves the "still empty" check when its task lands
-# (search_api: M3-A2).
-ROUTERS_WITH_ENDPOINTS = {search_api}
+# (search_api: M3-A2, segments_api: M3-A4).
+ROUTERS_WITH_ENDPOINTS = {search_api, segments_api}
 
 
 @pytest.mark.parametrize(("module", "prefix", "tag", "main_name"), ROUTERS)

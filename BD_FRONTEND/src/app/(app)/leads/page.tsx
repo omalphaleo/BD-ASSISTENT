@@ -1,11 +1,13 @@
 /**
- * Empty shell for the Leads screen (task B3).
+ * Leads search route (task M3-A3).
  *
- * Needed so the route exists now; the lead list and detail arrive in milestone M3.
+ * Needed so the menu link "Leads" (/leads) opens the lead search screen, replacing the M1
+ * placeholder. The page only renders the client component; every rule and permission is
+ * enforced by the server.
  */
-import PlaceholderPage from "@/components/PlaceholderPage";
+import SearchScreen from "@/components/search/SearchScreen";
 
-/** Renders the placeholder for Leads. */
+/** Renders the Leads search screen. */
 export default function LeadsPage() {
-  return <PlaceholderPage title="Leads" availability="Lead search and detail arrive in M3." />;
+  return <SearchScreen />;
 }

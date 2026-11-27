@@ -3,20 +3,19 @@
 Needed so the importer, managers and admins can fix and re-upload the rows that did not become
 leads, and keep a copy of what an import changed. Both files hold personal data, so each
 download is audited (D-111) and every cell is neutralised against spreadsheet formula injection
-(a cell that starts with = + - @ tab or CR would otherwise run as a formula in Excel). The
-routes in imports.reports_api call these functions; the files are built in memory because an
-import is limited to 50,000 rows (D-110).
+(core.csv_safety: a cell starting with = + - @ tab or CR would otherwise run as a formula in
+Excel). The routes in imports.reports_api call these functions; the files are built in memory
+because an import is limited to 50,000 rows (D-110).
 """
 
-import csv
-import io
 import uuid
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit.services import AuditAction, record
+from app.core.csv_safety import csv_text
 from app.core.models import User
 from app.imports.models import ColumnMapping, RawRow
 from app.imports.raw_keys import original_value_keys
@@ -28,9 +27,6 @@ from app.imports.reports import (
 )
 from app.leads.contracts import RowOutcomeKind
 
-# Characters that make a spreadsheet read a cell as a formula (OWASP CSV injection).
-FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
-FORMULA_ESCAPE = "'"
 # The kinds of row that count as "failed" for the download (decided for M2-A5).
 FAILED_OUTCOMES = (RowOutcomeKind.REJECTED, RowOutcomeKind.QUARANTINED)
 FAILED_ROWS_HEADER = ("row_number", "outcome", "reason_code")
@@ -38,32 +34,6 @@ CHANGES_HEADER = ("lead", "email", "field", "old_value", "new_value")
 # Values for the AuditAction.IMPORT_REPORT_DOWNLOADED summary: which file was downloaded.
 FILE_FAILED_ROWS = "failed_rows"
 FILE_CHANGES = "changes"
-
-
-def neutralise_cell(value: object) -> str:
-    """Return a cell as text that a spreadsheet will not run as a formula.
-
-    A text that starts with a formula character gets a leading apostrophe, which spreadsheets
-    hide and treat as "this is text". None becomes an empty cell. Numbers and booleans are
-    written with str(), so a negative number such as -5 also gets the apostrophe: a harmless
-    price for never having to guess which "-" is a formula.
-    """
-    if value is None:
-        return ""
-    text = str(value)
-    if text.startswith(FORMULA_PREFIXES):
-        return FORMULA_ESCAPE + text
-    return text
-
-
-def _csv_text(header: Sequence[str], rows: Iterable[Sequence[object]]) -> str:
-    """Write a header and rows as CSV text, neutralising every cell (header cells too)."""
-    buffer = io.StringIO()
-    writer = csv.writer(buffer, lineterminator="\r\n")
-    writer.writerow([neutralise_cell(cell) for cell in header])
-    for row in rows:
-        writer.writerow([neutralise_cell(cell) for cell in row])
-    return buffer.getvalue()
 
 
 def _original_columns(db: Session, import_id: uuid.UUID, rows: Sequence[RawRow]) -> list[str]:
@@ -125,7 +95,7 @@ def build_failed_rows_csv(
         for row in rows
     ]
     _audit_download(db, actor, import_file.id, FILE_FAILED_ROWS, len(rows), ip_address)
-    return _csv_text([*FAILED_ROWS_HEADER, *columns], body)
+    return csv_text([*FAILED_ROWS_HEADER, *columns], body)
 
 
 def build_changes_csv(
@@ -146,7 +116,7 @@ def build_changes_csv(
         for change in view.changes
     ]
     _audit_download(db, actor, import_file.id, FILE_CHANGES, len(body), ip_address)
-    return _csv_text(CHANGES_HEADER, body)
+    return csv_text(CHANGES_HEADER, body)
 
 
 def _audit_download(

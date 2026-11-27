@@ -2454,3 +2454,9 @@ Status: Completed
 
 Summary: Built leads/filters.py (FilterSet), search_schemas.py, search.py and search_api.py (POST /search/leads, GET /search/filter-options), plus warning_expression() in eligibility.py and 6 test files; regenerated openapi.json and the client; updated filedescription, FILE_STRUCTURE, ARCHITECTURE, m3.md row. ruff clean, 1536 pytest pass (in Docker).
 Status update: Completed (2026-11-27)
+
+## T-145: Plan M3-A6 AI adapter and NL search (2026-11-28)
+
+Prompt: "Create a detailed implementation plan for M3-A6 based on the existing project documentation, architecture, approved decisions, and the completed M1, M2, and M3-A1 through M3-A5 implementation. Before implementation: review docs and code; break into tasks (backend and frontend); identify unresolved requirements, ambiguities, dependencies, technical decisions; for each unresolved item explain options, pros and cons, and a recommendation; highlight suggestions needing approval. Important: do not assume unclear requirements; no implementation or code changes yet; present unresolved questions one at a time; do not finalize the plan until all decisions are resolved and explicitly approved; follow existing architecture, CLAUDE.md, conventions and approved decisions; avoid unnecessary scope; verify completed M1, M2 and M3-A1 to A5 against the actual code; verify dependencies and identify unfinished tasks, cross-branch changes, integration risks or pending decisions affecting M3-A6."
+
+Status: In progress
