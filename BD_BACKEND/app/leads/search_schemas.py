@@ -9,14 +9,17 @@ on the lead page (m3.md decision 13).
 import enum
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.leads.filters import FilterSet, SizeBand, SortDirection, SortField
 from app.leads.models import EmailVerificationStatus, LeadStatusFlagType
 
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
+# Longest sentence NL search accepts (approved 2026-11-28); keeps the AI call small and cheap.
+MAX_NL_QUERY_CHARS = 500
 
 
 class Badge(enum.StrEnum):
@@ -49,6 +52,30 @@ class ExportRequest(BaseModel):
     filters: FilterSet = Field(default_factory=FilterSet)
     sort: SortField = SortField.NAME
     direction: SortDirection = SortDirection.ASC
+
+
+class NlInterpretRequest(BaseModel):
+    """A sentence to turn into filters, for example "CFOs at pharma companies in Karnataka"."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_NL_QUERY_CHARS)
+    ]
+
+
+class NlInterpretResponse(BaseModel):
+    """The filters the AI proposed, for the user to review and edit before anything runs (M3-A6).
+
+    `filters` already passed FilterSet validation, so it can be applied as is. Anything the app
+    refused is reported rather than silently lost: `dropped_fields` names fields the AI is not
+    allowed to set or gave an unusable value for; `unrecognised_terms` holds parts of the
+    sentence the AI could not map, and values that are not in the data.
+    """
+
+    filters: FilterSet
+    dropped_fields: list[str]
+    unrecognised_terms: list[str]
 
 
 class CompanySummary(BaseModel):

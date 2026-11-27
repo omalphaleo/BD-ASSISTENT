@@ -9,13 +9,15 @@
  * builds the query, hides opted-out leads by default and attaches the badges. Filters, order,
  * page and selection live in page state only; applying new filters clears the selection and
  * returns to page 1, so a stale "all matching" can never survive. The Export CSV button (M3-A5)
- * always exports the applied filters, whatever is ticked.
+ * always exports the applied filters, whatever is ticked. The sentence box (M3-A6) only fills the
+ * draft filters, so the user reviews and applies them like any other filter change.
  */
 import { useState } from "react";
 
 import ActiveFilterChips from "@/components/search/ActiveFilterChips";
 import ExportButton from "@/components/search/ExportButton";
 import FilterPanel from "@/components/search/FilterPanel";
+import NlSearchBox from "@/components/search/NlSearchBox";
 import Pagination from "@/components/search/Pagination";
 import ResultsTable from "@/components/search/ResultsTable";
 import SegmentPanel from "@/components/search/SegmentPanel";
@@ -46,6 +48,9 @@ export default function SearchScreen() {
   const [offset, setOffset] = useState(0);
   const [reloadCount, setReloadCount] = useState(0);
   const [selection, setSelection] = useState<Selection>(NO_SELECTION);
+  // Bumped when the NL box loads a draft, so the filter panel remounts and its typed revenue
+  // boxes show the interpreted values.
+  const [draftVersion, setDraftVersion] = useState(0);
 
   const { data, error, loading } = useSearchResults({
     filters: applied,
@@ -65,6 +70,12 @@ export default function SearchScreen() {
     setApplied(next);
     setOffset(0);
     setSelection(NO_SELECTION);
+  }
+
+  /** Loads AI-interpreted filters into the draft only; nothing is applied until "Apply filters". */
+  function loadInterpretedDraft(next: FilterSet) {
+    setDraft(next);
+    setDraftVersion((version) => version + 1);
   }
 
   return (
@@ -92,12 +103,15 @@ export default function SearchScreen() {
 
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
+          {/* Sentence search (M3-A6): fills the draft filters below; the user still presses Apply. */}
+          <NlSearchBox onInterpreted={loadInterpretedDraft} />
+
           {/* Saves the applied filters; applying a segment is the same as pressing Apply (page 1, no selection). */}
       <SegmentPanel filters={applied} onApply={applyFilters} />
 
       {/* Remounted when an applied revenue changes, so its typed text follows a removed chip. */}
           <FilterPanel
-            key={`${applied.revenue_min ?? ""}|${applied.revenue_max ?? ""}`}
+            key={`${applied.revenue_min ?? ""}|${applied.revenue_max ?? ""}|${draftVersion}`}
             draft={draft}
             options={options}
             onChange={setDraft}

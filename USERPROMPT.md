@@ -2459,4 +2459,25 @@ Status update: Completed (2026-11-27)
 
 Prompt: "Create a detailed implementation plan for M3-A6 based on the existing project documentation, architecture, approved decisions, and the completed M1, M2, and M3-A1 through M3-A5 implementation. Before implementation: review docs and code; break into tasks (backend and frontend); identify unresolved requirements, ambiguities, dependencies, technical decisions; for each unresolved item explain options, pros and cons, and a recommendation; highlight suggestions needing approval. Important: do not assume unclear requirements; no implementation or code changes yet; present unresolved questions one at a time; do not finalize the plan until all decisions are resolved and explicitly approved; follow existing architecture, CLAUDE.md, conventions and approved decisions; avoid unnecessary scope; verify completed M1, M2 and M3-A1 to A5 against the actual code; verify dependencies and identify unfinished tasks, cross-branch changes, integration risks or pending decisions affecting M3-A6."
 
-Status: In progress
+Status: Completed
+
+Summary: Verified A1-A5 against the code (A3-A5 uncommitted, A5 row stale), asked eight decisions one at a time (Gemini pin, model setting, output shape, AI scope, resilience, audit content, screen flow, branch state) and presented the full plan; no code was changed.
+Status update: Completed (2026-11-28)
+
+## T-146: Implement M3-A6 AI adapter and NL search (2026-11-28)
+
+Prompt: "approved plan" (then, on the pin and model question: google-genai~=3.3.0 and gemini-3.8-flash, both "Recommended")
+
+Status: Completed
+
+Summary: Built ai/{adapter,fake,gemini,nl_search}.py, POST /search/nl-interpret, NlSearchBox and lib/search/nl-search.ts, PROMPT.md NL_SEARCH_FILTERS@2 (draft), config and .env.example key, 4 backend and 1 frontend test file; regenerated openapi.json and the client; updated filedescription, FILE_STRUCTURE, ARCHITECTURE, m3.md, CLAUDE.local.md. Docker: ruff clean, 1631 pytest (1 xfail, not A6), tsc and ESLint clean, 234 Vitest.
+Status update: Completed (2026-11-28)
+
+## T-147: Plan M3-A7 (2026-11-28)
+
+Prompt: "Create a detailed implementation plan for M3-A7 based on the existing project documentation, architecture, approved decisions, and the completed M1, M2, and M3-A1 through M3-A6 implementation. Before implementation: review docs and code; break into tasks (backend and frontend); identify unresolved requirements, ambiguities, dependencies, technical decisions; for each unresolved item explain options, pros and cons, and a recommendation; highlight suggestions needing approval. Important: do not assume unclear requirements; no implementation or code changes yet; present unresolved questions one at a time; do not finalize the plan until all decisions are resolved and explicitly approved; follow existing architecture, CLAUDE.md, conventions and approved decisions; avoid unnecessary scope; verify completed M1, M2 and M3-A1 to A6 against the actual code; verify dependencies and identify unfinished tasks, cross-branch changes, integration risks or pending decisions affecting M3-A7."
+
+Status: Needs input
+
+Summary: Found no task named M3-A7 in m3.md (W1 ends at M3-A6; the only A7 is M2-A7); asked the user what M3-A7 should be before planning.
+Status update: Needs input (2026-11-28)

@@ -121,6 +121,7 @@ EXPECTED_REAL_ROUTES = {
     ("POST", "/search/leads"): "view_all_leads",  # M3-A2, D-001, D-026
     ("GET", "/search/filter-options"): "view_all_leads",  # M3-A2
     ("POST", "/search/leads/export.csv"): "export_csv",  # M3-A5, D-087
+    ("POST", "/search/nl-interpret"): "view_all_leads",  # M3-A6, plan section 9
     ("GET", "/segments"): "view_all_leads",  # M3-A4, D-098
     ("POST", "/segments"): "create_segment",  # M3-A4, D-098
     ("PATCH", "/segments/{segment_id}"): "create_segment",  # M3-A4; owner re-checked in service

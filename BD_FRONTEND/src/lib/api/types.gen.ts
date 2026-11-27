@@ -1058,6 +1058,40 @@ export type MergeDuplicateResponse = {
 };
 
 /**
+ * NlInterpretRequest
+ *
+ * A sentence to turn into filters, for example "CFOs at pharma companies in Karnataka".
+ */
+export type NlInterpretRequest = {
+    /**
+     * Query
+     */
+    query: string;
+};
+
+/**
+ * NlInterpretResponse
+ *
+ * The filters the AI proposed, for the user to review and edit before anything runs (M3-A6).
+ *
+ * `filters` already passed FilterSet validation, so it can be applied as is. Anything the app
+ * refused is reported rather than silently lost: `dropped_fields` names fields the AI is not
+ * allowed to set or gave an unusable value for; `unrecognised_terms` holds parts of the
+ * sentence the AI could not map, and values that are not in the data.
+ */
+export type NlInterpretResponse = {
+    /**
+     * Dropped Fields
+     */
+    dropped_fields: Array<string>;
+    filters: FilterSetOutput;
+    /**
+     * Unrecognised Terms
+     */
+    unrecognised_terms: Array<string>;
+};
+
+/**
  * OwnerSummary
  *
  * The rep who owns the lead; the user's sign-in email is the only display name stored.
@@ -3808,6 +3842,47 @@ export type ExportLeadsSearchLeadsExportCsvPostResponses = {
      */
     200: unknown;
 };
+
+export type InterpretNlQuerySearchNlInterpretPostData = {
+    body: NlInterpretRequest;
+    path?: never;
+    query?: never;
+    url: '/search/nl-interpret';
+};
+
+export type InterpretNlQuerySearchNlInterpretPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+    /**
+     * The AI answered, but not in a usable format.
+     */
+    502: unknown;
+    /**
+     * AI is not configured, or did not answer. Filters still work.
+     */
+    503: unknown;
+};
+
+export type InterpretNlQuerySearchNlInterpretPostError = InterpretNlQuerySearchNlInterpretPostErrors[keyof InterpretNlQuerySearchNlInterpretPostErrors];
+
+export type InterpretNlQuerySearchNlInterpretPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NlInterpretResponse;
+};
+
+export type InterpretNlQuerySearchNlInterpretPostResponse = InterpretNlQuerySearchNlInterpretPostResponses[keyof InterpretNlQuerySearchNlInterpretPostResponses];
 
 export type ListSegmentsSegmentsGetData = {
     body?: never;

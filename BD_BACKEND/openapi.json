@@ -1749,6 +1749,52 @@
         "title": "MergeDuplicateResponse",
         "type": "object"
       },
+      "NlInterpretRequest": {
+        "additionalProperties": false,
+        "description": "A sentence to turn into filters, for example \"CFOs at pharma companies in Karnataka\".",
+        "properties": {
+          "query": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "NlInterpretRequest",
+        "type": "object"
+      },
+      "NlInterpretResponse": {
+        "description": "The filters the AI proposed, for the user to review and edit before anything runs (M3-A6).\n\n`filters` already passed FilterSet validation, so it can be applied as is. Anything the app\nrefused is reported rather than silently lost: `dropped_fields` names fields the AI is not\nallowed to set or gave an unusable value for; `unrecognised_terms` holds parts of the\nsentence the AI could not map, and values that are not in the data.",
+        "properties": {
+          "dropped_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dropped Fields",
+            "type": "array"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/FilterSet-Output"
+          },
+          "unrecognised_terms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unrecognised Terms",
+            "type": "array"
+          }
+        },
+        "required": [
+          "filters",
+          "dropped_fields",
+          "unrecognised_terms"
+        ],
+        "title": "NlInterpretResponse",
+        "type": "object"
+      },
       "OwnerSummary": {
         "description": "The rep who owns the lead; the user's sign-in email is the only display name stored.",
         "properties": {
@@ -6455,6 +6501,74 @@
           }
         },
         "summary": "Export Leads",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/search/nl-interpret": {
+      "post": {
+        "description": "Turn a typed sentence into draft filters for the user to review (M3-A6).\n\nNeeds VIEW_ALL_LEADS, like search. It only proposes filters: nothing is searched, and no\nlead data is read beyond the filter option lists. A failure of the AI never affects\nstructured search.",
+        "operationId": "interpret_nl_query_search_nl_interpret_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NlInterpretRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NlInterpretResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "502": {
+            "description": "The AI answered, but not in a usable format."
+          },
+          "503": {
+            "description": "AI is not configured, or did not answer. Filters still work."
+          }
+        },
+        "summary": "Interpret Nl Query",
         "tags": [
           "search"
         ]
