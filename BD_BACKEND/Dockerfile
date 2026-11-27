@@ -14,6 +14,11 @@ WORKDIR /srv
 
 RUN useradd --create-home --uid 10001 appuser
 
+# Upload directory for import files (M2-A1). It must exist and belong to appuser before the
+# compose `uploads` volume is mounted on it: a new named volume copies this ownership, so the
+# non-root api and worker processes can both write and read it. Matches UPLOAD_DIR's default.
+RUN mkdir -p /srv/uploads && chown appuser:appuser /srv/uploads
+
 COPY . .
 RUN if [ "$INSTALL_DEV" = "true" ]; then pip install -e ".[dev]"; else pip install -e .; fi \
     && chown -R appuser:appuser /srv

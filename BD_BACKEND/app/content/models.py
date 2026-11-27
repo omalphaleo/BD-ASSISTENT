@@ -176,9 +176,7 @@ class IndustryProfile(ProfileGuidanceMixin, TimestampMixin, Base):
     __tablename__ = "industry_profiles"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    key: Mapped[IndustryProfileKey] = mapped_column(
-        enum_column(IndustryProfileKey), nullable=False
-    )
+    key: Mapped[IndustryProfileKey] = mapped_column(enum_column(IndustryProfileKey), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     __table_args__ = (
@@ -200,9 +198,7 @@ class KnowledgeItem(TimestampMixin, Base):
     __tablename__ = "knowledge_items"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    type: Mapped[KnowledgeItemType] = mapped_column(
-        enum_column(KnowledgeItemType), nullable=False
-    )
+    type: Mapped[KnowledgeItemType] = mapped_column(enum_column(KnowledgeItemType), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[KnowledgeItemStatus] = mapped_column(
@@ -411,4 +407,3 @@ class ConfigVersion(Base):
         ),
         Index("ix_config_versions_created_by", "created_by"),
     )
-

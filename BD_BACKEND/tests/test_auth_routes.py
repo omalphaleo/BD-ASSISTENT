@@ -264,7 +264,7 @@ def test_me_after_login_returns_same_user_and_401_without_cookie(
 
 
 def test_email_is_case_and_whitespace_insensitive(user: User, client: TestClient) -> None:
-    """"  ALICE@Example.com " logs in as the stored lower-case user."""
+    """ "  ALICE@Example.com " logs in as the stored lower-case user."""
     response = _login(client, email="  ALICE@Example.com ")
 
     assert response.status_code == 200
@@ -504,9 +504,7 @@ def _keys_at_any_depth(value: object) -> set[str]:
     ],
     ids=["missing-fields", "missing-password", "empty-password", "too-long", "extra-field"],
 )
-def test_422_body_has_only_type_loc_and_msg(
-    client: TestClient, payload: dict[str, object]
-) -> None:
+def test_422_body_has_only_type_loc_and_msg(client: TestClient, payload: dict[str, object]) -> None:
     """Every 422 is {"detail": [{type, loc, msg}, ...]} with no input, ctx or url key anywhere."""
     response = client.post("/auth/login", json=payload)
 

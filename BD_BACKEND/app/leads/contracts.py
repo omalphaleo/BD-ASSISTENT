@@ -2,7 +2,8 @@
 
 Needed so the two developers build in parallel against one frozen set of types: W1 turns
 file rows into SourceRow objects and counts the RowOutcome it gets back, W2 implements
-ingest_row (leads/ingest.py). Only types live here, no logic. After M2-0 this file changes
+ingest_row (leads/ingest.py). Only types and the canonical field registry (TARGET_FIELDS, the
+keys of SourceRow.values, added in M2-A2) live here, no logic. After M2-0 this file changes
 only through a pull request both developers approve (m2.md sections 17 and 18).
 """
 
@@ -108,6 +109,189 @@ class FieldChange:
     field: str
     old: JsonScalar
     new: JsonScalar
+
+
+class FieldType(StrEnum):
+    """The JSON type W1 delivers for a target field (the conversion W1 is allowed to do).
+
+    DATETIME values are ISO-8601 text: JsonScalar has no date type, and W2 attaches the zone.
+    List-like fields (technologies, keywords, lists) stay TEXT exactly as received; W2 splits.
+    """
+
+    TEXT = "text"
+    INTEGER = "integer"
+    DECIMAL = "decimal"
+    BOOLEAN = "boolean"
+    DATETIME = "datetime"
+
+
+class FieldGroup(StrEnum):
+    """Which part of the lead a target field describes (used to group the mapping screen)."""
+
+    PERSON = "person"
+    EMAIL = "email"
+    PHONE = "phone"
+    ENGAGEMENT = "engagement"
+    COMPANY = "company"
+
+
+@dataclass(frozen=True, slots=True)
+class TargetField:
+    """One canonical field a source column may be mapped to (a key of SourceRow.values).
+
+    Attributes:
+        key: Stable snake_case name; the key W1 puts in SourceRow.values and W2 reads.
+        group: Which part of the lead the field describes.
+        value_type: The JSON type W1 delivers.
+        required: True only for the two mandatory fields of D-069 (work email, first name).
+        label: Human-readable name for the mapping screen.
+    """
+
+    key: str
+    group: FieldGroup
+    value_type: FieldType
+    label: str
+    required: bool = False
+
+
+def _fields(
+    group: FieldGroup, value_type: FieldType, *keys_and_labels: tuple[str, str]
+) -> tuple[TargetField, ...]:
+    """Build several TargetFields that share a group and a type."""
+    return tuple(TargetField(key, group, value_type, label) for key, label in keys_and_labels)
+
+
+_TEXT, _INT, _DEC, _BOOL, _DATE = (
+    FieldType.TEXT,
+    FieldType.INTEGER,
+    FieldType.DECIMAL,
+    FieldType.BOOLEAN,
+    FieldType.DATETIME,
+)
+
+# The canonical field registry (m2.md section 18, Q-IMPORT-11). Mapping is by key, never by
+# column position (D-040). Columns that map to no key stay in raw_rows only. Several emails and
+# phones use fixed scalar keys because SourceRow.values is a flat map of scalars.
+TARGET_FIELDS: tuple[TargetField, ...] = (
+    # Person
+    *_fields(
+        FieldGroup.PERSON,
+        _TEXT,
+        ("source_record_id", "Source record ID (person)"),
+        ("last_name", "Last name"),
+        ("title", "Job title"),
+        ("seniority", "Seniority"),
+        ("department", "Department"),
+        ("sub_department", "Sub department"),
+        ("linkedin_url", "Person LinkedIn URL"),
+        ("city", "City"),
+        ("state", "State"),
+        ("country", "Country"),
+        ("owner_name", "Contact owner"),
+        ("account_owner_name", "Account owner"),
+    ),
+    TargetField("first_name", FieldGroup.PERSON, _TEXT, "First name", required=True),
+    # Emails: the primary one plus the secondary, tertiary and personal ones (D-072).
+    TargetField("email", FieldGroup.EMAIL, _TEXT, "Email", required=True),
+    *_fields(
+        FieldGroup.EMAIL,
+        _TEXT,
+        ("email_status", "Email status"),
+        ("email_source", "Email source"),
+        ("email_verification_source", "Email verification source"),
+        ("email_confidence", "Email confidence"),
+        ("email_catch_all_status", "Email catch-all status"),
+        ("secondary_email", "Secondary email"),
+        ("secondary_email_status", "Secondary email status"),
+        ("secondary_email_source", "Secondary email source"),
+        ("secondary_email_verification_source", "Secondary email verification source"),
+        ("tertiary_email", "Tertiary email"),
+        ("tertiary_email_status", "Tertiary email status"),
+        ("tertiary_email_source", "Tertiary email source"),
+        ("tertiary_email_verification_source", "Tertiary email verification source"),
+        ("personal_email", "Personal email"),
+    ),
+    *_fields(FieldGroup.EMAIL, _DATE, ("email_last_verified_at", "Email last verified at")),
+    # Phones: all stored, none used in the MVP (Q-IMPORT-11).
+    *_fields(
+        FieldGroup.PHONE,
+        _TEXT,
+        ("phone_work_direct", "Work direct phone"),
+        ("phone_home", "Home phone"),
+        ("phone_mobile", "Mobile phone"),
+        ("phone_corporate", "Corporate phone"),
+        ("phone_other", "Other phone"),
+        ("company_phone", "Company phone"),
+    ),
+    *_fields(FieldGroup.PHONE, _BOOL, ("do_not_call", "Do not call")),
+    # Engagement history and source status (D-073, D-074).
+    *_fields(
+        FieldGroup.ENGAGEMENT,
+        _TEXT,
+        ("source_status", "Source status"),
+        ("source_stage", "Source stage"),
+        ("lists", "Source lists"),
+        ("intent_primary_topic", "Primary intent topic"),
+        ("intent_secondary_topic", "Secondary intent topic"),
+    ),
+    *_fields(
+        FieldGroup.ENGAGEMENT,
+        _BOOL,
+        ("email_sent", "Email sent"),
+        ("email_opened", "Email opened"),
+        ("email_bounced", "Email bounced"),
+        ("replied", "Replied"),
+        ("demoed", "Demoed"),
+        ("qualify_contact", "Qualify contact"),
+    ),
+    *_fields(
+        FieldGroup.ENGAGEMENT,
+        _DEC,
+        ("intent_primary_score", "Primary intent score"),
+        ("intent_secondary_score", "Secondary intent score"),
+    ),
+    *_fields(FieldGroup.ENGAGEMENT, _DATE, ("last_contacted_at", "Last contacted")),
+    # Company
+    *_fields(
+        FieldGroup.COMPANY,
+        _TEXT,
+        ("company_source_id", "Source record ID (company)"),
+        ("company_name", "Company name"),
+        ("company_name_for_emails", "Company name for emails"),
+        ("website", "Website"),
+        ("industry", "Industry"),
+        ("naics", "NAICS codes"),
+        ("sic", "SIC codes"),
+        ("latest_funding_round_type", "Latest funding round type"),
+        ("technologies", "Technologies"),
+        ("keywords", "Keywords"),
+        ("company_linkedin_url", "Company LinkedIn URL"),
+        ("company_facebook_url", "Company Facebook URL"),
+        ("company_twitter_url", "Company Twitter URL"),
+        ("company_address", "Company address"),
+        ("company_city", "Company city"),
+        ("company_state", "Company state"),
+        ("company_country", "Company country"),
+    ),
+    *_fields(
+        FieldGroup.COMPANY,
+        _INT,
+        ("employee_count", "Employee count"),
+        ("founded_year", "Founded year"),
+    ),
+    *_fields(
+        FieldGroup.COMPANY,
+        _DEC,
+        ("annual_revenue", "Annual revenue"),
+        ("total_funding", "Total funding"),
+        ("latest_funding_amount", "Latest funding amount"),
+    ),
+    *_fields(FieldGroup.COMPANY, _DATE, ("latest_funding_date", "Latest funding date")),
+)
+
+TARGET_FIELDS_BY_KEY: dict[str, TargetField] = {field.key: field for field in TARGET_FIELDS}
+# The mandatory keys of D-069; a mapping without them cannot start an import.
+REQUIRED_FIELD_KEYS: tuple[str, ...] = tuple(f.key for f in TARGET_FIELDS if f.required)
 
 
 class IngestRow(Protocol):

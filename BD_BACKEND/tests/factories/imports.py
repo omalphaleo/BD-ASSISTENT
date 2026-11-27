@@ -86,6 +86,7 @@ def make_import_change(
     fields: dict[str, object] = {
         "import_report_id": (report or make_import_report(session)).id,
         "person_id": (person or make_person(session)).id,
-        "changes": {"title": ["Engineer", "Senior Engineer"]},
+        # The shape W2 writes: a list of leads.contracts.FieldChange objects.
+        "changes": [{"field": "title", "old": "Engineer", "new": "Senior Engineer"}],
     }
     return persist(session, ImportChange(**{**fields, **overrides}))

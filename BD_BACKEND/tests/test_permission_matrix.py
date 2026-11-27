@@ -88,6 +88,33 @@ EXPECTED_REAL_ROUTES = {
     ("POST", "/imports/upload"): "import_leads",
     ("GET", "/imports/{import_id}"): "import_leads",
     ("POST", "/imports/{import_id}/worksheet"): "import_leads",
+    # M2-A2: mapping, preview and estimate. Saving a mapping as a profile default is admin-only.
+    ("GET", "/imports/target-fields"): "import_leads",
+    ("GET", "/imports/profiles"): "import_leads",
+    ("PUT", "/imports/{import_id}/profile"): "import_leads",
+    ("GET", "/imports/{import_id}/mapping"): "import_leads",
+    ("PUT", "/imports/{import_id}/mapping"): "import_leads",
+    ("POST", "/imports/{import_id}/mapping/save-as-default"): "manage_source_profiles",
+    ("GET", "/imports/{import_id}/preview"): "import_leads",
+    ("GET", "/imports/{import_id}/estimate"): "import_leads",
+    # M2-A3: start the background import and read its progress.
+    ("POST", "/imports/{import_id}/start"): "import_leads",
+    ("GET", "/imports/{import_id}/progress"): "import_leads",
+    # M2-A4: assign the leads whose source owner matched no user (D-075).
+    ("GET", "/imports/assignable-users"): "assign_leads",
+    ("GET", "/imports/{import_id}/unmatched-owners"): "assign_leads",
+    ("POST", "/imports/{import_id}/assign-owner"): "assign_leads",
+    # M2-A5: report, change summary and CSV downloads (D-050, D-111).
+    ("GET", "/imports/{import_id}/report"): "import_leads",
+    ("GET", "/imports/{import_id}/changes"): "import_leads",
+    ("GET", "/imports/{import_id}/download/failed-rows.csv"): "download_import_files",
+    ("GET", "/imports/{import_id}/download/changes.csv"): "download_import_files",
+    # M2-A6: source profile admin (admins only, D-049, D-104).
+    ("GET", "/source-profiles"): "manage_source_profiles",
+    ("POST", "/source-profiles"): "manage_source_profiles",
+    ("GET", "/source-profiles/{profile_id}"): "manage_source_profiles",
+    ("PATCH", "/source-profiles/{profile_id}"): "manage_source_profiles",
+    ("POST", "/source-profiles/{profile_id}/remove-columns"): "manage_source_profiles",
     # M2-B2: quarantine endpoints. Any BD user may list, fix and release (D-107); discard is
     # further limited to the importer, a manager or an admin inside leads.quarantine
     # (tests/test_leads_quarantine.py), which this role matrix does not model.
