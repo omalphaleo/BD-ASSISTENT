@@ -348,7 +348,7 @@ def test_release_of_a_fixed_row_goes_through_ingest_row(db_session: Session) -> 
     assert record.resolved_by == rep.id
     assert record.resolved_at is not None
     assert raw_row.person_id == person.id
-    (row, context), = ingest.calls
+    ((row, context),) = ingest.calls
     assert row.import_file_id == import_file.id
     assert row.row_number == raw_row.row_number
     assert row.values == VALID_PAYLOAD

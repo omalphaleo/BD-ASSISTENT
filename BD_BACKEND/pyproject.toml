@@ -25,6 +25,8 @@ dependencies = [
     "openpyxl~=3.1",
     "defusedxml~=0.7",
     "pgvector~=0.5",
+    # M3-A6 (approved 2026-11-28): Gemini client, used only by app/ai/gemini.py (D-056, D-060).
+    "google-genai~=3.3.0",
 ]
 
 [project.optional-dependencies]

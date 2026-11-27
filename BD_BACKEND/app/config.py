@@ -8,7 +8,7 @@ environment all read their configuration through get_settings().
 from functools import lru_cache
 from urllib.parse import urlsplit
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PRODUCTION_ENV = "production"
@@ -37,6 +37,11 @@ DEFAULT_IMPORT_CHUNK_SIZE = 500
 # Days after contact before a person may enter a new campaign (D-082: 90 days); passed to
 # ingest_row through ImportContext. No settings screen exists yet, so it is an env value.
 DEFAULT_COOLING_OFF_DAYS = 90
+
+# AI calls (M3-A6, approved 2026-11-28). NL search is an interactive request, so waits stay short:
+# 10 s per attempt and at most 2 retries (3 attempts) for timeouts, 429 and 5xx.
+DEFAULT_AI_TIMEOUT_SECONDS = 10
+DEFAULT_AI_MAX_RETRIES = 2
 
 
 class Settings(BaseSettings):
@@ -82,6 +87,14 @@ class Settings(BaseSettings):
     # Import processing (env: IMPORT_CHUNK_SIZE, COOLING_OFF_DAYS).
     import_chunk_size: int = Field(default=DEFAULT_IMPORT_CHUNK_SIZE, gt=0)
     cooling_off_days: int = Field(default=DEFAULT_COOLING_OFF_DAYS, ge=0)
+
+    # AI provider (env: GEMINI_API_KEY, AI_TIMEOUT_SECONDS, AI_MAX_RETRIES). The key is optional on
+    # purpose: structured search must keep working without it, so a missing key means "AI
+    # unavailable" at request time, not a startup failure (approved 2026-11-28). SecretStr keeps it
+    # out of reprs and logs. Development uses a free-tier key on test data only (D-062).
+    gemini_api_key: SecretStr | None = None
+    ai_timeout_seconds: int = Field(default=DEFAULT_AI_TIMEOUT_SECONDS, gt=0)
+    ai_max_retries: int = Field(default=DEFAULT_AI_MAX_RETRIES, ge=0)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

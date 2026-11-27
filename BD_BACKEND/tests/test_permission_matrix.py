@@ -118,6 +118,14 @@ EXPECTED_REAL_ROUTES = {
     # M2-B2: quarantine endpoints. Any BD user may list, fix and release (D-107); discard is
     # further limited to the importer, a manager or an admin inside leads.quarantine
     # (tests/test_leads_quarantine.py), which this role matrix does not model.
+    ("POST", "/search/leads"): "view_all_leads",  # M3-A2, D-001, D-026
+    ("GET", "/search/filter-options"): "view_all_leads",  # M3-A2
+    ("POST", "/search/leads/export.csv"): "export_csv",  # M3-A5, D-087
+    ("POST", "/search/nl-interpret"): "view_all_leads",  # M3-A6, plan section 9
+    ("GET", "/segments"): "view_all_leads",  # M3-A4, D-098
+    ("POST", "/segments"): "create_segment",  # M3-A4, D-098
+    ("PATCH", "/segments/{segment_id}"): "create_segment",  # M3-A4; owner re-checked in service
+    ("DELETE", "/segments/{segment_id}"): "create_segment",  # M3-A4; owner re-checked in service
     ("GET", "/quarantine"): "fix_quarantine",
     ("GET", "/quarantine/{record_id}"): "fix_quarantine",
     ("PATCH", "/quarantine/{record_id}"): "fix_quarantine",

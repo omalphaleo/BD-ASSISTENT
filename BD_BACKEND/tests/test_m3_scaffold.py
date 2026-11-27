@@ -40,16 +40,22 @@ ROUTERS = [
 ]
 
 
+# Routers whose endpoints are built; a router leaves the "still empty" check when its task lands
+# (search_api: M3-A2, segments_api: M3-A4).
+ROUTERS_WITH_ENDPOINTS = {search_api, segments_api}
+
+
 @pytest.mark.parametrize(("module", "prefix", "tag", "main_name"), ROUTERS)
 def test_m3_router_is_empty_prefixed_and_mounted(
     module: object, prefix: str, tag: str, main_name: str
 ) -> None:
-    """Each M3 router has its prefix and tag, is imported by main.py, and has no routes yet."""
+    """Each M3 router has its prefix and tag, is imported by main.py, and is empty until built."""
     router = module.router  # type: ignore[attr-defined]
     assert isinstance(router, APIRouter)
     assert router.prefix == prefix
     assert router.tags == [tag]
-    assert router.routes == []
+    if module not in ROUTERS_WITH_ENDPOINTS:
+        assert router.routes == []
     assert getattr(main_module, main_name) is router
 
 

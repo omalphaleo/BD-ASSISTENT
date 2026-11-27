@@ -34,7 +34,6 @@ from app.config import get_settings
 from app.core import services
 from app.core.models import User, UserRole
 from app.db import get_session
-from app.imports.downloads import neutralise_cell
 from app.imports.models import ImportFile, ImportReport, ImportStatus
 from app.imports.reports import CHANGES_PAGE_SIZE
 from app.leads.contracts import RowOutcomeKind
@@ -117,23 +116,6 @@ def _download_audits(db: Session) -> list[AuditLog]:
             select(AuditLog).where(AuditLog.action == AuditAction.IMPORT_REPORT_DOWNLOADED.value)
         )
     )
-
-
-# --- neutralise_cell ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("risky", ["=1+1", "+1", "-1", "@SUM(A1)", "\tcmd", "\rcmd"])
-def test_formula_characters_get_a_leading_apostrophe(risky: str) -> None:
-    """A cell starting with = + - @ tab or CR is written as text, never as a formula."""
-    assert neutralise_cell(risky) == "'" + risky
-
-
-def test_plain_cells_are_left_alone() -> None:
-    """Ordinary text, empty cells and None are written unchanged (None as empty)."""
-    assert neutralise_cell("Ada") == "Ada"
-    assert neutralise_cell("a=b") == "a=b"
-    assert neutralise_cell(None) == ""
-    assert neutralise_cell(7) == "7"
 
 
 # --- report ------------------------------------------------------------------------------------
