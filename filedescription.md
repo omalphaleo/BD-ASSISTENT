@@ -42,6 +42,7 @@ How to read: each file has a short **Purpose** (what it does and why it exists),
 | `docs/decisions/0002-2026-11-19-a2-core-tables-decisions.md` | Decision record for A2 (M1, Developer A): admin-editable personal-domain and generic-prefix settings, test clock safety, and the split between Procrastinate, database idempotency and `JobLock`. |
 | `milestone/m1.md` | Detailed description of milestone M1 (setup and data model) and the two-developer split. |
 | `milestone/m2.md` | Detailed description of milestone M2 (import, validation, quarantine, deduplication); planned, not started. |
+| `milestone/m3.md` | Detailed description of milestone M3 (lead search, lead details, eligibility, opt-outs, exports) and the two independent developer lanes (A: find and select leads; B: lead records and compliance actions); planned, not started. |
 
 ## 3. `BD_BACKEND/` configuration and packaging
 
@@ -215,6 +216,21 @@ Writes or checks `BD_BACKEND/openapi.json` so the frontend has one stable contra
 | `leads/row_fields.py`: `parse_row()`, `ParsedRow`, `email_cells()` | Reads the mapped values into typed, normalized person and company values and the engagement flags (yes/no words, ISO dates, numbers with commas, comma-separated tags). An unreadable cell becomes "missing". | The one place that knows the app field names, which are an assumption until M2-A2 fixes them. |
 | `leads/quarantine_api.py` (edited) | `get_release_ingest_row()` now returns the real `ingest_row`; a valid released row becomes a lead. | Removes the 503 stand-in. |
 | `tests/test_leads_ingest.py`, `tests/test_leads_merge.py` | Each outcome, derived company name, quarantine reasons, update with summary, blank never erases, all emails kept, possible duplicate, do-not-contact, bounced and replied, rejected rows leave nothing, no commit, release source; the merge rules and the change summary. | Every B4 rule has a test. `test_leads_quarantine_api.py` now checks the real release and the 503 stand-in. |
+
+### M3-0 scaffold files (backend and frontend): empty routers, `app/ai/`, three page shells, tests
+**Purpose:** pre-wire the names both M3 workstreams use, so no later M3 task edits a shared file (m3.md sections 17 and 19). No logic, no migration, no new endpoint (`openapi.json` is unchanged).
+
+| File and names | What it does | Why it is used |
+|---|---|---|
+| `app/leads/search_api.py`, `segments_api.py` (workstream W1), `people_api.py`, `companies_api.py`, `app/compliance/opt_outs_api.py` (workstream W2) | Each holds one empty `router` (prefixes `/search`, `/segments`, `/people`, `/companies`, `/opt-outs`; same tag name). | Mounted in `main.py` once; M3-A and M3-B tasks add endpoints, each declaring a permission. |
+| `app/ai/__init__.py` | Header-only package (W1). | The path exists from M3-0; M3-A5 and M3-A6 fill it. |
+| `app/main.py` (edited), `app/audit/services.py` (edited), `app/core/permissions.py` (edited) | `main.py` imports and mounts the five routers; `AuditAction` gains the 12 M3 actions (`opt_out.added`, `opt_out.removed`, `person.erased`, `lead.owner_assigned`, `lead.flag_set`, `lead.flag_cleared`, `lead.note_added`, `segment.created`, `segment.updated`, `segment.deleted`, `export.leads_downloaded`, `search.nl_interpreted`); `Permission` and `PERMISSION_ROLES` gain `ADD_OPT_OUT` (D-066), `VIEW_OPT_OUTS` (D-067) and `ADD_NOTE`, all roles. | Frozen after M3-0 (m3.md section 20, rule 2). |
+| `tests/test_m3_scaffold.py` | No database: each of the five routers has its prefix and tag, no routes, and is imported by `main.py`; the 12 audit actions have the agreed values and none is duplicated; the three permissions are granted to every role. | Names cannot drift unnoticed. |
+| `tests/test_m3_lane_isolation.py` | Reads each lane's files with `ast` and fails if a W1 file imports a W2 module or the reverse; lanes do not overlap. Skips files not written yet. | Keeps the lanes independent (m3.md section 18). |
+| `tests/test_permission_matrix.py` (edited) | `EXPECTED_MATRIX` gains `add_opt_out`, `view_opt_outs`, `add_note` (all roles). | The hand-written copy must list every capability. |
+| `tests/fixtures/search/.gitkeep`, `tests/fixtures/records/.gitkeep` | Keep two empty folders in git. | Synthetic data for W1 and W2. |
+| `BD_FRONTEND/src/app/(app)/leads/[personId]/page.tsx`, `companies/[companyId]/page.tsx`, `leads/unassigned/page.tsx`, `opt-outs/page.tsx` | `PlaceholderPage` shells titled Lead, Company, Unassigned leads, Opt-outs. | The routes and menu links exist before the screens (M3-B). |
+| `BD_FRONTEND/src/lib/nav-items.ts` (edited), `tests/unit/nav-items.test.ts` (edited) | New entries Unassigned (manager, admin) and Opt-outs (all roles), placed before Campaigns; the test lists them per role. | Menu only; the server enforces access. |
 
 ### M2-B5 duplicate review files (backend): `app/leads/{duplicates,duplicate_schemas,duplicates_api}.py`
 **Purpose:** let a manager or admin settle the pairs `ingest_row` flagged as possible duplicates (D-092, D-108). Each action is audited and committed in the service; no migration (the tables exist).
@@ -569,6 +585,7 @@ Common helpers repeated in several files: `_alembic_config(url)` (Alembic config
 | `test_import_storage_migration.py` | Migration `0014` round trip on its own database, plus unique `storage_key`, non-negative `size_bytes` and NULLs for old rows. |
 | `import_files.py` | Test helper (not a test file): in-memory builders for CSV, XLSX and multipart bodies from synthetic rows (replaces committed binary fixtures). |
 | `test_m2_scaffold.py` | M2-0 scaffold, no database: the six `RowOutcomeKind` values, contract objects immutable, `FieldChange` keys, the unwired `ingest_row` raising, each of the five routers having its prefix, tag, no routes and being imported by `main.py`, the 16 audit actions with agreed values and no duplicates, and `app.imports.tasks` in the worker's `import_paths`. |
+| `test_m3_scaffold.py`, `test_m3_lane_isolation.py` | M3-0 scaffold tests: the five empty routers, the 12 audit actions and three permissions; and the `ast` check that W1 and W2 files never import each other. See the M3-0 section above. |
 | `test_module_dependencies.py` | Guard for the M2 imports/leads exception, using the standard `ast` module: `app/leads` imports only `app.imports.models` from imports; `app/imports` imports only `leads.contracts` and `leads.models`, plus `leads.ingest` in `wiring.py`. Helpers `_imported_modules`, `_is_within`. |
 | `test_imports_models.py` | The imports tables on real PostgreSQL: defaults, non-unique `sha256` and digest CHECK, status and count CHECKs, unique profile name, unique mapping per file and column, raw-row uniqueness, lowercase email and RESTRICT on files with rows, the immutability trigger (each original column rejected; `person_id` change and DELETE allowed; SET NULL on person delete), one report per file, change-summary uniqueness and CASCADE with the person, and the `quarantine_records.raw_row_id` unique link and CASCADE. Fixtures `import_file`, `raw_row`, `report`. |
 | `test_imports_tables_migration.py` | Migration 0007 upgrades, downgrades to 0006 and upgrades again on a throwaway database (tables, guard trigger and function, quarantine column all appear and disappear); no rows inserted; the status CHECK lists exactly the `ImportStatus` values. Fixture `roundtrip_url`, helpers `alembic_config`, `_scalar`, `_tables_exist`, `_guard_exists`, `_quarantine_has_raw_row_id`. |
