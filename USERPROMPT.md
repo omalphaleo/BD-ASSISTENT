@@ -2226,3 +2226,68 @@ Status: Needs input
 - Status: Needs input
 - Summary: Verified M2-A1..A6 and W2 against the code and `origin/main`; found that B's M2-B1..B6 are already on `origin/main`, that `row_fields.py` reads field keys that differ from A's `TARGET_FIELDS`, and that A6 is only partly done. Presented findings and the first open decision; no code changed, plan not finalized.
 - Status update (2026-11-27): Needs input (decisions D1 onward).
+## T-111: M2-B1 and M2-B2 explanation, prerequisites and plans (2026-11-26, backfilled)
+- Prompts (plan mode, so logged late; summarised from the verbatim requests): "Let's start with M2 – B1. First, explain what M2 – B1 is ... dependencies and prerequisites ... Explain everything step by step in simple terms before we begin implementation." Follow-ups: whether data is already in the database and whether Apollo data is needed before B1 (A1 vs B); "Normalization needs real lead data to work on. Until we have it, how can M2-B1 build and check normalization"; "Explain what M2 – B2 does and provide a detailed implementation plan ..."; which fields are quarantined beyond email; whether missing first-name validation is in B2; "what files are created in b1 and b2".
+- Summary: Explained B1 and B2 from `milestone/m2.md`, `docs/plan.md` and `Q-A.md`. No data is loaded in the database yet and Apollo data is not needed for B1; upload/import is Developer A's (A1 to A3). Quarantine covers email and first name only; first-name rule lives in B1, quarantine handling in B2.
+- Status update (2026-11-26): Completed.
+- Status: Completed
+
+## T-112: Implement M2-B1 (2026-11-26)
+- Prompt: "start impementing m2.b1, dont give .md for plan"
+- Summary: Wrote `app/leads/{reference_data,normalization,validation,seed_reference_data}.py` and three test files, updated the owning docs, and (with your approval) re-pointed migration `0009` to follow `0014` to fix the two Alembic heads. `ruff` is clean and the B1 and migration-head tests pass in Docker (98 passed); the full suite passed 1067 before the last seed-counter fix.
+- Status update (2026-11-26): Completed, with the starter lists (U3, U6) still awaiting your approval.
+- Status: Completed
+
+## T-113: Start M2-B2 quarantine (2026-11-26)
+- Prompt: "start with b2" (before it: "create new branch as m2/dev-b and dont commit or push or create branch and keep", answered as: no git changes, the user creates the branch)
+- Summary: Built the B2 backend: `leads/quarantine.py`, `schemas.py`, the five `/quarantine` endpoints in `quarantine_api.py`, two test files, regenerated `openapi.json`, and (approved) updated `test_m2_scaffold.py` and `test_permission_matrix.py`. `ruff` clean, 1125 tests pass in Docker. The screen is not built yet.
+- Status update (2026-11-26): Needs input: confirm whether to build the quarantine screen now.
+- Status: Needs input
+
+## T-114: Build the M2-B2 quarantine screen (2026-11-26)
+- Prompt: "Yes, build the quarantine screen now. Keep to m2.md section 19: list, filters, edit, release, discard, with permissions enforced only on the server. Show a clear message for the 503 release answer until B4. Regenerate the client with npm run generate:api, never by hand. Don't commit anything."
+- Summary: Built the quarantine screen: regenerated the API client with `npm run generate:api`, added `QuarantineScreen`, `QuarantineEditor`, the `lib/quality/quarantine.ts` helpers, the page and CSS, plus helper and screen tests. Permissions stay on the server (all buttons shown, a 403 is displayed); a 503 on release shows a clear "not available yet" message. `tsc`, ESLint and 77 Vitest tests pass.
+- Status update (2026-11-26): Completed. Nothing committed.
+- Status: Completed
+
+## T-115: Explain M2-B3 and M2-B4 in detail (2026-11-26)
+- Prompt: "Explain what B3 and B4 include in detail. Walk me through each task step by step, including what it does, why it is needed, how it works, its dependencies, and how it fits into the overall project. Explain everything clearly in chat, from scratch."
+- Summary: Explained M2-B3 (matching and engagement rules) and M2-B4 (merge, change summary and `ingest_row`) from `milestone/m2.md` sections 5, 18, 19 and 27.
+- Status update (2026-11-26): Completed. Nothing was changed in the code.
+- Status: Completed
+
+## T-116: Start M2-B3 matching and engagement rules (2026-11-26)
+- Prompt: "start with b3"
+- Summary: Implemented M2-B3: `matching.py` (person and company match orders, possible-duplicate pairs, remembered "not a duplicate"), `engagement.py` (D-073 rules, cooling-off days from `Setting`), two normalizers, and quarantine release now reads the cooling-off days. Tests added; `ruff` clean, 1169 passed. Docs updated.
+- Status update (2026-11-26): Completed. Nothing committed.
+- Status: Completed
+
+## T-117: Start M2-B4 merge, change summary and ingest_row (2026-11-26)
+- Prompt: "yes go ahead with b4"
+- Summary: Implemented M2-B4: `merge.py` (latest wins, blank never erases, all emails kept, `ImportChange` summary), `row_fields.py`, and the real `ingest_row` in `ingest.py` (validate, quarantine, match, create or merge, possible duplicate, engagement, savepoint so a bad row is REJECTED). Quarantine release now uses it. Tests added; docs updated.
+- Status update (2026-11-26): Completed. Nothing committed.
+- Status: Completed
+
+## T-118: Branch workflow question for m2/dev-b (2026-11-26)
+- Prompt: "If I create my branch as `m2/dev-b`, will all my changes be pushed to that branch first and then merged into `main`?"
+- Summary: Explained that nothing is pushed automatically: the user creates the branch, commits and pushes, then opens a pull request into `main`.
+- Status update (2026-11-26): Completed. Nothing was changed in the code.
+- Status: Completed
+
+## T-119: Explain M2-B5 and M2-B6, purpose, dependencies, prerequisites (2026-11-26)
+- Prompt: "Explain what B5 and B6 are about, what their purpose is, and what each task does. Also list all the necessary dependencies and prerequisites that must be completed before starting B5 and B6. Clarify how B5 and B6 depend on previous tasks and whether anything needs to be completed by Developer A first."
+- Summary: Explained M2-B5 (duplicate review) and M2-B6 (mapping admin): purpose, steps, dependencies and that neither needs anything from Developer A.
+- Status update (2026-11-26): Completed. Nothing was changed in the code.
+- Status: Completed
+
+## T-120: Implement M2-B5 duplicate review and M2-B6 mapping admin (2026-11-26)
+- Prompt: "implement both b5 and b6"
+- Summary: Implemented M2-B5 (duplicate review: service, 4 endpoints, merge with history moved and snapshot, side-by-side screen) and M2-B6 (mapping admin: service, 6 endpoints, Industries and States panels). Edited the two shared tests and regenerated `openapi.json` and the client after approval. Tests and docs added.
+- Status update (2026-11-26): Completed. Nothing committed.
+- Status: Completed
+
+## T-121: Are B1 to B6 fully completed, only committing remaining? (2026-11-26)
+- Prompt: "So, are all tasks from B1 to B6 fully completed, with only committing the changes remaining?"
+- Summary: Answered that B1 to B6 are built and verified, with a short list of open items beyond committing.
+- Status update (2026-11-26): Completed. Nothing was changed in the code.
+- Status: Completed
