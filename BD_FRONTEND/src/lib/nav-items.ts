@@ -23,6 +23,10 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: "Import", path: "/leads/import", roles: ALL_ROLES },
   { label: "Quarantine", path: "/leads/quarantine", roles: ALL_ROLES },
   { label: "Duplicates", path: "/leads/duplicates", roles: ["manager", "admin"] },
+  // M3 entries (M3-0): Unassigned mirrors ASSIGN_LEADS (manager and admin); Opt-outs mirrors
+  // VIEW_OPT_OUTS (all roles). The server still enforces both.
+  { label: "Unassigned", path: "/leads/unassigned", roles: ["manager", "admin"] },
+  { label: "Opt-outs", path: "/opt-outs", roles: ALL_ROLES },
   { label: "Campaigns", path: "/campaigns", roles: ALL_ROLES },
   { label: "Review", path: "/review", roles: ALL_ROLES },
   { label: "Outbox", path: "/outbox", roles: ALL_ROLES },

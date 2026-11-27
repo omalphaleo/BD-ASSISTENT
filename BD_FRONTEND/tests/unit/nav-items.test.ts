@@ -13,6 +13,7 @@ const COMMON_LABELS = [
   "Leads",
   "Import",
   "Quarantine",
+  "Opt-outs",
   "Campaigns",
   "Review",
   "Outbox",
@@ -24,6 +25,8 @@ const MANAGER_LABELS = [
   "Import",
   "Quarantine",
   "Duplicates",
+  "Unassigned",
+  "Opt-outs",
   "Campaigns",
   "Review",
   "Outbox",
@@ -35,6 +38,8 @@ const ADMIN_LABELS = [
   "Import",
   "Quarantine",
   "Duplicates",
+  "Unassigned",
+  "Opt-outs",
   "Campaigns",
   "Review",
   "Outbox",
@@ -55,7 +60,7 @@ describe("NAV_ITEMS", () => {
     expect(labelsFor("rep")).toEqual(COMMON_LABELS);
   });
 
-  it("manager: sees the common links plus Duplicates, and no Admin or Users link", () => {
+  it("manager: sees the common links plus Duplicates and Unassigned, and no Admin or Users link", () => {
     expect(labelsFor("manager")).toEqual(MANAGER_LABELS);
   });
 

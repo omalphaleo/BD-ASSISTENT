@@ -43,6 +43,19 @@ class AuditAction(StrEnum):
     DUPLICATE_MERGED = "duplicate.merged"
     DUPLICATE_MARKED_DISTINCT = "duplicate.marked_distinct"  # "not a duplicate"
     REFERENCE_MAPPING_CHANGED = "mapping.reference_changed"  # industry and state, D-076
+    # M3 (m3.md section 17; added once in M3-0 so the enum is not edited again).
+    OPT_OUT_ADDED = "opt_out.added"
+    OPT_OUT_REMOVED = "opt_out.removed"
+    PERSON_ERASED = "person.erased"  # D-099
+    LEAD_OWNER_ASSIGNED = "lead.owner_assigned"  # D-075
+    LEAD_FLAG_SET = "lead.flag_set"  # D-101
+    LEAD_FLAG_CLEARED = "lead.flag_cleared"
+    LEAD_NOTE_ADDED = "lead.note_added"
+    SEGMENT_CREATED = "segment.created"
+    SEGMENT_UPDATED = "segment.updated"
+    SEGMENT_DELETED = "segment.deleted"
+    EXPORT_LEADS_DOWNLOADED = "export.leads_downloaded"  # D-087
+    SEARCH_NL_INTERPRETED = "search.nl_interpreted"
 
 
 # Lower-case names that must never appear as a summary key: secrets do not belong in a

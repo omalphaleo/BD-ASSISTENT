@@ -2292,6 +2292,49 @@ Status: Needs input
 - Status update (2026-11-26): Completed. Nothing was changed in the code.
 - Status: Completed
 
+## T-122: List B1 to B6 with explanations; when is data uploaded and who is responsible (2026-11-27)
+- Prompt: "List all the tasks completed from B1 to B6 with a brief explanation of what each task does. Then analyze `m2.md` and explain when the data should be uploaded to the database and who is responsible for uploading it (Developer A or Developer B)."
+- Summary: Listed B1 to B6 with short explanations and explained from m2.md that lead data enters the database only through Developer A's import pipeline (upload to process_import to ingest_row), with Developer B owning what each row becomes; seed lists are B's one-off load.
+- Status update (2026-11-27): Completed. Nothing was changed in the code.
+- Status: Completed
+
+## T-123: Complete M3 plan in chat (2026-11-27, backfilled)
+- Prompt: "Analyze the complete `plan.md` for M3. Refer to `m1.md` and `m2.md` to understand how you analyzed their plans and structured the tasks, dependencies, explanations, and implementation steps. Follow the same approach and level of detail when preparing `m3.md`. Provide the complete M3 plan in the chat, not as a file."
+- Summary: Read plan.md M3 sections, Q-A.md decisions and the repository, and gave the M3 plan in chat (plan mode was on, so this entry is backfilled).
+- Status update (2026-11-27): Completed. Nothing was changed in the code.
+- Status: Completed
+
+## T-124: Re-split M3 so the developers are independent (2026-11-27, backfilled)
+- Prompt: "split the task in such way that they are not dependent on each other , each developer can work independently"
+- Summary: Re-split M3 into two lanes that meet only at existing tables and fixed URL paths (search and eligibility together; lead records and compliance actions together).
+- Status update (2026-11-27): Completed. Nothing was changed in the code.
+- Status: Completed
+
+## T-125: Full m3.md content in chat using m2.md structure (2026-11-27, backfilled)
+- Prompt: "Read the complete `m2.md` first. Use its exact headings and structure to prepare the complete `m3.md` based on the M3 plan. Only add the necessary task numbering for Developer A (`M3-A1`, `M3-A2`, etc.) and Developer B (`M3-B1`, `M3-B2`, etc.), ensuring both developers can work independently without blocking each other. Provide the complete content directly in the chat."
+- Summary: Read m2.md fully and gave the complete m3.md content in chat: M3-0, M3-A1 to A6, M3-B1 to B7.
+- Status update (2026-11-27): Completed. Nothing was changed in the code.
+- Status: Completed
+
+## T-126: Create milestone/m3.md (2026-11-27)
+- Prompt: "ok create m3.md file according to the plan under milestone folder"
+- Summary: Created `milestone/m3.md` with the same sections as `m2.md` (1 to 31): M3-0, M3-A1 to A6 and M3-B1 to B7, two independent lanes, gates, ownership map, tests, workload (A 31 points, B 30), progress table. Updated `filedescription.md` and `FILE_STRUCTURE.md`.
+- Status update (2026-11-27): Completed. Nothing committed.
+- Status: Completed
+
+## T-127: Explain what M3-0 is and how to implement it (2026-11-27)
+- Prompt: "Explain what M3-0 is and how to implement it"
+- Summary: Explained M3-0 (shared scaffold, gate G2) and its implementation steps in chat. Nothing changed.
+- Status update (2026-11-27): Completed.
+- Status: Completed
+
+## T-128: Implement M3-0 (2026-11-27)
+- Prompt: "start with m3-0" then "Start implementing M3-0 directly. Do not prepare, create, m3-0`.md files as part of the implementation."
+- Follow-up prompt: "I removed the four deny rules (core, audit, compliance, main.py). Continue M3-0: opt_outs_api.py, the three permissions with the matching permission-matrix test lines, the 12 audit actions, mounting the five routers in main.py, tests/test_m3_scaffold.py, and the docs. Don't commit anything."
+- Follow-up result: Completed all of the above; ruff, 1280 pytest, tsc, ESLint and 110 Vitest passed; docs updated.
+- Earlier summary (first attempt): Partly done. Created the empty routers for /search, /segments, /people and /companies, `app/ai/__init__.py`, the lane-isolation test, empty fixture folders, four frontend page shells, the Unassigned and Opt-outs nav entries and the updated nav test. Blocked: permission settings deny edits under `app/compliance/`, `app/core/`, `app/audit/` and `app/main.py`, so the /opt-outs router, the 12 audit actions, the 3 permissions, the router mounting, `test_m3_scaffold.py`, `test_permission_matrix.py` rows and the docs are not done.
+- Status update (2026-11-27): Completed after the deny rules were removed. Nothing committed.
+- Status: Completed
 ## T-131: M2-A7 implementation start (2026-11-27)
 - Prompt: "start working on a7 approved plan"
 - Status: Needs input

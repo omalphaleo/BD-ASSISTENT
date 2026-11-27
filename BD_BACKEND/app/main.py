@@ -7,6 +7,7 @@ included here, so this file only wires routes and holds no business logic.
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.compliance.opt_outs_api import router as opt_outs_router
 from app.config import get_settings
 from app.core.api import router as core_router
 from app.core.csrf import CSRF_HEADER_NAME, install_csrf_openapi, verify_csrf
@@ -14,9 +15,13 @@ from app.core.errors import install_validation_error_openapi, register_error_han
 from app.core.permissions import install_permission_openapi
 from app.imports.api import router as imports_router
 from app.imports.profiles_api import router as source_profiles_router
+from app.leads.companies_api import router as companies_router
 from app.leads.duplicates_api import router as duplicates_router
 from app.leads.mappings_api import router as reference_mappings_router
+from app.leads.people_api import router as people_router
 from app.leads.quarantine_api import router as quarantine_router
+from app.leads.search_api import router as search_router
+from app.leads.segments_api import router as segments_router
 
 # Methods and headers the frontend may use cross-origin; listed explicitly, never "*" (A8-5).
 CORS_ALLOWED_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]
@@ -46,6 +51,13 @@ app.include_router(source_profiles_router)
 app.include_router(quarantine_router)
 app.include_router(duplicates_router)
 app.include_router(reference_mappings_router)
+# M3 routers are mounted empty here once (M3-0) so neither workstream edits main.py again.
+# W1: search and segments. W2: people, companies and opt-outs.
+app.include_router(search_router)
+app.include_router(segments_router)
+app.include_router(people_router)
+app.include_router(companies_router)
+app.include_router(opt_outs_router)
 # Adds the 401/403 responses of permission-guarded routes to the OpenAPI schema; runs after
 # the routers are mounted because it reads each route's declared guard.
 install_permission_openapi(app)
