@@ -1,6 +1,25 @@
 {
   "components": {
     "schemas": {
+      "CellWarningResponse": {
+        "description": "A cell that could not be converted to its field's type; the value became null.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "code"
+        ],
+        "title": "CellWarningResponse",
+        "type": "object"
+      },
       "ChangeRoleRequest": {
         "additionalProperties": false,
         "description": "Body of PATCH /users/{id}: the user's new role.",
@@ -13,6 +32,38 @@
           "role"
         ],
         "title": "ChangeRoleRequest",
+        "type": "object"
+      },
+      "ChooseProfileRequest": {
+        "additionalProperties": false,
+        "description": "Body of PUT /imports/{id}/profile: the source profile and the default country (D-078).",
+        "properties": {
+          "default_country": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Country"
+          },
+          "source_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Profile Id"
+          }
+        },
+        "title": "ChooseProfileRequest",
         "type": "object"
       },
       "CreateUserRequest": {
@@ -101,6 +152,59 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "EstimateResponse": {
+        "description": "What the file itself shows before the import starts (no match or duplicate numbers).",
+        "properties": {
+          "blocking_issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocking Issues",
+            "type": "array"
+          },
+          "can_start": {
+            "title": "Can Start",
+            "type": "boolean"
+          },
+          "rows_total": {
+            "title": "Rows Total",
+            "type": "integer"
+          },
+          "rows_without_email": {
+            "title": "Rows Without Email",
+            "type": "integer"
+          },
+          "rows_without_first_name": {
+            "title": "Rows Without First Name",
+            "type": "integer"
+          },
+          "unmapped_columns": {
+            "items": {
+              "$ref": "#/components/schemas/UnmappedColumnResponse"
+            },
+            "title": "Unmapped Columns",
+            "type": "array"
+          },
+          "warning_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Warning Counts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "rows_total",
+          "rows_without_email",
+          "rows_without_first_name",
+          "warning_counts",
+          "unmapped_columns",
+          "blocking_issues",
+          "can_start"
+        ],
+        "title": "EstimateResponse",
+        "type": "object"
+      },
       "ImportFileResponse": {
         "description": "An import as shown in status calls (no storage key, no server path).",
         "properties": {
@@ -108,6 +212,17 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "default_country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Country"
           },
           "filename": {
             "title": "Filename",
@@ -132,6 +247,18 @@
               }
             ],
             "title": "Size Bytes"
+          },
+          "source_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Profile Id"
           },
           "status": {
             "$ref": "#/components/schemas/ImportStatus"
@@ -168,9 +295,74 @@
           "row_count",
           "size_bytes",
           "uploaded_by",
+          "source_profile_id",
+          "default_country",
           "created_at"
         ],
         "title": "ImportFileResponse",
+        "type": "object"
+      },
+      "ImportProgressResponse": {
+        "description": "How far an import is: status, rows handled so far and the outcome counters (D-050).\n\nBefore the import starts every counter is 0. received counts rows already committed, so\npercent (received out of row_count) only moves forward, also after a worker restart.",
+        "properties": {
+          "duplicates_found": {
+            "title": "Duplicates Found",
+            "type": "integer"
+          },
+          "finished": {
+            "title": "Finished",
+            "type": "boolean"
+          },
+          "imported": {
+            "title": "Imported",
+            "type": "integer"
+          },
+          "percent": {
+            "title": "Percent",
+            "type": "integer"
+          },
+          "quarantined": {
+            "title": "Quarantined",
+            "type": "integer"
+          },
+          "received": {
+            "title": "Received",
+            "type": "integer"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportStatus"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "row_count",
+          "received",
+          "imported",
+          "updated",
+          "unchanged",
+          "duplicates_found",
+          "quarantined",
+          "rejected",
+          "percent",
+          "finished"
+        ],
+        "title": "ImportProgressResponse",
         "type": "object"
       },
       "ImportStatus": {
@@ -207,6 +399,306 @@
           "password"
         ],
         "title": "LoginRequest",
+        "type": "object"
+      },
+      "MappingColumnResponse": {
+        "description": "One file column with its mapping; origin says where a suggestion came from.",
+        "properties": {
+          "column_index": {
+            "title": "Column Index",
+            "type": "integer"
+          },
+          "is_reassigned": {
+            "title": "Is Reassigned",
+            "type": "boolean"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "source_header": {
+            "title": "Source Header",
+            "type": "string"
+          },
+          "target_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Field"
+          }
+        },
+        "required": [
+          "column_index",
+          "source_header",
+          "target_field",
+          "origin",
+          "is_reassigned"
+        ],
+        "title": "MappingColumnResponse",
+        "type": "object"
+      },
+      "MappingEntry": {
+        "additionalProperties": false,
+        "description": "One column's chosen target; null ignores the column (it stays in the raw rows).",
+        "properties": {
+          "column_index": {
+            "minimum": 0.0,
+            "title": "Column Index",
+            "type": "integer"
+          },
+          "target_field": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Field"
+          }
+        },
+        "required": [
+          "column_index"
+        ],
+        "title": "MappingEntry",
+        "type": "object"
+      },
+      "MappingErrorResponse": {
+        "description": "Body of a refused mapping step: a fixed message and a stable machine-readable code.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "code"
+        ],
+        "title": "MappingErrorResponse",
+        "type": "object"
+      },
+      "MappingResponse": {
+        "description": "The mapping step: columns, whether they are saved, suggestions and what blocks start.",
+        "properties": {
+          "blocking_issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocking Issues",
+            "type": "array"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/MappingColumnResponse"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "is_saved": {
+            "title": "Is Saved",
+            "type": "boolean"
+          },
+          "profile_suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileSuggestionResponse"
+            },
+            "title": "Profile Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "import_id",
+          "is_saved",
+          "columns",
+          "profile_suggestions",
+          "blocking_issues"
+        ],
+        "title": "MappingResponse",
+        "type": "object"
+      },
+      "PreviewResponse": {
+        "description": "The first rows of the file as the saved mapping reads them.",
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewRowResponse"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "PreviewResponse",
+        "type": "object"
+      },
+      "PreviewRowResponse": {
+        "description": "One previewed row: its sheet position and the mapped values the pipeline would receive.",
+        "properties": {
+          "row_number": {
+            "title": "Row Number",
+            "type": "integer"
+          },
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/CellWarningResponse"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "row_number",
+          "values",
+          "warnings"
+        ],
+        "title": "PreviewRowResponse",
+        "type": "object"
+      },
+      "ProfileDefaultsResponse": {
+        "description": "Result of saving a mapping as a profile's defaults.",
+        "properties": {
+          "columns_in_defaults": {
+            "title": "Columns In Defaults",
+            "type": "integer"
+          },
+          "source_profile_id": {
+            "format": "uuid",
+            "title": "Source Profile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_profile_id",
+          "columns_in_defaults"
+        ],
+        "title": "ProfileDefaultsResponse",
+        "type": "object"
+      },
+      "ProfileOptionResponse": {
+        "description": "A source profile the uploader may choose (no saved mapping content is exposed).",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "layout": {
+            "title": "Layout",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "layout"
+        ],
+        "title": "ProfileOptionResponse",
+        "type": "object"
+      },
+      "ProfileSuggestionResponse": {
+        "description": "A profile whose saved headers match the file; only a suggestion, the user confirms.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "overlap": {
+            "title": "Overlap",
+            "type": "number"
+          },
+          "source_profile_id": {
+            "format": "uuid",
+            "title": "Source Profile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_profile_id",
+          "name",
+          "overlap"
+        ],
+        "title": "ProfileSuggestionResponse",
+        "type": "object"
+      },
+      "SaveDefaultRequest": {
+        "additionalProperties": false,
+        "description": "Body of POST /imports/{id}/mapping/save-as-default (admins only).",
+        "properties": {
+          "source_profile_id": {
+            "format": "uuid",
+            "title": "Source Profile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_profile_id"
+        ],
+        "title": "SaveDefaultRequest",
+        "type": "object"
+      },
+      "SaveMappingRequest": {
+        "additionalProperties": false,
+        "description": "Body of PUT /imports/{id}/mapping; columns not listed are ignored.",
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/MappingEntry"
+            },
+            "maxItems": 16384,
+            "title": "Columns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "columns"
+        ],
+        "title": "SaveMappingRequest",
         "type": "object"
       },
       "SelectWorksheetRequest": {
@@ -256,6 +748,59 @@
         "title": "SessionUserResponse",
         "type": "object"
       },
+      "TargetFieldResponse": {
+        "description": "One canonical field a column can be mapped to (from the registry in leads.contracts).",
+        "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "value_type": {
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "value_type",
+          "label",
+          "required"
+        ],
+        "title": "TargetFieldResponse",
+        "type": "object"
+      },
+      "UnmappedColumnResponse": {
+        "description": "A file column that maps to no field (kept in the raw rows only).",
+        "properties": {
+          "column_index": {
+            "title": "Column Index",
+            "type": "integer"
+          },
+          "source_header": {
+            "title": "Source Header",
+            "type": "string"
+          }
+        },
+        "required": [
+          "column_index",
+          "source_header"
+        ],
+        "title": "UnmappedColumnResponse",
+        "type": "object"
+      },
       "UploadErrorResponse": {
         "description": "Body of a refused upload: a fixed message and a stable machine-readable code.",
         "properties": {
@@ -282,6 +827,17 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "default_country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Country"
           },
           "filename": {
             "title": "Filename",
@@ -320,6 +876,18 @@
               }
             ],
             "title": "Size Bytes"
+          },
+          "source_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Profile Id"
           },
           "status": {
             "$ref": "#/components/schemas/ImportStatus"
@@ -363,6 +931,8 @@
           "row_count",
           "size_bytes",
           "uploaded_by",
+          "source_profile_id",
+          "default_country",
           "created_at",
           "worksheets",
           "headers"
@@ -646,6 +1216,100 @@
         ]
       }
     },
+    "/imports/profiles": {
+      "get": {
+        "description": "Active source profiles an uploader may choose for an import.",
+        "operationId": "list_profile_options_imports_profiles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfileOptionResponse"
+                  },
+                  "title": "Response List Profile Options Imports Profiles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          }
+        },
+        "summary": "List Profile Options",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/target-fields": {
+      "get": {
+        "description": "The canonical fields a column can be mapped to, for the mapping dropdowns.",
+        "operationId": "list_target_fields_imports_target_fields_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TargetFieldResponse"
+                  },
+                  "title": "Response List Target Fields Imports Target Fields Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          }
+        },
+        "summary": "List Target Fields",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
     "/imports/upload": {
       "post": {
         "description": "Upload a CSV or XLSX file (multipart: 'file' and optional 'allow_duplicate').\n\nA file identical to an earlier upload gets a 409 warning with the earlier date and user;\nre-upload with allow_duplicate=true to import it anyway (D-109). Nothing is stored for a\nrefused upload. A multi-sheet XLSX returns its worksheets and needs\nPOST /imports/{id}/worksheet before the import can continue.",
@@ -813,6 +1477,646 @@
           }
         },
         "summary": "Get Import Status",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/estimate": {
+      "get": {
+        "description": "What the file shows before the import starts: row counts, gaps and blocking issues.",
+        "operationId": "read_estimate_imports__import_id__estimate_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import is in the wrong state."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Read Estimate",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/mapping": {
+      "get": {
+        "description": "The saved mapping, or a suggestion built from the profile and the built-in aliases.\n\nProfile suggestions are only suggestions: the user must confirm before one is applied.",
+        "operationId": "read_mapping_imports__import_id__mapping_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import is in the wrong state."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Read Mapping",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      },
+      "put": {
+        "description": "Save the final column mapping, including fixed or reassigned headers (D-049).",
+        "operationId": "put_mapping_imports__import_id__mapping_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import is in the wrong state."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Put Mapping",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/mapping/save-as-default": {
+      "post": {
+        "description": "Save the import's mapping as the defaults of a source profile (admins only).",
+        "operationId": "save_as_profile_default_imports__import_id__mapping_save_as_default_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDefaultRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileDefaultsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import is in the wrong state."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Save As Profile Default",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/preview": {
+      "get": {
+        "description": "The first rows of the file as the saved mapping reads them (nothing is saved).",
+        "operationId": "read_preview_imports__import_id__preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import is in the wrong state."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Read Preview",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/profile": {
+      "put": {
+        "description": "Choose the source profile and default country (only the uploader, before processing).",
+        "operationId": "set_import_profile_imports__import_id__profile_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChooseProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportFileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "The import is in the wrong state."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Set Import Profile",
+        "tags": [
+          "imports",
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/progress": {
+      "get": {
+        "description": "Return the import's status and counters so far (same visibility as the status call).",
+        "operationId": "get_import_progress_imports__import_id__progress_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProgressResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Get Import Progress",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/start": {
+      "post": {
+        "description": "Start processing: only the uploader, once, with a saved mapping (the wizard's last step).\n\nThe state change is committed first, then the background job is queued with a lock on the\nimport ID; a second queued job for the same import is refused with 409.",
+        "operationId": "start_import_processing_imports__import_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProgressResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not permitted; or CSRF check failed"
+          },
+          "404": {
+            "description": "No such import, or not visible to you."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingErrorResponse"
+                }
+              }
+            },
+            "description": "Not the uploader, wrong state, queued already or mapping incomplete."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Start Import Processing",
         "tags": [
           "imports"
         ]

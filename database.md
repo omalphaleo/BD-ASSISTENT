@@ -570,7 +570,7 @@ These six tables back the Excel/CSV/Apollo import (M2). No service reads or writ
 | `id` | UUID (primary key) | Unique id. |
 | `name` | String(255), required, unique | Profile name. |
 | `layout` | String(64), required | Layout of the file. Free text because the three predefined layouts are not agreed yet; the import service validates it. |
-| `mapping_defaults` | JSONB, required, default `{}` | Saved header-to-field defaults. |
+| `mapping_defaults` | JSONB, required, default `{}` | Saved header-to-field defaults. Since M2-A2 the service reads it as `{"version": 1, "columns": {normalized header: target field key}, "formats": {target field key: {"decimal_separator", "date_format"}}}`; `{}` is valid (no defaults). The shape is checked in code (`imports.mapping.MappingDefaults`), not by the database; no column or migration changed. |
 | `is_active` | Boolean, required, default `true` | `false` hides the profile from new imports. |
 | `created_by` | UUID, optional, foreign key to `users.id` (SET NULL) | Admin who created it. |
 | `created_at` | DateTime (timezone), required | From `TimestampMixin`. |

@@ -2176,3 +2176,28 @@ Status: Needs input
 - Status: Completed
 - Summary: Listed the backend files used by M2-A1 (imports package, config, audit action, migration 0014, tests) and explained the upload flow from API to multipart, upload service, parsers, xlsx_safety, storage, database and audit.
 - Status update (2026-11-26): Completed.
+
+## T-124: Describe M2-A2 implementation from m2.md (2026-11-26)
+- Prompt: "read m2.md and desribe m2-a2 implemetation"
+- Status: Completed
+- Summary: Read m2.md and described the planned M2-A2 (mapping, preview, estimate) backend, frontend, boundaries and open points.
+- Status update (2026-11-26): Completed.
+
+## T-125: Detailed M2-A2 backend implementation plan, source-independent mapping (2026-11-26)
+- Prompt: "Prepare a detailed implementation plan for M2-A2 (Backend) based on the existing project documentation, completed tasks, database schema, and current codebase. The system must support importing lead data from Apollo as well as other external sources, so design a flexible, source-independent mapping approach. Ensure the plan covers: how data from different sources will be mapped to our standardized internal lead fields; source-specific field mapping, custom fields, missing fields, and inconsistent data formats; validation, normalization, duplicate detection, and error handling; database changes, APIs, services, and background jobs required; testing strategy, dependencies, and implementation sequence. Important: Do not make assumptions or start implementation. First inspect the existing code and documentation, identify gaps or ambiguities, and ask me questions wherever a decision is needed. Provide recommendations for each unresolved decision before finalizing the implementation plan."
+- Status: Needs input
+- Summary: Inspected m2.md, Q-A.md (D-040 to D-078) and the imports and leads code; drafted the M2-A2 backend plan with open questions and recommendations. No code written.
+- Status update (2026-11-26): Needs input, waiting for answers to the questions.
+
+## T-124: How the duplicate check works in code (2026-11-26)
+- Prompt: "how it check duplicay"
+- Status: Completed
+- Summary: Explained the duplicate check in code: SHA-256 in multipart._sha256_of, lookup in upload.find_earlier_upload, 409 in api.py.
+- Status update (2026-11-26): Completed.
+
+## T-126: M2-A3 implementation plan, decisions and implementation start (2026-11-27)
+- Prompt: "give a3 implementation plan" / "desribe m2-a3" / "Create a detailed implementation plan for M2-A3 ... Do not make any implementation or code changes yet ..." / "instead of writing it start working on this approved from my end"
+- Status: Completed
+- Decisions approved: explicit POST /imports/{id}/start; derived progress, no migration; per-row SAVEPOINT, rejected with ingest_error; chunk size 500; per-import queueing lock + state check; cell warnings ignored; FAILED without retry endpoint; owners matched on email, written post-ingest if people.owner_id is NULL.
+- Summary: Implemented M2-A3 backend: `imports/pipeline.py` (chunked, resumable run), `owners.py`, `process_import` task with per-import queueing lock, start and progress endpoints, config (`IMPORT_CHUNK_SIZE`, `COOLING_OFF_DAYS`), regenerated `openapi.json` and the client; docs updated. 1070 backend tests pass.
+- Status update (2026-11-27): Completed.

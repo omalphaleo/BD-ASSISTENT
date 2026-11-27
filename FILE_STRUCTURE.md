@@ -59,7 +59,7 @@ BD_BACKEND/
 │   ├── models.py              # exists: registry importing every module's models (frozen after A0)
 │   ├── core/                  # exists: api, clock, cookies, dependencies, errors, model_helpers, models, passwords, schemas, services, tasks (sample job, A10); permissions planned
 │   ├── audit/                 # exists: models, services (append-only audit log)
-│   ├── imports/               # exists: models (6 tables), wiring.py (ingest_row stub, M2-0), tasks.py (empty), profiles_api.py (empty router), M2-A1 upload: api, errors, storage, xlsx_safety, parsers, multipart, access, upload, schemas; planned: mapping, preview, pipeline, reports
+│   ├── imports/               # exists: models (6 tables), wiring.py (ingest_row stub, M2-0), tasks.py (`process_import`, M2-A3), profiles_api.py (empty router), M2-A1 upload: api, errors, storage, xlsx_safety, parsers, multipart, access, upload, schemas; M2-A2 mapping: layouts, conversion, mapping, preview, mapping_api; M2-A3 processing: pipeline, owners; planned: reports
 │   ├── leads/                 # exists: models (16 tables), contracts.py (M2 seam types), quarantine_api.py, duplicates_api.py, mappings_api.py (empty routers); planned: ingest, matching, merge, search
 │   ├── compliance/            # exists: models (4 tables: opt-outs, gate status, checklist items, erasure records); planned: services (eligibility, opt-outs, erasure, gate), api
 │   ├── content/               # exists: models (9 tables: voice, size and industry profiles, knowledge items and embeddings, profile-item link, email structures and sections, config versions); planned: services (knowledge lifecycle, embedding, retrieval, versioning), api
@@ -92,7 +92,7 @@ BD_FRONTEND/
 │   │   └── (app)/             # route group: every signed-in screen; layout.tsx checks /auth/me server-side
 │   │       └── leads/ campaigns/ review/ outbox/ admin/ users/ profile/   # empty shells (B3); M2-0 adds leads/{import,quarantine,duplicates}/ and admin/{source-profiles,mappings}/ shells
 │   ├── components/            # shared UI: AppShell, NavBar, LoginForm, LogoutButton, PlaceholderPage; later tables, filter chips, email preview
-│   │   └── import/            # import wizard parts: UploadWizard.tsx (M2-A1 upload step, exists)
+│   │   └── import/            # import wizard parts: UploadWizard.tsx (M2-A1 upload step), ImportWizard.tsx, ProfileStep.tsx, MappingStep.tsx, PreviewStep.tsx (M2-A2 steps); helpers in src/lib/import/ (errors, messages, mapping-form), all exist
 │   └── lib/
 │       ├── api/               # typed client generated from the FastAPI OpenAPI schema; never hand-edited
 │       ├── api-client.ts      # hand-written setup (base URL, cookies, CSRF fetch, 401 redirect); pages import the API from here
@@ -101,7 +101,7 @@ BD_FRONTEND/
 │       ├── auth-context.tsx   # AuthProvider and useCurrentUser() for client components
 │       └── nav-items.ts       # menu entries and the roles that see them (cosmetic)
 └── tests/
-    ├── unit/                  # Vitest tests (LoginForm, AppShell, nav-items, csrf, auth-and-logout, import-upload); run by npm test
+    ├── unit/                  # Vitest tests (LoginForm, AppShell, nav-items, csrf, auth-and-logout, import-upload, import-mapping, import-preview, import-mapping-form); run by npm test
     └── e2e/                   # Playwright journeys (login.spec.ts, helpers.ts); run by npm run test:e2e
 ```
 

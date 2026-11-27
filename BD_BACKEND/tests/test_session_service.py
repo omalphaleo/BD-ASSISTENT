@@ -147,9 +147,7 @@ def test_create_session_stores_only_the_hash(session: Session, user: User) -> No
         assert token not in str(getattr(row, column.key))
 
 
-def test_create_session_expires_after_the_configured_lifetime(
-    session: Session, user: User
-) -> None:
+def test_create_session_expires_after_the_configured_lifetime(session: Session, user: User) -> None:
     """expires_at is the configured lifetime (12 hours by default) after created_at."""
     _, row = create_session(session, user)
 
@@ -157,9 +155,7 @@ def test_create_session_expires_after_the_configured_lifetime(
     assert abs((row.expires_at - row.created_at) - expected) < TOLERANCE
 
 
-def test_create_session_created_at_follows_the_clock_offset(
-    session: Session, user: User
-) -> None:
+def test_create_session_created_at_follows_the_clock_offset(session: Session, user: User) -> None:
     """With the clock shifted +1 day, created_at is about one day ahead of real UTC."""
     set_offset(timedelta(days=1))
     _, row = create_session(session, user)

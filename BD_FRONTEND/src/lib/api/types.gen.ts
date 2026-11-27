@@ -5,12 +5,44 @@ export type ClientOptions = {
 };
 
 /**
+ * CellWarningResponse
+ *
+ * A cell that could not be converted to its field's type; the value became null.
+ */
+export type CellWarningResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Field
+     */
+    field: string;
+};
+
+/**
  * ChangeRoleRequest
  *
  * Body of PATCH /users/{id}: the user's new role.
  */
 export type ChangeRoleRequest = {
     role: UserRole;
+};
+
+/**
+ * ChooseProfileRequest
+ *
+ * Body of PUT /imports/{id}/profile: the source profile and the default country (D-078).
+ */
+export type ChooseProfileRequest = {
+    /**
+     * Default Country
+     */
+    default_country?: string | null;
+    /**
+     * Source Profile Id
+     */
+    source_profile_id?: string | null;
 };
 
 /**
@@ -74,6 +106,44 @@ export type ErrorResponse = {
 };
 
 /**
+ * EstimateResponse
+ *
+ * What the file itself shows before the import starts (no match or duplicate numbers).
+ */
+export type EstimateResponse = {
+    /**
+     * Blocking Issues
+     */
+    blocking_issues: Array<string>;
+    /**
+     * Can Start
+     */
+    can_start: boolean;
+    /**
+     * Rows Total
+     */
+    rows_total: number;
+    /**
+     * Rows Without Email
+     */
+    rows_without_email: number;
+    /**
+     * Rows Without First Name
+     */
+    rows_without_first_name: number;
+    /**
+     * Unmapped Columns
+     */
+    unmapped_columns: Array<UnmappedColumnResponse>;
+    /**
+     * Warning Counts
+     */
+    warning_counts: {
+        [key: string]: number;
+    };
+};
+
+/**
  * ImportFileResponse
  *
  * An import as shown in status calls (no storage key, no server path).
@@ -83,6 +153,10 @@ export type ImportFileResponse = {
      * Created At
      */
     created_at: string;
+    /**
+     * Default Country
+     */
+    default_country: string | null;
     /**
      * Filename
      */
@@ -99,6 +173,10 @@ export type ImportFileResponse = {
      * Size Bytes
      */
     size_bytes: number | null;
+    /**
+     * Source Profile Id
+     */
+    source_profile_id: string | null;
     status: ImportStatus;
     /**
      * Uploaded By
@@ -108,6 +186,58 @@ export type ImportFileResponse = {
      * Worksheet
      */
     worksheet: string | null;
+};
+
+/**
+ * ImportProgressResponse
+ *
+ * How far an import is: status, rows handled so far and the outcome counters (D-050).
+ *
+ * Before the import starts every counter is 0. received counts rows already committed, so
+ * percent (received out of row_count) only moves forward, also after a worker restart.
+ */
+export type ImportProgressResponse = {
+    /**
+     * Duplicates Found
+     */
+    duplicates_found: number;
+    /**
+     * Finished
+     */
+    finished: boolean;
+    /**
+     * Imported
+     */
+    imported: number;
+    /**
+     * Percent
+     */
+    percent: number;
+    /**
+     * Quarantined
+     */
+    quarantined: number;
+    /**
+     * Received
+     */
+    received: number;
+    /**
+     * Rejected
+     */
+    rejected: number;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    status: ImportStatus;
+    /**
+     * Unchanged
+     */
+    unchanged: number;
+    /**
+     * Updated
+     */
+    updated: number;
 };
 
 /**
@@ -131,6 +261,208 @@ export type LoginRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * MappingColumnResponse
+ *
+ * One file column with its mapping; origin says where a suggestion came from.
+ */
+export type MappingColumnResponse = {
+    /**
+     * Column Index
+     */
+    column_index: number;
+    /**
+     * Is Reassigned
+     */
+    is_reassigned: boolean;
+    /**
+     * Origin
+     */
+    origin: string;
+    /**
+     * Source Header
+     */
+    source_header: string;
+    /**
+     * Target Field
+     */
+    target_field: string | null;
+};
+
+/**
+ * MappingEntry
+ *
+ * One column's chosen target; null ignores the column (it stays in the raw rows).
+ */
+export type MappingEntry = {
+    /**
+     * Column Index
+     */
+    column_index: number;
+    /**
+     * Target Field
+     */
+    target_field?: string | null;
+};
+
+/**
+ * MappingErrorResponse
+ *
+ * Body of a refused mapping step: a fixed message and a stable machine-readable code.
+ */
+export type MappingErrorResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Detail
+     */
+    detail: string;
+};
+
+/**
+ * MappingResponse
+ *
+ * The mapping step: columns, whether they are saved, suggestions and what blocks start.
+ */
+export type MappingResponse = {
+    /**
+     * Blocking Issues
+     */
+    blocking_issues: Array<string>;
+    /**
+     * Columns
+     */
+    columns: Array<MappingColumnResponse>;
+    /**
+     * Import Id
+     */
+    import_id: string;
+    /**
+     * Is Saved
+     */
+    is_saved: boolean;
+    /**
+     * Profile Suggestions
+     */
+    profile_suggestions: Array<ProfileSuggestionResponse>;
+};
+
+/**
+ * PreviewResponse
+ *
+ * The first rows of the file as the saved mapping reads them.
+ */
+export type PreviewResponse = {
+    /**
+     * Rows
+     */
+    rows: Array<PreviewRowResponse>;
+};
+
+/**
+ * PreviewRowResponse
+ *
+ * One previewed row: its sheet position and the mapped values the pipeline would receive.
+ */
+export type PreviewRowResponse = {
+    /**
+     * Row Number
+     */
+    row_number: number;
+    /**
+     * Values
+     */
+    values: {
+        [key: string]: string | number | number | boolean | null;
+    };
+    /**
+     * Warnings
+     */
+    warnings: Array<CellWarningResponse>;
+};
+
+/**
+ * ProfileDefaultsResponse
+ *
+ * Result of saving a mapping as a profile's defaults.
+ */
+export type ProfileDefaultsResponse = {
+    /**
+     * Columns In Defaults
+     */
+    columns_in_defaults: number;
+    /**
+     * Source Profile Id
+     */
+    source_profile_id: string;
+};
+
+/**
+ * ProfileOptionResponse
+ *
+ * A source profile the uploader may choose (no saved mapping content is exposed).
+ */
+export type ProfileOptionResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Layout
+     */
+    layout: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * ProfileSuggestionResponse
+ *
+ * A profile whose saved headers match the file; only a suggestion, the user confirms.
+ */
+export type ProfileSuggestionResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Overlap
+     */
+    overlap: number;
+    /**
+     * Source Profile Id
+     */
+    source_profile_id: string;
+};
+
+/**
+ * SaveDefaultRequest
+ *
+ * Body of POST /imports/{id}/mapping/save-as-default (admins only).
+ */
+export type SaveDefaultRequest = {
+    /**
+     * Source Profile Id
+     */
+    source_profile_id: string;
+};
+
+/**
+ * SaveMappingRequest
+ *
+ * Body of PUT /imports/{id}/mapping; columns not listed are ignored.
+ */
+export type SaveMappingRequest = {
+    /**
+     * Columns
+     */
+    columns: Array<MappingEntry>;
 };
 
 /**
@@ -170,6 +502,50 @@ export type SessionUserResponse = {
 };
 
 /**
+ * TargetFieldResponse
+ *
+ * One canonical field a column can be mapped to (from the registry in leads.contracts).
+ */
+export type TargetFieldResponse = {
+    /**
+     * Group
+     */
+    group: string;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Required
+     */
+    required: boolean;
+    /**
+     * Value Type
+     */
+    value_type: string;
+};
+
+/**
+ * UnmappedColumnResponse
+ *
+ * A file column that maps to no field (kept in the raw rows only).
+ */
+export type UnmappedColumnResponse = {
+    /**
+     * Column Index
+     */
+    column_index: number;
+    /**
+     * Source Header
+     */
+    source_header: string;
+};
+
+/**
  * UploadErrorResponse
  *
  * Body of a refused upload: a fixed message and a stable machine-readable code.
@@ -200,6 +576,10 @@ export type UploadResponse = {
      */
     created_at: string;
     /**
+     * Default Country
+     */
+    default_country: string | null;
+    /**
      * Filename
      */
     filename: string;
@@ -219,6 +599,10 @@ export type UploadResponse = {
      * Size Bytes
      */
     size_bytes: number | null;
+    /**
+     * Source Profile Id
+     */
+    source_profile_id: string | null;
     status: ImportStatus;
     /**
      * Uploaded By
@@ -421,6 +805,68 @@ export type HealthHealthGetResponses = {
     200: unknown;
 };
 
+export type ListProfileOptionsImportsProfilesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/imports/profiles';
+};
+
+export type ListProfileOptionsImportsProfilesGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type ListProfileOptionsImportsProfilesGetError = ListProfileOptionsImportsProfilesGetErrors[keyof ListProfileOptionsImportsProfilesGetErrors];
+
+export type ListProfileOptionsImportsProfilesGetResponses = {
+    /**
+     * Response List Profile Options Imports Profiles Get
+     *
+     * Successful Response
+     */
+    200: Array<ProfileOptionResponse>;
+};
+
+export type ListProfileOptionsImportsProfilesGetResponse = ListProfileOptionsImportsProfilesGetResponses[keyof ListProfileOptionsImportsProfilesGetResponses];
+
+export type ListTargetFieldsImportsTargetFieldsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/imports/target-fields';
+};
+
+export type ListTargetFieldsImportsTargetFieldsGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+};
+
+export type ListTargetFieldsImportsTargetFieldsGetError = ListTargetFieldsImportsTargetFieldsGetErrors[keyof ListTargetFieldsImportsTargetFieldsGetErrors];
+
+export type ListTargetFieldsImportsTargetFieldsGetResponses = {
+    /**
+     * Response List Target Fields Imports Target Fields Get
+     *
+     * Successful Response
+     */
+    200: Array<TargetFieldResponse>;
+};
+
+export type ListTargetFieldsImportsTargetFieldsGetResponse = ListTargetFieldsImportsTargetFieldsGetResponses[keyof ListTargetFieldsImportsTargetFieldsGetResponses];
+
 export type UploadImportFileImportsUploadPostData = {
     body: {
         allow_duplicate?: boolean;
@@ -510,6 +956,370 @@ export type GetImportStatusImportsImportIdGetResponses = {
 };
 
 export type GetImportStatusImportsImportIdGetResponse = GetImportStatusImportsImportIdGetResponses[keyof GetImportStatusImportsImportIdGetResponses];
+
+export type ReadEstimateImportsImportIdEstimateGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/estimate';
+};
+
+export type ReadEstimateImportsImportIdEstimateGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import is in the wrong state.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ReadEstimateImportsImportIdEstimateGetError = ReadEstimateImportsImportIdEstimateGetErrors[keyof ReadEstimateImportsImportIdEstimateGetErrors];
+
+export type ReadEstimateImportsImportIdEstimateGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: EstimateResponse;
+};
+
+export type ReadEstimateImportsImportIdEstimateGetResponse = ReadEstimateImportsImportIdEstimateGetResponses[keyof ReadEstimateImportsImportIdEstimateGetResponses];
+
+export type ReadMappingImportsImportIdMappingGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/mapping';
+};
+
+export type ReadMappingImportsImportIdMappingGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import is in the wrong state.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ReadMappingImportsImportIdMappingGetError = ReadMappingImportsImportIdMappingGetErrors[keyof ReadMappingImportsImportIdMappingGetErrors];
+
+export type ReadMappingImportsImportIdMappingGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: MappingResponse;
+};
+
+export type ReadMappingImportsImportIdMappingGetResponse = ReadMappingImportsImportIdMappingGetResponses[keyof ReadMappingImportsImportIdMappingGetResponses];
+
+export type PutMappingImportsImportIdMappingPutData = {
+    body: SaveMappingRequest;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/mapping';
+};
+
+export type PutMappingImportsImportIdMappingPutErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import is in the wrong state.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type PutMappingImportsImportIdMappingPutError = PutMappingImportsImportIdMappingPutErrors[keyof PutMappingImportsImportIdMappingPutErrors];
+
+export type PutMappingImportsImportIdMappingPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: MappingResponse;
+};
+
+export type PutMappingImportsImportIdMappingPutResponse = PutMappingImportsImportIdMappingPutResponses[keyof PutMappingImportsImportIdMappingPutResponses];
+
+export type SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostData = {
+    body: SaveDefaultRequest;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/mapping/save-as-default';
+};
+
+export type SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import is in the wrong state.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostError = SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostErrors[keyof SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostErrors];
+
+export type SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileDefaultsResponse;
+};
+
+export type SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostResponse = SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostResponses[keyof SaveAsProfileDefaultImportsImportIdMappingSaveAsDefaultPostResponses];
+
+export type ReadPreviewImportsImportIdPreviewGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/preview';
+};
+
+export type ReadPreviewImportsImportIdPreviewGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import is in the wrong state.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type ReadPreviewImportsImportIdPreviewGetError = ReadPreviewImportsImportIdPreviewGetErrors[keyof ReadPreviewImportsImportIdPreviewGetErrors];
+
+export type ReadPreviewImportsImportIdPreviewGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PreviewResponse;
+};
+
+export type ReadPreviewImportsImportIdPreviewGetResponse = ReadPreviewImportsImportIdPreviewGetResponses[keyof ReadPreviewImportsImportIdPreviewGetResponses];
+
+export type SetImportProfileImportsImportIdProfilePutData = {
+    body: ChooseProfileRequest;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/profile';
+};
+
+export type SetImportProfileImportsImportIdProfilePutErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * The import is in the wrong state.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type SetImportProfileImportsImportIdProfilePutError = SetImportProfileImportsImportIdProfilePutErrors[keyof SetImportProfileImportsImportIdProfilePutErrors];
+
+export type SetImportProfileImportsImportIdProfilePutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportFileResponse;
+};
+
+export type SetImportProfileImportsImportIdProfilePutResponse = SetImportProfileImportsImportIdProfilePutResponses[keyof SetImportProfileImportsImportIdProfilePutResponses];
+
+export type GetImportProgressImportsImportIdProgressGetData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/progress';
+};
+
+export type GetImportProgressImportsImportIdProgressGetErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type GetImportProgressImportsImportIdProgressGetError = GetImportProgressImportsImportIdProgressGetErrors[keyof GetImportProgressImportsImportIdProgressGetErrors];
+
+export type GetImportProgressImportsImportIdProgressGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ImportProgressResponse;
+};
+
+export type GetImportProgressImportsImportIdProgressGetResponse = GetImportProgressImportsImportIdProgressGetResponses[keyof GetImportProgressImportsImportIdProgressGetResponses];
+
+export type StartImportProcessingImportsImportIdStartPostData = {
+    body?: never;
+    path: {
+        /**
+         * Import Id
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/imports/{import_id}/start';
+};
+
+export type StartImportProcessingImportsImportIdStartPostErrors = {
+    /**
+     * Not authenticated
+     */
+    401: ErrorResponse;
+    /**
+     * Not permitted; or CSRF check failed
+     */
+    403: ErrorResponse;
+    /**
+     * No such import, or not visible to you.
+     */
+    404: unknown;
+    /**
+     * Not the uploader, wrong state, queued already or mapping incomplete.
+     */
+    409: MappingErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ValidationErrorResponse;
+};
+
+export type StartImportProcessingImportsImportIdStartPostError = StartImportProcessingImportsImportIdStartPostErrors[keyof StartImportProcessingImportsImportIdStartPostErrors];
+
+export type StartImportProcessingImportsImportIdStartPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: ImportProgressResponse;
+};
+
+export type StartImportProcessingImportsImportIdStartPostResponse = StartImportProcessingImportsImportIdStartPostResponses[keyof StartImportProcessingImportsImportIdStartPostResponses];
 
 export type ChooseWorksheetImportsImportIdWorksheetPostData = {
     body: SelectWorksheetRequest;

@@ -6,8 +6,8 @@
  * Needed so a user can send a CSV or XLSX file, see the duplicate-file warning (D-109) and pick
  * the worksheet of a multi-sheet workbook. It calls only the generated `/imports` client
  * functions; every decision (file type, size, duplicates, who may choose a sheet) is the
- * server's, and the component shows the server's fixed messages. Later steps (mapping, preview,
- * start) arrive with M2-A2 and are not built yet.
+ * server's, and the component shows the server's fixed messages. The later steps (profile,
+ * mapping, preview) live in their own components, hosted by ImportWizard (M2-A2 UI).
  */
 import { useState, type FormEvent } from "react";
 
@@ -19,11 +19,10 @@ import {
   uploadImportFileImportsUploadPost,
 } from "@/lib/api/sdk.gen";
 import type { DuplicateFileResponse, UploadResponse } from "@/lib/api/types.gen";
+import { errorMessage } from "@/lib/import/errors";
 
 const ACCEPTED_FILE_TYPES = ".csv,.xlsx";
 const MESSAGE_NO_FILE = "Choose a CSV or XLSX file first.";
-const MESSAGE_UNREACHABLE = "Cannot reach the server. Please try again later.";
-const MESSAGE_FAILED = "The request failed. Please try again.";
 const DUPLICATE_CODE = "duplicate_file";
 
 /** What the wizard is showing: the form, the duplicate warning, the picker or the result. */
@@ -33,22 +32,18 @@ type Step =
   | { kind: "worksheet"; upload: UploadResponse }
   | { kind: "ready"; upload: UploadResponse };
 
-/** Picks the message to show for a failed call: the server's fixed `detail`, else a fallback. */
-function errorMessage(error: unknown, response: Response | undefined): string {
-  if (!response) {
-    return MESSAGE_UNREACHABLE; // no response: network or CORS failure
-  }
-  const detail = (error as { detail?: unknown } | undefined)?.detail;
-  return typeof detail === "string" && detail ? detail : MESSAGE_FAILED;
-}
-
 /** Formats an ISO timestamp for the duplicate warning (the user's locale and time zone). */
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
-/** Renders the upload form and the steps that follow it. */
-export default function UploadWizard() {
+/**
+ * Renders the upload form and the worksheet/duplicate steps. When `onReady` is given (the
+ * wizard host), it is called once the file is ready so the host can show the next step.
+ */
+export default function UploadWizard({
+  onReady,
+}: Readonly<{ onReady?: (upload: UploadResponse) => void }> = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [step, setStep] = useState<Step>({ kind: "form" });
   const [worksheet, setWorksheet] = useState("");
@@ -75,6 +70,8 @@ export default function UploadWizard() {
         const firstSelectable = uploaded.worksheets.find((sheet) => sheet.selectable);
         setWorksheet(firstSelectable?.name ?? "");
         setStep({ kind: "worksheet", upload: uploaded });
+      } else if (onReady) {
+        onReady(uploaded);
       } else {
         setStep({ kind: "ready", upload: uploaded });
       }
@@ -107,7 +104,12 @@ export default function UploadWizard() {
     setBusy(false);
 
     if (result.data) {
-      setStep({ kind: "ready", upload: { ...current, ...result.data } });
+      const chosen = { ...current, ...result.data };
+      if (onReady) {
+        onReady(chosen);
+      } else {
+        setStep({ kind: "ready", upload: chosen });
+      }
       return;
     }
     setError(errorMessage(result.error, result.response));
@@ -173,7 +175,6 @@ export default function UploadWizard() {
           {current.filename}
           {current.worksheet ? `, worksheet ${current.worksheet}` : ""}: {current.row_count} rows.
         </p>
-        <p>Column mapping, preview and start arrive in the next step (planned).</p>
         <button className="button button-secondary" type="button" onClick={reset}>
           Upload another file
         </button>

@@ -31,6 +31,13 @@ DEFAULT_XLSX_MAX_MEMBER_BYTES = 100 * BYTES_PER_MEGABYTE
 DEFAULT_XLSX_MAX_TOTAL_BYTES = 200 * BYTES_PER_MEGABYTE
 DEFAULT_XLSX_MAX_COMPRESSION_RATIO = 100
 
+# Import processing (M2-A3). Rows per transaction: small enough that a crash loses little work
+# and progress moves often, large enough to keep commit overhead low (approved 2026-11-27).
+DEFAULT_IMPORT_CHUNK_SIZE = 500
+# Days after contact before a person may enter a new campaign (D-082: 90 days); passed to
+# ingest_row through ImportContext. No settings screen exists yet, so it is an env value.
+DEFAULT_COOLING_OFF_DAYS = 90
+
 
 class Settings(BaseSettings):
     """All runtime settings; field names map to upper-case environment variables.
@@ -71,6 +78,10 @@ class Settings(BaseSettings):
     xlsx_max_member_bytes: int = Field(default=DEFAULT_XLSX_MAX_MEMBER_BYTES, gt=0)
     xlsx_max_total_bytes: int = Field(default=DEFAULT_XLSX_MAX_TOTAL_BYTES, gt=0)
     xlsx_max_compression_ratio: int = Field(default=DEFAULT_XLSX_MAX_COMPRESSION_RATIO, gt=0)
+
+    # Import processing (env: IMPORT_CHUNK_SIZE, COOLING_OFF_DAYS).
+    import_chunk_size: int = Field(default=DEFAULT_IMPORT_CHUNK_SIZE, gt=0)
+    cooling_off_days: int = Field(default=DEFAULT_COOLING_OFF_DAYS, ge=0)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

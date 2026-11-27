@@ -4,7 +4,8 @@ Needed so the upload service can refuse unusable files (D-110: CSV or XLSX, 20 M
 rows, one sheet per import) before anything is stored, and so later steps (mapping, the import
 pipeline) know the file's headers and size. Only non-empty data rows count toward the row limit;
 the header row and blank rows do not. This module reads structure only: it never maps columns
-or judges lead data, and it never extracts an archive to disk.
+or judges lead data, and it never extracts an archive to disk. iter_records() (M2-A2) streams
+the non-blank records of a stored file so the mapping preview and the import pipeline can read it.
 """
 
 import csv
@@ -160,6 +161,69 @@ def read_worksheet_headers(
             raise UploadRejectedError(UploadErrorKind.BAD_WORKSHEET, BAD_WORKSHEET_MESSAGE)
         headers, _ = _scan_worksheet(workbook[worksheet_name], limits.max_rows)
     return headers
+
+
+def iter_records(
+    source: BinaryIO,
+    file_format: FileFormat,
+    worksheet_name: str | None,
+    limits: UploadLimits,
+) -> Iterator[tuple[int, list[object]]]:
+    """Yield (row_number, cells) for every non-blank record of a stored file, header first.
+
+    row_number is the one-based position of the record in the file or sheet, counting blank
+    records too, so it matches what the user sees in Excel. The first yielded record is the
+    header row. Cells are text for CSV and the cell values openpyxl returns for XLSX (text,
+    numbers, booleans, dates; formulas as their cached result). Use it with
+    contextlib.closing() so an XLSX workbook is closed even if the caller stops early.
+
+    Raises:
+        UploadRejectedError: BAD_WORKSHEET if an XLSX has no such sheet (or none was given);
+            otherwise the same errors as parse_upload() for an unreadable or unsafe file.
+    """
+    if file_format is FileFormat.CSV:
+        yield from _iter_csv_records(source, limits)
+    else:
+        yield from _iter_xlsx_records(source, worksheet_name, limits)
+
+
+def _iter_csv_records(source: BinaryIO, limits: UploadLimits) -> Iterator[tuple[int, list[object]]]:
+    """Non-blank CSV records with their one-based record numbers."""
+    text = _decode_csv(source.read(limits.max_bytes + 1))
+    delimiter = _choose_delimiter(text)
+    try:
+        for number, record in enumerate(
+            csv.reader(io.StringIO(text, newline=""), delimiter=delimiter), start=1
+        ):
+            if not _is_blank(record):
+                yield number, list(record)
+    except csv.Error as exc:
+        raise UploadRejectedError(UploadErrorKind.MALFORMED_FILE, CSV_MALFORMED_MESSAGE) from exc
+
+
+def _iter_xlsx_records(
+    source: BinaryIO, worksheet_name: str | None, limits: UploadLimits
+) -> Iterator[tuple[int, list[object]]]:
+    """Non-blank rows of one worksheet with their one-based row numbers."""
+    check_xlsx_archive(source, limits.zip)
+    with _open_workbook(source) as workbook:
+        if worksheet_name is None or worksheet_name not in workbook.sheetnames:
+            raise UploadRejectedError(UploadErrorKind.BAD_WORKSHEET, BAD_WORKSHEET_MESSAGE)
+        try:
+            for number, row in enumerate(workbook[worksheet_name].iter_rows(values_only=True), 1):
+                if not _is_blank([_cell_text(value) for value in row]):
+                    yield number, list(row)
+        except (
+            ValueError,
+            KeyError,
+            TypeError,
+            AttributeError,
+            ParseError,
+            DefusedXmlException,
+        ) as exc:
+            raise UploadRejectedError(
+                UploadErrorKind.MALFORMED_FILE, XLSX_MALFORMED_MESSAGE
+            ) from exc
 
 
 # --- CSV -------------------------------------------------------------------------------------

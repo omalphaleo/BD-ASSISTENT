@@ -85,6 +85,18 @@ EXPECTED_REAL_ROUTES = {
     ("POST", "/imports/upload"): "import_leads",
     ("GET", "/imports/{import_id}"): "import_leads",
     ("POST", "/imports/{import_id}/worksheet"): "import_leads",
+    # M2-A2: mapping, preview and estimate. Saving a mapping as a profile default is admin-only.
+    ("GET", "/imports/target-fields"): "import_leads",
+    ("GET", "/imports/profiles"): "import_leads",
+    ("PUT", "/imports/{import_id}/profile"): "import_leads",
+    ("GET", "/imports/{import_id}/mapping"): "import_leads",
+    ("PUT", "/imports/{import_id}/mapping"): "import_leads",
+    ("POST", "/imports/{import_id}/mapping/save-as-default"): "manage_source_profiles",
+    ("GET", "/imports/{import_id}/preview"): "import_leads",
+    ("GET", "/imports/{import_id}/estimate"): "import_leads",
+    # M2-A3: start the background import and read its progress.
+    ("POST", "/imports/{import_id}/start"): "import_leads",
+    ("GET", "/imports/{import_id}/progress"): "import_leads",
 }
 
 
